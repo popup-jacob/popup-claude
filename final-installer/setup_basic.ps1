@@ -5,12 +5,11 @@
 # Check if running as admin FIRST (before any prompts)
 $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
-    Write-Host "Requesting administrator privileges..." -ForegroundColor Yellow
-
     # If running via irm|iex, download script to temp file first
     if (-not $PSCommandPath) {
         $tempScript = "$env:TEMP\setup_basic.ps1"
-        Invoke-WebRequest -Uri "https://raw.githubusercontent.com/popup-jacob/popup-claude/master/final-installer/setup_basic.ps1" -OutFile $tempScript
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        (New-Object Net.WebClient).DownloadFile("https://raw.githubusercontent.com/popup-jacob/popup-claude/master/final-installer/setup_basic.ps1", $tempScript)
         Start-Process powershell.exe "-ExecutionPolicy Bypass -File `"$tempScript`"" -Verb RunAs
     } else {
         Start-Process powershell.exe "-ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
