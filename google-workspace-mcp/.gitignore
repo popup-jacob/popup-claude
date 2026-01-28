@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Build
+dist/
+
+# Google OAuth (절대 공개하면 안 됨!)
+.google-workspace/
+client_secret.json
+token.json
+credentials.json
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

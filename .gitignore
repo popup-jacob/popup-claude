@@ -1,0 +1,31 @@
+# Sensitive files - DO NOT UPLOAD
+token.txt
+*.tar
+
+# Google OAuth credentials
+.google-workspace/
+client_secret.json
+token.json
+
+# Node.js
+node_modules/
+
+# Claude local settings
+.claude/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
