@@ -1,6 +1,23 @@
 # AI-Driven Work - Complete Setup Script (Windows)
 # Usage: powershell -ep bypass -File setup_all.ps1
 
+# Check if running as admin FIRST (before any prompts)
+$isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+if (-not $isAdmin) {
+    Write-Host "Requesting administrator privileges..." -ForegroundColor Yellow
+
+    # If running via irm|iex, download script to temp file first
+    if (-not $PSCommandPath) {
+        $tempScript = "$env:TEMP\setup_all.ps1"
+        Invoke-WebRequest -Uri "https://raw.githubusercontent.com/popup-jacob/popup-claude/master/final-installer/setup_all.ps1" -OutFile $tempScript
+        Start-Process powershell.exe "-ExecutionPolicy Bypass -File `"$tempScript`"" -Verb RunAs
+    } else {
+        Start-Process powershell.exe "-ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
+    }
+    exit
+}
+
+# Now running as admin - show welcome message
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  AI-Driven Work - Complete Setup" -ForegroundColor Cyan
@@ -23,22 +40,6 @@ Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  PART 1: Installing Basic Tools" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
-
-# Check if running as admin
-$isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-if (-not $isAdmin) {
-    Write-Host "Requesting administrator privileges..." -ForegroundColor Yellow
-
-    # If running via irm|iex, download script to temp file first
-    if (-not $PSCommandPath) {
-        $tempScript = "$env:TEMP\setup_all.ps1"
-        Invoke-WebRequest -Uri "https://raw.githubusercontent.com/popup-jacob/popup-claude/master/final-installer/setup_all.ps1" -OutFile $tempScript
-        Start-Process powershell.exe "-ExecutionPolicy Bypass -File `"$tempScript`"" -Verb RunAs -Wait
-    } else {
-        Start-Process powershell.exe "-ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs -Wait
-    }
-    exit
-}
 
 # Check winget
 Write-Host ""
