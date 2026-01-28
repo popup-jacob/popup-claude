@@ -28,7 +28,15 @@ Write-Host "========================================" -ForegroundColor Cyan
 $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
     Write-Host "Requesting administrator privileges..." -ForegroundColor Yellow
-    Start-Process powershell.exe "-ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
+
+    # If running via irm|iex, download script to temp file first
+    if (-not $PSCommandPath) {
+        $tempScript = "$env:TEMP\setup_all.ps1"
+        Invoke-WebRequest -Uri "https://raw.githubusercontent.com/popup-jacob/popup-claude/master/final-installer/setup_all.ps1" -OutFile $tempScript
+        Start-Process powershell.exe "-ExecutionPolicy Bypass -File `"$tempScript`"" -Verb RunAs -Wait
+    } else {
+        Start-Process powershell.exe "-ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs -Wait
+    }
     exit
 }
 
