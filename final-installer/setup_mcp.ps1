@@ -145,7 +145,7 @@ if ($googleChoice -eq "y" -or $googleChoice -eq "Y") {
                 # Run container with port mapping for OAuth callback
                 $configDirUnix = $configDir -replace '\\', '/'
                 Write-Host "Starting Google authentication..." -ForegroundColor Yellow
-                docker run -it --rm -p 3000:3000 -v "${configDirUnix}:/app/.google-workspace" ghcr.io/popup-jacob/google-workspace-mcp:latest node -e "require('./dist/auth/oauth.js').getAuthenticatedClient().then(() => { console.log('Authentication complete!'); process.exit(0); }).catch(e => { console.error(e); process.exit(1); })"
+                docker run -i --rm -p 3000:3000 -v "${configDirUnix}:/app/.google-workspace" ghcr.io/popup-jacob/google-workspace-mcp:latest node -e "require('./dist/auth/oauth.js').getAuthenticatedClient().then(() => { console.log('Authentication complete!'); process.exit(0); }).catch(e => { console.error(e); process.exit(1); })"
 
                 if (Test-Path $tokenPath) {
                     Write-Host "Google login successful!" -ForegroundColor Green

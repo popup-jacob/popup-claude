@@ -210,7 +210,7 @@ if [[ "$googleChoice" == "y" || "$googleChoice" == "Y" ]]; then
 
                 # Run container with port mapping for OAuth callback
                 echo -e "${YELLOW}Starting Google authentication...${NC}"
-                docker run -it --rm -p 3000:3000 -v "$CONFIG_DIR:/app/.google-workspace" ghcr.io/popup-jacob/google-workspace-mcp:latest node -e "require('./dist/auth/oauth.js').getAuthenticatedClient().then(() => { console.log('Authentication complete!'); process.exit(0); }).catch(e => { console.error(e); process.exit(1); })"
+                docker run -i --rm -p 3000:3000 -v "$CONFIG_DIR:/app/.google-workspace" ghcr.io/popup-jacob/google-workspace-mcp:latest node -e "require('./dist/auth/oauth.js').getAuthenticatedClient().then(() => { console.log('Authentication complete!'); process.exit(0); }).catch(e => { console.error(e); process.exit(1); })"
 
                 if [[ -f "$TOKEN_PATH" ]]; then
                     echo -e "${GREEN}Google login successful!${NC}"
