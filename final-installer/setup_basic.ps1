@@ -2,22 +2,16 @@
 # Installs: Node.js, Git, VS Code, Docker, Claude CLI, bkit Plugin
 # Usage: powershell -ep bypass -File setup_basic.ps1
 
-# Check if running as admin FIRST (before any prompts)
+# Check if running as admin
 $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
-    # If running via irm|iex, download script to temp file first
-    if (-not $PSCommandPath) {
-        $tempScript = "$env:TEMP\setup_basic.ps1"
-        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-        (New-Object Net.WebClient).DownloadFile("https://raw.githubusercontent.com/popup-jacob/popup-claude/master/final-installer/setup_basic.ps1", $tempScript)
-        Start-Process powershell.exe "-ExecutionPolicy Bypass -File `"$tempScript`"" -Verb RunAs
-    } else {
-        Start-Process powershell.exe "-ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
-    }
+    Write-Host "Please run this script as Administrator." -ForegroundColor Red
+    Write-Host "Right-click PowerShell -> Run as Administrator" -ForegroundColor Yellow
+    cmd /c pause
     exit
 }
 
-# Now running as admin - show welcome message
+# Running as admin - show welcome message
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  AI-Driven Work - Basic Setup" -ForegroundColor Cyan

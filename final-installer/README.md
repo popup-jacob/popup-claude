@@ -6,15 +6,18 @@ All-in-one installer for Claude Code + bkit + MCP tools.
 
 ### Windows
 
-**Step 1:** Press `Win + R`, paste and run:
-```
-powershell -ep bypass -c "irm https://raw.githubusercontent.com/popup-jacob/popup-claude/master/final-installer/setup_basic.ps1|iex"
+**Step 1:** Open PowerShell as Administrator, then run:
+```powershell
+irm https://raw.githubusercontent.com/popup-jacob/popup-claude/master/final-installer/setup_basic.ps1 | iex
 ```
 
-**Step 2:** Restart your computer, then press `Win + R` and run:
+**Step 2:** Restart your computer, open PowerShell as Administrator, then run:
+```powershell
+irm https://raw.githubusercontent.com/popup-jacob/popup-claude/master/final-installer/setup_mcp.ps1 | iex
 ```
-powershell -ep bypass -c "irm https://raw.githubusercontent.com/popup-jacob/popup-claude/master/final-installer/setup_mcp.ps1|iex"
-```
+
+> **How to open PowerShell as Administrator:**
+> Press `Win + X` → Click "Windows Terminal (Admin)" or "PowerShell (Admin)"
 
 ### Mac/Linux
 
