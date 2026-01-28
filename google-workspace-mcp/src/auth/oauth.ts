@@ -154,8 +154,17 @@ async function getTokenFromBrowser(oauth2Client: OAuth2Client): Promise<TokenDat
     });
 
     server.listen(3000, () => {
-      console.error("브라우저에서 Google 로그인을 진행하세요...");
-      open(authUrl);
+      console.error("\n========================================");
+      console.error("Google 로그인이 필요합니다!");
+      console.error("========================================");
+      console.error("\n아래 URL을 브라우저에서 열어주세요:\n");
+      console.error(authUrl);
+      console.error("\n========================================\n");
+
+      // Docker 외부에서는 자동으로 브라우저 열기 시도
+      open(authUrl).catch(() => {
+        // Docker 내부에서는 실패해도 무시 (URL이 이미 출력됨)
+      });
     });
 
     // 5분 타임아웃

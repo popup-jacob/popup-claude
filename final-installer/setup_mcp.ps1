@@ -129,6 +129,33 @@ if ($googleChoice -eq "y" -or $googleChoice -eq "Y") {
             docker pull ghcr.io/popup-jacob/google-workspace-mcp:latest
             Write-Host "Image pulled!" -ForegroundColor Green
 
+            # Check if token.json exists, if not, run OAuth
+            $tokenPath = "$configDir\token.json"
+            if (-not (Test-Path $tokenPath)) {
+                Write-Host ""
+                Write-Host "========================================" -ForegroundColor Yellow
+                Write-Host "  Google Login Required" -ForegroundColor Yellow
+                Write-Host "========================================" -ForegroundColor Yellow
+                Write-Host ""
+                Write-Host "A browser window will open for Google login." -ForegroundColor White
+                Write-Host "After login, return here." -ForegroundColor White
+                Write-Host ""
+                Read-Host "Press Enter to start Google login"
+
+                # Run container with port mapping for OAuth callback
+                $configDirUnix = $configDir -replace '\\', '/'
+                Write-Host "Starting Google authentication..." -ForegroundColor Yellow
+                docker run -it --rm -p 3000:3000 -v "${configDirUnix}:/app/.google-workspace" ghcr.io/popup-jacob/google-workspace-mcp:latest node -e "require('./dist/auth/oauth.js').getAuthenticatedClient().then(() => console.log('Authentication complete!')).catch(e => console.error(e))"
+
+                if (Test-Path $tokenPath) {
+                    Write-Host "Google login successful!" -ForegroundColor Green
+                } else {
+                    Write-Host "Google login may have failed. You can try again later." -ForegroundColor Yellow
+                }
+            } else {
+                Write-Host "Google already authenticated (token.json exists)" -ForegroundColor Green
+            }
+
             # Create .mcp.json
             $imageExists = docker images -q ghcr.io/popup-jacob/google-workspace-mcp 2>$null
             if ($imageExists) {

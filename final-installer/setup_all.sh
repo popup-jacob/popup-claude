@@ -195,6 +195,32 @@ if [[ "$googleChoice" == "y" || "$googleChoice" == "Y" ]]; then
             docker pull ghcr.io/popup-jacob/google-workspace-mcp:latest
             echo -e "${GREEN}Image pulled!${NC}"
 
+            # Check if token.json exists, if not, run OAuth
+            TOKEN_PATH="$CONFIG_DIR/token.json"
+            if [[ ! -f "$TOKEN_PATH" ]]; then
+                echo ""
+                echo "========================================"
+                echo -e "${YELLOW}  Google Login Required${NC}"
+                echo "========================================"
+                echo ""
+                echo "A browser window will open for Google login."
+                echo "After login, return here."
+                echo ""
+                read -p "Press Enter to start Google login..."
+
+                # Run container with port mapping for OAuth callback
+                echo -e "${YELLOW}Starting Google authentication...${NC}"
+                docker run -it --rm -p 3000:3000 -v "$CONFIG_DIR:/app/.google-workspace" ghcr.io/popup-jacob/google-workspace-mcp:latest node -e "require('./dist/auth/oauth.js').getAuthenticatedClient().then(() => console.log('Authentication complete!')).catch(e => console.error(e))"
+
+                if [[ -f "$TOKEN_PATH" ]]; then
+                    echo -e "${GREEN}Google login successful!${NC}"
+                else
+                    echo -e "${YELLOW}Google login may have failed. You can try again later.${NC}"
+                fi
+            else
+                echo -e "${GREEN}Google already authenticated (token.json exists)${NC}"
+            fi
+
             # Create .mcp.json
             IMAGE_EXISTS=$(docker images -q ghcr.io/popup-jacob/google-workspace-mcp 2>/dev/null)
             if [[ -n "$IMAGE_EXISTS" ]]; then
