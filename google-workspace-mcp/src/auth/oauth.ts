@@ -115,6 +115,8 @@ async function getTokenFromBrowser(oauth2Client: OAuth2Client): Promise<TokenDat
   });
 
   return new Promise((resolve, reject) => {
+    let timeoutId: NodeJS.Timeout;
+
     const server = http.createServer(async (req, res) => {
       try {
         const url = new URL(req.url || "", "http://localhost:3000");
@@ -125,6 +127,7 @@ async function getTokenFromBrowser(oauth2Client: OAuth2Client): Promise<TokenDat
           if (!code) {
             res.writeHead(400, { "Content-Type": "text/html; charset=utf-8" });
             res.end("<h1>오류: 인증 코드가 없습니다.</h1>");
+            clearTimeout(timeoutId);
             reject(new Error("인증 코드가 없습니다."));
             return;
           }
@@ -143,12 +146,14 @@ async function getTokenFromBrowser(oauth2Client: OAuth2Client): Promise<TokenDat
             </html>
           `);
 
+          clearTimeout(timeoutId);
           server.close();
           resolve(tokens as TokenData);
         }
       } catch (error) {
         res.writeHead(500, { "Content-Type": "text/html; charset=utf-8" });
         res.end("<h1>오류가 발생했습니다.</h1>");
+        clearTimeout(timeoutId);
         reject(error);
       }
     });
@@ -168,7 +173,7 @@ async function getTokenFromBrowser(oauth2Client: OAuth2Client): Promise<TokenDat
     });
 
     // 5분 타임아웃
-    setTimeout(() => {
+    timeoutId = setTimeout(() => {
       server.close();
       reject(new Error("로그인 타임아웃 (5분)"));
     }, 5 * 60 * 1000);
