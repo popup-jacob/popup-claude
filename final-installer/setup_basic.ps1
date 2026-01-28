@@ -193,5 +193,4 @@ Write-Host "  1. RESTART your computer" -ForegroundColor Yellow
 Write-Host "  2. Start Docker Desktop" -ForegroundColor Gray
 Write-Host "  3. Run setup_mcp.ps1 to set up Google/Jira MCP" -ForegroundColor Gray
 Write-Host ""
-Write-Host "Press any key to close..." -ForegroundColor Gray
-$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+cmd /c pause
