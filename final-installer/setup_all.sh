@@ -22,7 +22,7 @@ echo "  - bkit Plugin"
 echo "  - Google MCP (optional)"
 echo "  - Jira/Confluence MCP (optional)"
 echo ""
-read -p "Press Enter to start"
+read -p "Press Enter to start" < /dev/tty
 
 # ============================================
 # PART 1: Basic Tools Installation
@@ -119,7 +119,7 @@ echo "  - Drive (search, download files)"
 echo "  - Docs, Sheets, Slides"
 echo ""
 
-read -p "Set up Google MCP? (y/n): " googleChoice
+read -p "Set up Google MCP? (y/n): " googleChoice < /dev/tty
 
 if [[ "$googleChoice" == "y" || "$googleChoice" == "Y" ]]; then
     echo ""
@@ -127,7 +127,7 @@ if [[ "$googleChoice" == "y" || "$googleChoice" == "Y" ]]; then
     echo "  1. Admin (setting up for the first time)"
     echo "  2. Employee (received files from admin)"
     echo ""
-    read -p "Select (1/2): " roleChoice
+    read -p "Select (1/2): " roleChoice < /dev/tty
 
     if [[ "$roleChoice" == "1" ]]; then
         # Admin path
@@ -146,7 +146,7 @@ if [[ "$googleChoice" == "y" || "$googleChoice" == "Y" ]]; then
         echo "  5. Download client_secret.json"
         echo ""
 
-        read -p "Open setup guide in browser? (y/n): " openGuide
+        read -p "Open setup guide in browser? (y/n): " openGuide < /dev/tty
         if [[ "$openGuide" == "y" || "$openGuide" == "Y" ]]; then
             open "https://console.cloud.google.com" 2>/dev/null || xdg-open "https://console.cloud.google.com" 2>/dev/null
             echo ""
@@ -181,7 +181,7 @@ if [[ "$googleChoice" == "y" || "$googleChoice" == "Y" ]]; then
                 open "$CONFIG_DIR"
             fi
 
-            read -p "Copy the file and press Enter..."
+            read -p "Copy the file and press Enter..." < /dev/tty
 
             if [[ ! -f "$CLIENT_SECRET_PATH" ]]; then
                 echo -e "${RED}client_secret.json not found. Skipping Google MCP.${NC}"
@@ -206,7 +206,7 @@ if [[ "$googleChoice" == "y" || "$googleChoice" == "Y" ]]; then
                 echo "A browser window will open for Google login."
                 echo "After login, return here."
                 echo ""
-                read -p "Press Enter to start Google login..."
+                read -p "Press Enter to start Google login..." < /dev/tty
 
                 # Run container with port mapping for OAuth callback
                 echo -e "${YELLOW}Starting Google authentication...${NC}"
@@ -271,7 +271,7 @@ echo "  - Atlassian account"
 echo "  - API token from: https://id.atlassian.com/manage-profile/security/api-tokens"
 echo ""
 
-read -p "Set up Jira/Confluence MCP? (y/n): " jiraChoice
+read -p "Set up Jira/Confluence MCP? (y/n): " jiraChoice < /dev/tty
 
 if [[ "$jiraChoice" == "y" || "$jiraChoice" == "Y" ]]; then
     echo ""
@@ -279,7 +279,7 @@ if [[ "$jiraChoice" == "y" || "$jiraChoice" == "Y" ]]; then
     echo "  1. Non-developer (Rovo MCP - just login)"
     echo "  2. Developer (mcp-atlassian - Docker)"
     echo ""
-    read -p "Select (1/2): " jiraRoleChoice
+    read -p "Select (1/2): " jiraRoleChoice < /dev/tty
 
     if [[ "$jiraRoleChoice" == "1" ]]; then
         # Rovo MCP (Official Atlassian) - Non-developer
@@ -306,18 +306,18 @@ if [[ "$jiraChoice" == "y" || "$jiraChoice" == "Y" ]]; then
         echo -e "  ${CYAN}https://id.atlassian.com/manage-profile/security/api-tokens${NC}"
         echo ""
 
-        read -p "Open API token page in browser? (y/n): " openToken
+        read -p "Open API token page in browser? (y/n): " openToken < /dev/tty
         if [[ "$openToken" == "y" || "$openToken" == "Y" ]]; then
             open "https://id.atlassian.com/manage-profile/security/api-tokens" 2>/dev/null || xdg-open "https://id.atlassian.com/manage-profile/security/api-tokens" 2>/dev/null
             echo "Create a token and copy it."
-            read -p "Press Enter when ready..."
+            read -p "Press Enter when ready..." < /dev/tty
         fi
 
         echo ""
-        read -p "Confluence URL (e.g. https://company.atlassian.net/wiki): " confluenceUrl
-        read -p "Jira URL (e.g. https://company.atlassian.net): " jiraUrl
-        read -p "Your email: " email
-        read -p "API token: " apiToken
+        read -p "Confluence URL (e.g. https://company.atlassian.net/wiki): " confluenceUrl < /dev/tty
+        read -p "Jira URL (e.g. https://company.atlassian.net): " jiraUrl < /dev/tty
+        read -p "Your email: " email < /dev/tty
+        read -p "API token: " apiToken < /dev/tty
 
         # Pull mcp-atlassian image
         echo ""
@@ -417,4 +417,4 @@ echo "Test commands in Claude:"
 echo "  - 'Show my calendar' (Google)"
 echo "  - 'List Jira projects' (Jira)"
 echo ""
-read -p "Press Enter to close"
+read -p "Press Enter to close" < /dev/tty
