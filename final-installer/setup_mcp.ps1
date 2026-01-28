@@ -123,30 +123,14 @@ if ($googleChoice -eq "y" -or $googleChoice -eq "Y") {
         }
 
         if (Test-Path $clientSecretPath) {
-            # Check Docker image
-            $imageExists = docker images -q google-workspace-mcp 2>$null
-            if (-not $imageExists) {
-                Write-Host ""
-                Write-Host "Docker image not found." -ForegroundColor White
-                Write-Host "Do you have google-workspace-mcp.tar file?" -ForegroundColor White
-                Write-Host ""
-                $hasTar = Read-Host "(y/n)"
+            # Pull Docker image from ghcr.io
+            Write-Host ""
+            Write-Host "Pulling Google MCP Docker image..." -ForegroundColor Yellow
+            docker pull ghcr.io/popup-jacob/google-workspace-mcp:latest
+            Write-Host "Image pulled!" -ForegroundColor Green
 
-                if ($hasTar -eq "y" -or $hasTar -eq "Y") {
-                    $tarFile = Read-Host "Enter tar file path (drag and drop)"
-                    $tarFile = $tarFile.Trim('"')
-                    if (Test-Path $tarFile) {
-                        Write-Host "Loading image..." -ForegroundColor Yellow
-                        docker load -i $tarFile
-                        Write-Host "Image loaded!" -ForegroundColor Green
-                    }
-                } else {
-                    Write-Host "Please get the tar file from admin. Skipping Google MCP." -ForegroundColor Yellow
-                }
-            }
-
-            # Create .mcp.json if image exists
-            $imageExists = docker images -q google-workspace-mcp 2>$null
+            # Create .mcp.json
+            $imageExists = docker images -q ghcr.io/popup-jacob/google-workspace-mcp 2>$null
             if ($imageExists) {
                 $mcpConfigPath = "$env:USERPROFILE\.mcp.json"
                 $configDirUnix = $configDir -replace '\\', '/'
@@ -168,7 +152,7 @@ if ($googleChoice -eq "y" -or $googleChoice -eq "Y") {
                 # Add google-workspace
                 $mcpConfig.mcpServers["google-workspace"] = @{
                     command = "docker"
-                    args = @("run", "-i", "--rm", "-v", "${configDirUnix}:/app/.google-workspace", "google-workspace-mcp")
+                    args = @("run", "-i", "--rm", "-v", "${configDirUnix}:/app/.google-workspace", "ghcr.io/popup-jacob/google-workspace-mcp:latest")
                 }
 
                 $mcpConfig | ConvertTo-Json -Depth 10 | Out-File -FilePath $mcpConfigPath -Encoding utf8

@@ -189,28 +189,14 @@ if [[ "$googleChoice" == "y" || "$googleChoice" == "Y" ]]; then
         fi
 
         if [[ -f "$CLIENT_SECRET_PATH" ]]; then
-            # Check Docker image
-            IMAGE_EXISTS=$(docker images -q google-workspace-mcp 2>/dev/null)
-            if [[ -z "$IMAGE_EXISTS" ]]; then
-                echo ""
-                echo "Docker image not found."
-                read -p "Do you have google-workspace-mcp.tar file? (y/n): " hasTar
+            # Pull Docker image from ghcr.io
+            echo ""
+            echo -e "${YELLOW}Pulling Google MCP Docker image...${NC}"
+            docker pull ghcr.io/popup-jacob/google-workspace-mcp:latest
+            echo -e "${GREEN}Image pulled!${NC}"
 
-                if [[ "$hasTar" == "y" || "$hasTar" == "Y" ]]; then
-                    read -p "Enter tar file path (drag and drop): " tarFile
-                    tarFile=$(echo "$tarFile" | tr -d "'\"")
-                    if [[ -f "$tarFile" ]]; then
-                        echo -e "${YELLOW}Loading image...${NC}"
-                        docker load -i "$tarFile"
-                        echo -e "${GREEN}Image loaded!${NC}"
-                    fi
-                else
-                    echo -e "${YELLOW}Please get the tar file from admin. Skipping Google MCP.${NC}"
-                fi
-            fi
-
-            # Create .mcp.json if image exists
-            IMAGE_EXISTS=$(docker images -q google-workspace-mcp 2>/dev/null)
+            # Create .mcp.json
+            IMAGE_EXISTS=$(docker images -q ghcr.io/popup-jacob/google-workspace-mcp 2>/dev/null)
             if [[ -n "$IMAGE_EXISTS" ]]; then
                 MCP_CONFIG_PATH="$HOME/.mcp.json"
 
@@ -227,7 +213,7 @@ if [[ "$googleChoice" == "y" || "$googleChoice" == "Y" ]]; then
       "args": [
         "run", "-i", "--rm",
         "-v", "$CONFIG_DIR:/app/.google-workspace",
-        "google-workspace-mcp"
+        "ghcr.io/popup-jacob/google-workspace-mcp:latest"
       ]
     }
   }
