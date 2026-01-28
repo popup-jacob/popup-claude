@@ -1,12 +1,13 @@
 # AI-Driven Work - Complete Setup Script (Windows)
-# Usage: powershell -ep bypass -File setup_all.ps1
+# Usage: powershell -ep bypass -c "irm https://raw.githubusercontent.com/popup-jacob/popup-claude/master/final-installer/setup_all.ps1 | iex"
+
+$ScriptUrl = "https://raw.githubusercontent.com/popup-jacob/popup-claude/master/final-installer/setup_all.ps1"
 
 # Check if running as admin
 $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
-    Write-Host "Please run this script as Administrator." -ForegroundColor Red
-    Write-Host "Right-click PowerShell -> Run as Administrator" -ForegroundColor Yellow
-    cmd /c pause
+    Write-Host "Administrator privileges required. Restarting as admin..." -ForegroundColor Yellow
+    Start-Process PowerShell -Verb RunAs -ArgumentList "-ExecutionPolicy Bypass -c `"irm $ScriptUrl | iex`""
     exit
 }
 
