@@ -322,4 +322,5 @@ Write-Host "Test commands in Claude:" -ForegroundColor White
 Write-Host "  - 'Show my calendar' (Google)" -ForegroundColor Gray
 Write-Host "  - 'List Jira projects' (Jira)" -ForegroundColor Gray
 Write-Host ""
-Read-Host "Press Enter to close"
+Write-Host "Press any key to close..." -ForegroundColor Gray
+$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
