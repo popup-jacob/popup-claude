@@ -1,29 +1,40 @@
 # Jira + Confluence 설정 가이드 (개발자용)
 
-> Rovo MCP를 사용하여 빠르고 간편하게 설정하는 방법입니다.
+> mcp-atlassian을 사용하여 Docker 기반으로 설정하는 방법입니다.
 
 ---
 
 ## 이 가이드가 맞는 경우
 
 - [x] 개발자입니다
+- [x] Docker Desktop이 설치되어 있습니다
 - [x] Jira와 Confluence를 Claude에서 사용하고 싶습니다
-- [x] 빠르고 간단한 설정을 원합니다
 
 ---
 
-## 장점
+## 특징
 
-| 항목 | Rovo MCP |
-|------|----------|
-| 설치 난이도 | 쉬움 |
-| Docker 필요 | 아니오 |
-| API 토큰 필요 | 아니오 |
-| 설정 시간 | 약 5분 |
+| 항목 | mcp-atlassian |
+|------|---------------|
+| 설치 난이도 | 중간 |
+| Docker 필요 | 예 |
+| API 토큰 필요 | 예 |
+| 설정 시간 | 약 10분 |
+| 도구 수 | 16개 전체 |
 
 ---
 
-## 설치 방법
+## 1단계: API 토큰 생성 (먼저!)
+
+1. 이 링크 열기: https://id.atlassian.com/manage-profile/security/api-tokens
+2. **"API 토큰 만들기"** 클릭
+3. 토큰 이름: `MCP` 입력
+4. **"만들기"** 클릭
+5. **토큰 복사해서 메모장에 저장** (다시 못 봄!)
+
+---
+
+## 2단계: 설치
 
 ### Windows
 
@@ -41,14 +52,22 @@ curl -fsSL https://raw.githubusercontent.com/popup-jacob/popup-claude/master/fin
 
 ---
 
-## 설치 중 안내
+## 3단계: 설치 중 안내
 
 스크립트가 실행되면:
 
 1. **Jira/Confluence MCP 설정 여부** → `y` 입력
-2. **역할 선택** → `1` (Developer) 선택
-3. **MCP Server 선택** → `1` (Rovo MCP Server) 선택
-4. **브라우저 로그인** → Atlassian 계정으로 로그인 → "허용" 클릭
+2. **역할 선택** → `2` (Developer - mcp-atlassian) 선택
+3. **API 토큰 페이지 열기** → `y` 입력 (이미 만들었으면 `n`)
+4. 아래 정보 입력:
+
+```
+Confluence URL: https://회사이름.atlassian.net/wiki
+Jira URL: https://회사이름.atlassian.net
+Your email: 본인이메일@회사.com
+API token: (복사한 토큰 붙여넣기)
+```
+
 5. 완료!
 
 ---
@@ -67,17 +86,19 @@ Jira 프로젝트 목록 보여줘
 
 ## 문제 해결
 
-### 브라우저가 안 열려요
+### Docker Desktop이 안 열려요
 
-→ 수동으로 터미널에 표시된 URL을 복사해서 브라우저에 붙여넣기
+→ 컴퓨터 재부팅 후 다시 시도
 
-### 로그인했는데 안 돼요
+### API 토큰을 잃어버렸어요
 
-→ VS Code를 재시작하세요
+→ https://id.atlassian.com/manage-profile/security/api-tokens 에서 새로 생성
 
-### Claude에서 Jira가 안 보여요
+### Jira가 안 보여요
 
-→ `~/.mcp.json` 파일이 있는지 확인하세요
+1. Docker Desktop이 실행 중인지 확인
+2. API 토큰이 올바른지 확인
+3. 회사 Jira URL이 맞는지 확인
 
 ---
 
