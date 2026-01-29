@@ -98,7 +98,7 @@ claude login
 
 1. Google Cloud Console 설정 (프로젝트 생성, API 활성화, OAuth 설정)
 2. 관리자 가이드 참고: [docs/SETUP_GOOGLE_INTERNAL_ADMIN.md](docs/SETUP_GOOGLE_INTERNAL_ADMIN.md)
-3. 직원들에게 `client_secret.json`과 `google-workspace-mcp.tar` 공유
+3. 직원들에게 `client_secret.json` 공유
 
 외부 (Google Workspace 외) 설정: [docs/SETUP_GOOGLE_EXTERNAL_ADMIN.md](docs/SETUP_GOOGLE_EXTERNAL_ADMIN.md)
 
