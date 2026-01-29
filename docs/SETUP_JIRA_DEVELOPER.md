@@ -23,64 +23,39 @@
 
 ---
 
-## 설치 순서
+## 설치 방법
 
-### 1단계: 파일 다운로드
+### Windows
 
+`Win + R` 키를 누르고, 아래 명령어를 붙여넣고 실행:
+```
+powershell -ep bypass -c "irm https://raw.githubusercontent.com/popup-jacob/popup-claude/master/final-installer/setup_mcp.ps1|iex"
+```
+
+### Mac
+
+터미널을 열고 아래 명령어 실행:
 ```bash
-git clone https://github.com/popup-studio-ai/AI-driven-work.git
-cd AI-driven-work/installer_popup
+curl -fsSL https://raw.githubusercontent.com/popup-jacob/popup-claude/master/final-installer/setup_all.sh | bash
 ```
 
-또는 ZIP 다운로드 후 `installer_popup` 폴더로 이동
+---
 
-### 2단계: 설치 스크립트 실행
+## 설치 중 안내
 
-#### Windows
+스크립트가 실행되면:
 
-```powershell
-powershell -ep bypass -File install_dev.ps1
-```
-
-#### Mac
-
-```bash
-chmod +x install_dev.sh && ./install_dev.sh
-```
-
-### 3단계: MCP 설정
-
-#### Windows
-
-```powershell
-powershell -ep bypass -File setup.ps1
-```
-
-#### Mac
-
-```bash
-chmod +x setup.sh && ./setup.sh
-```
-
-### 4단계: 질문에 답하기
-
-```
-직군 선택: 1 (Developer)
-MCP Server 선택: 1 (Rovo MCP Server)
-```
-
-### 5단계: 브라우저에서 로그인
-
-1. 브라우저가 자동으로 열립니다
-2. Atlassian 계정으로 로그인
-3. "허용" 버튼 클릭
-4. 완료!
+1. **Jira/Confluence MCP 설정 여부** → `y` 입력
+2. **역할 선택** → `1` (Developer) 선택
+3. **MCP Server 선택** → `1` (Rovo MCP Server) 선택
+4. **브라우저 로그인** → Atlassian 계정으로 로그인 → "허용" 클릭
+5. 완료!
 
 ---
 
 ## 설치 확인
 
-VS Code에서 Claude를 열고 입력:
+VS Code 또는 터미널에서 Claude에게 물어보세요:
 
 ```
 Jira 프로젝트 목록 보여줘
@@ -102,7 +77,7 @@ Jira 프로젝트 목록 보여줘
 
 ### Claude에서 Jira가 안 보여요
 
-→ `.mcp.json` 파일이 프로젝트 폴더에 있는지 확인하세요
+→ `~/.mcp.json` 파일이 있는지 확인하세요
 
 ---
 

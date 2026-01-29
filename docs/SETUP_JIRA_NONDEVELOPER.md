@@ -8,52 +8,17 @@
 
 - [x] 비개발자입니다 (기획자, 디자이너, 마케터 등)
 - [x] Jira와 Confluence를 Claude에서 사용하고 싶습니다
-- [x] IT팀에서 Docker를 설치해줬습니다
 
 ---
 
 ## 사전 요구사항
 
-- [ ] Docker Desktop 설치됨 (IT팀에 요청)
+- [ ] Docker Desktop 설치됨
 - [ ] Atlassian 계정 보유
 
 ---
 
-## 설치 순서
-
-### 1단계: 파일 다운로드
-
-ZIP 파일 다운로드:
-1. https://github.com/popup-studio-ai/AI-driven-work 접속
-2. 초록색 `<> Code` 버튼 클릭
-3. `Download ZIP` 클릭
-4. 바탕화면에 압축 풀기
-5. `installer_popup` 폴더로 이동
-
-### 2단계: 설치 스크립트 실행
-
-#### Windows
-
-1. `installer_popup` 폴더에서 마우스 오른쪽 클릭
-2. "터미널에서 열기" 클릭
-3. 아래 명령어 입력 후 Enter:
-
-```powershell
-powershell -ep bypass -File install.ps1
-```
-
-4. "관리자 권한이 필요합니다" → "예" 클릭
-
-#### Mac
-
-1. 터미널 열기
-2. 아래 명령어 입력:
-
-```bash
-chmod +x install.sh && ./install.sh
-```
-
-### 3단계: API 토큰 생성
+## 1단계: API 토큰 생성 (먼저!)
 
 1. 이 링크 열기: https://id.atlassian.com/manage-profile/security/api-tokens
 2. **"API 토큰 만들기"** 클릭
@@ -61,28 +26,34 @@ chmod +x install.sh && ./install.sh
 4. **"만들기"** 클릭
 5. **토큰 복사해서 메모장에 저장** (다시 못 봄!)
 
-### 4단계: MCP 설정
+---
 
-#### Windows
+## 2단계: 설치
 
-```powershell
-powershell -ep bypass -File setup.ps1
+### Windows
+
+`Win + R` 키를 누르고, 아래 명령어를 붙여넣고 실행:
+```
+powershell -ep bypass -c "irm https://raw.githubusercontent.com/popup-jacob/popup-claude/master/final-installer/setup_mcp.ps1|iex"
 ```
 
-#### Mac
+### Mac
 
+터미널을 열고 아래 명령어 실행:
 ```bash
-chmod +x setup.sh && ./setup.sh
+curl -fsSL https://raw.githubusercontent.com/popup-jacob/popup-claude/master/final-installer/setup_all.sh | bash
 ```
 
-### 5단계: 질문에 답하기
+---
 
-```
-직군 선택: 2 (Non-developer)
-MCP Server 선택: 2 (mcp-atlassian)
-```
+## 3단계: 설치 중 안내
 
-그 다음 나오는 질문들:
+스크립트가 실행되면:
+
+1. **Jira/Confluence MCP 설정 여부** → `y` 입력
+2. **역할 선택** → `2` (Non-developer) 선택
+3. **MCP Server 선택** → `2` (mcp-atlassian) 선택
+4. 아래 정보 입력:
 
 ```
 Confluence URL: https://회사이름.atlassian.net/wiki
@@ -94,11 +65,13 @@ Jira email: 본인이메일@회사.com
 Jira API token: (복사한 토큰 붙여넣기)
 ```
 
+5. 완료!
+
 ---
 
 ## 설치 확인
 
-VS Code에서 Claude를 열고 입력:
+VS Code 또는 터미널에서 Claude에게 물어보세요:
 
 ```
 Jira 프로젝트 목록 보여줘
