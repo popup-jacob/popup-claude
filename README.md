@@ -27,23 +27,25 @@ curl -fsSL https://raw.githubusercontent.com/popup-jacob/popup-claude/master/fin
 
 ---
 
-## 로컬 설치 (대안)
+## 설치되는 항목
 
-### Windows (2단계)
-```powershell
-# 1단계: 기본 도구 + bkit 설치
-powershell -ep bypass -File setup_basic.ps1
+### 기본 설치 (setup_basic.ps1 / setup_all.sh 파트 1)
 
-# 컴퓨터 재시작
+| 프로그램 | 설명 |
+|---------|------|
+| Node.js | JavaScript 실행 환경 |
+| Git | 버전 관리 도구 |
+| VS Code | 코드 편집기 |
+| Docker Desktop | 컨테이너 플랫폼 |
+| Claude Code CLI | AI 코딩 어시스턴트 |
+| bkit 플러그인 | 개발 워크플로우 플러그인 |
 
-# 2단계: MCP 설정 (재시작 후, Docker 실행 중일 때)
-powershell -ep bypass -File setup_mcp.ps1
-```
+### MCP 설치 (setup_mcp.ps1 / setup_all.sh 파트 2)
 
-### Mac/Linux (1단계)
-```bash
-chmod +x setup_all.sh && ./setup_all.sh
-```
+| 프로그램 | 설명 |
+|---------|------|
+| Google MCP | Gmail, Calendar, Drive 연동 (선택) |
+| Jira MCP | Jira, Confluence 연동 (선택) |
 
 ---
 
@@ -66,12 +68,12 @@ chmod +x setup_all.sh && ./setup_all.sh
 
 ```powershell
 # 1단계: 기본 도구 설치 (Node.js, Git, VS Code, Docker, Claude CLI)
-powershell -ep bypass -File ..\installer_popup\install_dev.ps1
+powershell -ep bypass -File installer_popup\install_dev.ps1
 
 # 2단계: 컴퓨터 재시작
 
 # 3단계: setup_basic.ps1 실행 (bkit 설정)
-powershell -ep bypass -File setup_basic.ps1
+powershell -ep bypass -File final-installer\setup_basic.ps1
 ```
 
 `install_dev.ps1`은 winget 대신 직접 다운로드를 사용하므로 모든 Windows 버전에서 작동합니다.
@@ -95,29 +97,25 @@ claude login
 팀을 위해 Google MCP를 설정하는 **관리자**라면:
 
 1. Google Cloud Console 설정 (프로젝트 생성, API 활성화, OAuth 설정)
-2. 관리자 가이드 참고: [../docs/SETUP_GOOGLE_INTERNAL_ADMIN.md](../docs/SETUP_GOOGLE_INTERNAL_ADMIN.md)
+2. 관리자 가이드 참고: [docs/SETUP_GOOGLE_INTERNAL_ADMIN.md](docs/SETUP_GOOGLE_INTERNAL_ADMIN.md)
 3. 직원들에게 `client_secret.json`과 `google-workspace-mcp.tar` 공유
 
-외부 (Google Workspace 외) 설정: [../docs/SETUP_GOOGLE_EXTERNAL_ADMIN.md](../docs/SETUP_GOOGLE_EXTERNAL_ADMIN.md)
+외부 (Google Workspace 외) 설정: [docs/SETUP_GOOGLE_EXTERNAL_ADMIN.md](docs/SETUP_GOOGLE_EXTERNAL_ADMIN.md)
 
 ---
 
-## 설치되는 항목
+## 폴더 구조
 
-### setup_basic.ps1 / setup_all.sh (파트 1)
+```
+popup-claude/
+├── final-installer/     # 원클릭 설치 스크립트 (권장)
+├── installer_popup/     # 기존 설치 스크립트
+├── google-workspace-mcp/ # Google MCP 소스 코드
+└── docs/                # 설정 가이드 문서
+```
 
-| 프로그램 | 설명 |
-|---------|------|
-| Node.js | JavaScript 실행 환경 |
-| Git | 버전 관리 도구 |
-| VS Code | 코드 편집기 |
-| Docker Desktop | 컨테이너 플랫폼 |
-| Claude Code CLI | AI 코딩 어시스턴트 |
-| bkit 플러그인 | 개발 워크플로우 플러그인 |
+---
 
-### setup_mcp.ps1 / setup_all.sh (파트 2)
+## 도움이 필요하면
 
-| 프로그램 | 설명 |
-|---------|------|
-| Google MCP | Gmail, Calendar, Drive 연동 (선택) |
-| Jira MCP | Jira, Confluence 연동 (선택) |
+문제가 발생하면 [Issues](https://github.com/popup-jacob/popup-claude/issues)에 문의하세요.
