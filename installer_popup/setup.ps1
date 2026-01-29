@@ -346,13 +346,16 @@ elseif ($MCP_CHOICE -eq "2") {
         Write-Host ""
 
         $CONFLUENCE_URL = Read-Host 'Confluence URL (e.g., https://company.atlassian.net/wiki)'
-        $CONFLUENCE_USERNAME = Read-Host 'Confluence email'
-        $CONFLUENCE_API_TOKEN = Read-Host 'Confluence API token'
+        $JIRA_URL = Read-Host 'Jira URL (e.g., https://company.atlassian.net)'
+        $EMAIL = Read-Host 'Your email'
+        $API_TOKEN = Read-Host 'API token'
         Write-Host ""
 
-        $JIRA_URL = Read-Host 'Jira URL (e.g., https://company.atlassian.net)'
-        $JIRA_USERNAME = Read-Host 'Jira email'
-        $JIRA_API_TOKEN = Read-Host 'Jira API token'
+        # Use same email and token for both
+        $CONFLUENCE_USERNAME = $EMAIL
+        $CONFLUENCE_API_TOKEN = $API_TOKEN
+        $JIRA_USERNAME = $EMAIL
+        $JIRA_API_TOKEN = $API_TOKEN
         Write-Host ""
 
         # Optional filter settings

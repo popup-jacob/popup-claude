@@ -318,15 +318,16 @@ elif [ "$MCP_CHOICE" = "2" ]; then
         echo ""
 
         read -p "Confluence URL (예: https://popupstudio.atlassian.net/wiki): " CONFLUENCE_URL
-        read -p "Confluence 사용자 이메일: " CONFLUENCE_USERNAME
-        read -p "Confluence API 토큰: " CONFLUENCE_API_TOKEN
-        echo ""
+        read -p "Jira URL (예: https://popupstudio.atlassian.net): " JIRA_URL
+        read -p "이메일: " EMAIL
+        read -p "API 토큰: " API_TOKEN
         echo ""
 
-        read -p "Jira URL (예: https://popupstudio.atlassian.net): " JIRA_URL
-        read -p "Jira 사용자 이메일: " JIRA_USERNAME
-        read -p "Jira API 토큰: " JIRA_API_TOKEN
-        echo ""
+        # Use same email and token for both
+        CONFLUENCE_USERNAME=$EMAIL
+        CONFLUENCE_API_TOKEN=$API_TOKEN
+        JIRA_USERNAME=$EMAIL
+        JIRA_API_TOKEN=$API_TOKEN
         echo ""
 
         # 선택적 필터링 설정
