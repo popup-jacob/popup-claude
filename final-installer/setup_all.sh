@@ -105,6 +105,28 @@ claude plugin install bkit@bkit-marketplace 2>/dev/null
 echo -e "${GREEN}bkit OK!${NC}"
 
 # ============================================
+# Check Docker is running
+# ============================================
+echo ""
+echo -e "${YELLOW}Checking if Docker is running...${NC}"
+if ! docker info &> /dev/null; then
+    echo ""
+    echo -e "${RED}Docker is not running!${NC}"
+    echo ""
+    echo -e "${YELLOW}How to start Docker Desktop:${NC}"
+    echo -e "  ${CYAN}- Click the Docker icon in Applications folder${NC}"
+    echo -e "  ${CYAN}- Or click the whale icon in the menu bar (top right)${NC}"
+    echo ""
+    echo "Then:"
+    echo "  1. Wait for Docker to fully start (whale icon stops animating)"
+    echo "  2. Run this script again"
+    echo ""
+    read -p "Press Enter to exit" < /dev/tty
+    exit 1
+fi
+echo -e "${GREEN}Docker is running!${NC}"
+
+# ============================================
 # PART 3: Google MCP (Optional)
 # ============================================
 echo ""

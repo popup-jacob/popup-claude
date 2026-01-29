@@ -27,11 +27,13 @@ if (-not $dockerRunning) {
     Write-Host ""
     Write-Host "Docker is not running!" -ForegroundColor Red
     Write-Host ""
-    Write-Host "Please:" -ForegroundColor White
-    Write-Host "  1. Make sure you restarted your computer after setup_basic.ps1" -ForegroundColor Gray
-    Write-Host "  2. Start Docker Desktop" -ForegroundColor Gray
-    Write-Host "  3. Wait for Docker to fully start (whale icon stops animating)" -ForegroundColor Gray
-    Write-Host "  4. Run this script again" -ForegroundColor Gray
+    Write-Host "How to start Docker Desktop:" -ForegroundColor Yellow
+    Write-Host "  - Press Windows key, type 'Docker Desktop', press Enter" -ForegroundColor Cyan
+    Write-Host "  - Or click the whale icon in the taskbar (bottom right)" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Then:" -ForegroundColor White
+    Write-Host "  1. Wait for Docker to fully start (whale icon stops animating)" -ForegroundColor Gray
+    Write-Host "  2. Run this script again" -ForegroundColor Gray
     Write-Host ""
     Read-Host "Press Enter to exit"
     exit 1
