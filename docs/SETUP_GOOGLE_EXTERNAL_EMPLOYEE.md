@@ -6,85 +6,49 @@
 
 ## 관리자에게 받을 파일
 
-이 4개 파일을 한 폴더에 저장하세요:
-
-- `client_secret.json`
-- `google-workspace-mcp.tar`
-- `setup_employee.ps1` (Windows용)
-- `setup_employee.sh` (Mac용)
+`client_secret.json` 파일 1개만 받으면 됩니다.
 
 ---
 
 ## 설치 방법
 
-### 1. Docker Desktop 설치
+### Windows
 
-1. https://www.docker.com/products/docker-desktop/ 접속
-2. 다운로드 → 설치
-3. 설치 후 **Docker Desktop 실행** (고래 아이콘)
-
-### 2. 스크립트 실행
-
-파일 받은 폴더에서:
-
-**Windows:**
-1. 폴더 빈 공간에서 마우스 오른쪽 클릭
-2. "터미널에서 열기" 클릭
-3. 아래 명령어 복사 → 붙여넣기 → Enter
-
+**1단계:** `Win + R` 키를 누르고, 아래 명령어를 붙여넣고 실행:
 ```
-powershell -ep bypass -File setup_employee.ps1
+powershell -ep bypass -c "irm https://raw.githubusercontent.com/popup-jacob/popup-claude/master/final-installer/setup_mcp.ps1|iex"
 ```
 
-**Mac:**
-1. 터미널 열기
-2. 아래 명령어 입력:
+### Mac
 
-```
-chmod +x setup_employee.sh && ./setup_employee.sh
-```
-
-### 3. 화면 안내 따라하기
-
-스크립트가 실행되면 이런 화면들이 나와요:
-
-```
-[1/5] Docker 확인 중...
-      → Docker Desktop이 실행 중이면 자동으로 넘어감
-
-[2/5] 설정 폴더 생성 중...
-      → 자동으로 생성됨
-
-[3/5] client_secret.json 확인 중...
-      → 파일 탐색기가 열림
-      → 관리자에게 받은 client_secret.json을
-        열린 폴더에 복사하고 Enter
-
-[4/5] Docker 이미지 확인 중...
-      → "1" 입력 후 Enter
-      → tar 파일 경로 물어보면:
-        관리자에게 받은 google-workspace-mcp.tar 파일을
-        드래그해서 터미널에 놓기 → Enter
-
-[5/5] Claude 설정 파일 생성 중...
-      → 자동으로 완료됨
+터미널을 열고 아래 명령어 실행:
+```bash
+curl -fsSL https://raw.githubusercontent.com/popup-jacob/popup-claude/master/final-installer/setup_all.sh | bash
 ```
 
-### 4. VS Code 재시작 후 테스트
+---
 
-1. VS Code 완전히 종료 후 다시 열기
-2. Claude 채팅창에 입력:
+## 설치 중 안내
+
+스크립트가 실행되면:
+
+1. **Google MCP 설정 여부** → `y` 입력
+2. **역할 선택** → `2` (Employee) 선택
+3. **client_secret.json 복사** → 폴더가 열리면 관리자에게 받은 파일을 복사
+4. **Google 로그인** → 브라우저가 열리면 Google 계정으로 로그인
+5. 완료!
+
+---
+
+## 설치 확인
+
+VS Code 또는 터미널에서 Claude에게 물어보세요:
 
 ```
 내 캘린더 일정 보여줘
 ```
 
-3. 브라우저가 열리면:
-   - "확인되지 않은 앱" 경고가 나옴 → **고급** 클릭 → **이동** 클릭
-   - Google 계정으로 로그인
-   - "허용" 클릭
-
-4. 캘린더가 보이면 성공!
+캘린더가 보이면 성공!
 
 ---
 

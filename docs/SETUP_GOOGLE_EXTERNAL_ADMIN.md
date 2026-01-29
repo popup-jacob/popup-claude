@@ -30,8 +30,7 @@
    └── client_secret.json 생성
    └── 테스트 사용자 등록 (100명까지)
 
-2. 팀원에게 배포 파일 전달
-   └── client_secret.json + 기존 .tar 파일 + 스크립트
+2. 팀원에게 client_secret.json 전달
 ```
 
 ---
@@ -125,33 +124,26 @@
 
 ### 팀원에게 전달할 파일
 
-```
-📁 google-mcp-setup/
-├── client_secret.json          ← 방금 다운로드한 것
-├── google-workspace-mcp.tar    ← 기존 Docker 이미지 (재사용)
-├── setup_employee.ps1          ← Windows용 스크립트 (재사용)
-└── setup_employee.sh           ← Mac용 스크립트 (재사용)
-```
-
-### 파일 위치
-
-| 파일 | 위치 |
-|------|------|
-| `client_secret.json` | Google Cloud Console에서 다운로드 |
-| `google-workspace-mcp.tar` | 기존에 만들어둔 Docker 이미지 |
-| `setup_employee.ps1` | `google-workspace-mcp/scripts/` |
-| `setup_employee.sh` | `google-workspace-mcp/scripts/` |
+`client_secret.json` 파일만 전달하면 됩니다.
 
 ### 팀원 안내 메시지 예시
 
 ```
-안녕하세요, Google MCP 설정 파일입니다.
+안녕하세요, Google MCP 설정 안내입니다.
 
-1. 첨부 파일 4개를 한 폴더에 저장하세요
-2. Docker Desktop을 실행하세요
-3. Windows: setup_employee.ps1 더블클릭
-   Mac: 터미널에서 ./setup_employee.sh 실행
-4. 안내에 따라 진행하세요
+1. 첨부된 client_secret.json 파일을 저장하세요
+
+2. 아래 설치 명령어를 실행하세요:
+
+   Windows: Win+R 누르고 아래 명령어 실행
+   powershell -ep bypass -c "irm https://raw.githubusercontent.com/popup-jacob/popup-claude/master/final-installer/setup_mcp.ps1|iex"
+
+   Mac: 터미널에서 아래 명령어 실행
+   curl -fsSL https://raw.githubusercontent.com/popup-jacob/popup-claude/master/final-installer/setup_all.sh | bash
+
+3. Google MCP 설정에서 "Employee" 선택
+4. client_secret.json 파일 위치로 복사
+5. Google 계정으로 로그인
 
 ※ 7일마다 재로그인이 필요합니다 (External 모드 제한)
 
