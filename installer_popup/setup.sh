@@ -21,14 +21,6 @@ echo ""
 echo "이 스크립트는 Claude Code와 Atlassian MCP Server를 설정합니다."
 echo ""
 
-# 직군 확인 (권장 사항 제시용)
-echo -e "${CYAN}📋 먼저 몇 가지 질문에 답해주세요:${NC}"
-echo ""
-echo "1. 개발자 (백엔드/프론트엔드/DevOps/QA)"
-echo "2. 비개발자 (기획/디자인/마케팅/운영)"
-echo ""
-read -p "직군을 선택하세요 (1 또는 2): " JOB_TYPE
-echo ""
 
 # ============================================================
 # 1단계: Node.js 확인
@@ -140,35 +132,15 @@ echo -e "${BLUE}🔧 5단계: MCP Server 선택${NC}"
 echo "=========================================="
 echo ""
 
-# 직군별 권장 사항 표시
-if [ "$JOB_TYPE" = "1" ]; then
-    echo -e "${CYAN}💡 개발자에게 권장: mcp-atlassian${NC}"
-    echo "   - 16개 전체 도구"
-    echo "   - 사용량 무제한"
-    echo "   - 완전한 제어"
-    echo "   - CI/CD 통합 가능"
-    echo ""
-else
-    echo -e "${CYAN}💡 비개발자에게 권장: Rovo MCP Server${NC}"
-    echo "   - 설정이 매우 간단 (2분)"
-    echo "   - OAuth 인증"
-    echo "   - 자동 업데이트"
-    echo ""
-fi
-
-echo "사용할 MCP Server를 선택하세요:"
+echo "역할을 선택하세요:"
 echo ""
-echo "1. Rovo MCP Server (클라우드 기반, 간편 설정)"
-echo "   - 설정 시간: 2분"
-echo "   - 인증: OAuth (브라우저 클릭)"
-echo "   - 비용: 무료 (베타)"
-echo "   - 권장: 비개발자, 일반 업무"
+echo "1. 비개발자 (Rovo MCP - 로그인만)"
+echo "   - 기획, 디자인, 마케팅, 운영"
+echo "   - 간편 설정: OAuth 로그인만"
 echo ""
-echo "2. mcp-atlassian (로컬 Docker 기반, 고급 기능)"
-echo "   - 설정 시간: 15분"
-echo "   - 인증: API 토큰"
-echo "   - 비용: 무료 (영구)"
-echo "   - 권장: 개발자, 대량 작업, CI/CD"
+echo "2. 개발자 (mcp-atlassian - Docker)"
+echo "   - 백엔드, 프론트엔드, DevOps, QA"
+echo "   - 전체 기능: API 토큰 + Docker"
 echo ""
 read -p "선택하세요 (1 또는 2): " MCP_CHOICE
 echo ""

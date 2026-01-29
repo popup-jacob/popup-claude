@@ -31,14 +31,6 @@ Write-Host ""
 Write-Host "This script sets up Claude Code and Atlassian MCP Server."
 Write-Host ""
 
-# Job type selection
-Write-Info "Please answer a few questions:"
-Write-Host ""
-Write-Host "1. Developer (Backend/Frontend/DevOps/QA)"
-Write-Host "2. Non-developer (Planning/Design/Marketing/Operations)"
-Write-Host ""
-$JOB_TYPE = Read-Host 'Select job type (1 or 2)'
-Write-Host ""
 
 # ============================================================
 # Step 1: Node.js Check
@@ -165,36 +157,15 @@ Write-Host "   Step 5: MCP Server Selection" -ForegroundColor Blue
 Write-Host "==========================================" -ForegroundColor Blue
 Write-Host ""
 
-# Job type recommendation
-if ($JOB_TYPE -eq "1") {
-    Write-Info "Recommended for developers: mcp-atlassian"
-    Write-Host "   - All 16 tools"
-    Write-Host "   - Unlimited usage"
-    Write-Host "   - Full control"
-    Write-Host "   - CI/CD integration"
-    Write-Host ""
-}
-else {
-    Write-Info "Recommended for non-developers: Rovo MCP Server"
-    Write-Host "   - Very easy setup (2 min)"
-    Write-Host "   - OAuth authentication"
-    Write-Host "   - Auto updates"
-    Write-Host ""
-}
-
-Write-Host "Select MCP Server:"
+Write-Host "Select your role:"
 Write-Host ""
-Write-Host "1. Rovo MCP Server (Cloud-based, Easy setup)"
-Write-Host "   - Setup time: 2 min"
-Write-Host "   - Auth: OAuth (browser click)"
-Write-Host "   - Cost: Free (beta)"
-Write-Host "   - Recommended: Non-developers"
+Write-Host "1. Non-developer (Rovo MCP - just login)"
+Write-Host "   - Planning, Design, Marketing, Operations"
+Write-Host "   - Easy setup: OAuth login only"
 Write-Host ""
-Write-Host "2. mcp-atlassian (Local Docker, Advanced)"
-Write-Host "   - Setup time: 15 min"
-Write-Host "   - Auth: API token"
-Write-Host "   - Cost: Free (permanent)"
-Write-Host "   - Recommended: Developers, CI/CD"
+Write-Host "2. Developer (mcp-atlassian - Docker)"
+Write-Host "   - Backend, Frontend, DevOps, QA"
+Write-Host "   - Full features: API token + Docker"
 Write-Host ""
 $MCP_CHOICE = Read-Host 'Select (1 or 2)'
 Write-Host ""
