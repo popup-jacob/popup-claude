@@ -152,35 +152,256 @@ if [[ "$googleChoice" == "y" || "$googleChoice" == "Y" ]]; then
     read -p "Select (1/2): " roleChoice < /dev/tty
 
     if [[ "$roleChoice" == "1" ]]; then
-        # Admin path
+        # Admin path - Full Google Cloud setup
         echo ""
-        echo "========================================"
-        echo -e "${YELLOW}  Admin Setup Required${NC}"
-        echo "========================================"
-        echo ""
-        echo "You need to set up Google Cloud Console first."
-        echo ""
-        echo "Required steps:"
-        echo "  1. Create Google Cloud project"
-        echo "  2. Enable APIs (Gmail, Calendar, Drive, etc.)"
-        echo "  3. Set up OAuth consent screen"
-        echo "  4. Create OAuth Client ID"
-        echo "  5. Download client_secret.json"
+        echo -e "${CYAN}========================================${NC}"
+        echo -e "${CYAN}  Google Cloud Admin Setup${NC}"
+        echo -e "${CYAN}========================================${NC}"
         echo ""
 
-        read -p "Open setup guide in browser? (y/n): " openGuide < /dev/tty
-        if [[ "$openGuide" == "y" || "$openGuide" == "Y" ]]; then
-            open "https://console.cloud.google.com" 2>/dev/null || xdg-open "https://console.cloud.google.com" 2>/dev/null
+        # Check gcloud CLI
+        echo -e "${YELLOW}[1/6] Checking gcloud CLI...${NC}"
+        if ! command -v gcloud &> /dev/null; then
+            echo -e "${RED}gcloud CLI is not installed.${NC}"
             echo ""
-            echo "After completing the setup:"
-            echo "  1. Run this script again"
-            echo "  2. Select 'Employee' option"
-            echo "  3. Provide client_secret.json"
-        fi
-        echo ""
-        echo -e "${YELLOW}Google MCP admin setup skipped for now.${NC}"
 
-    else
+            # Mac: Use Homebrew
+            if [[ "$OSTYPE" == "darwin"* ]]; then
+                if command -v brew &> /dev/null; then
+                    echo -e "${YELLOW}Installing gcloud CLI via Homebrew...${NC}"
+                    brew install --cask google-cloud-sdk
+
+                    # Source the completion scripts
+                    if [ -f "$(brew --prefix)/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/path.bash.inc" ]; then
+                        source "$(brew --prefix)/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/path.bash.inc"
+                    fi
+                else
+                    echo -e "${YELLOW}Homebrew not found. Installing gcloud manually...${NC}"
+                    curl https://sdk.cloud.google.com | bash
+                    echo ""
+                    echo "gcloud installed. Please restart terminal and run this script again."
+                    exit 0
+                fi
+            # Linux: Use curl installer
+            else
+                echo -e "${YELLOW}Installing gcloud CLI...${NC}"
+                curl -sSL https://sdk.cloud.google.com | bash -s -- --disable-prompts
+                source "$HOME/google-cloud-sdk/path.bash.inc"
+            fi
+
+            # Check again
+            if ! command -v gcloud &> /dev/null; then
+                echo ""
+                echo -e "${YELLOW}gcloud installed but not in PATH yet.${NC}"
+                echo "Please close this terminal and run the script again."
+                read -p "Press Enter to exit..." < /dev/tty
+                exit 1
+            fi
+        fi
+        echo -e "${GREEN}gcloud CLI OK!${NC}"
+
+        # Check gcloud login
+        echo ""
+        echo -e "${YELLOW}[2/6] Checking gcloud login...${NC}"
+        ACCOUNT=$(gcloud config get-value account 2>/dev/null)
+        if [ -z "$ACCOUNT" ] || [ "$ACCOUNT" == "(unset)" ]; then
+            echo "Not logged in. Opening browser for login..."
+            gcloud auth login
+            ACCOUNT=$(gcloud config get-value account 2>/dev/null)
+        fi
+        echo -e "${GREEN}Logged in as: $ACCOUNT${NC}"
+
+        # Ask Internal vs External
+        echo ""
+        echo -e "${YELLOW}[3/6] Setup type selection...${NC}"
+        echo ""
+        echo "Do you use Google Workspace (company email like @company.com)?"
+        echo ""
+        echo "  1. Yes - I have a company email (@company.com)"
+        echo -e "       -> Internal app (unlimited users, no token expiry)"
+        echo ""
+        echo "  2. No - I use personal Gmail (@gmail.com)"
+        echo -e "       -> External app (100 test users, 7-day token expiry)"
+        echo ""
+        read -p "Select (1 or 2): " appTypeChoice < /dev/tty
+        if [ "$appTypeChoice" == "1" ]; then
+            APP_TYPE="internal"
+            echo -e "${GREEN}Selected: Internal (Google Workspace)${NC}"
+        else
+            APP_TYPE="external"
+            echo -e "${GREEN}Selected: External (Personal Gmail)${NC}"
+        fi
+
+        # Create or select project
+        echo ""
+        echo -e "${YELLOW}[4/6] Setting up Google Cloud project...${NC}"
+        echo ""
+        echo "Options:"
+        echo "  1. Create new project"
+        echo "  2. Use existing project"
+        echo ""
+        read -p "Select (1 or 2): " projectChoice < /dev/tty
+
+        if [ "$projectChoice" == "1" ]; then
+            PROJECT_ID="workspace-mcp-$((RANDOM % 900000 + 100000))"
+            echo -e "${YELLOW}Creating project: $PROJECT_ID${NC}"
+            gcloud projects create "$PROJECT_ID" --name="Google Workspace MCP"
+            gcloud config set project "$PROJECT_ID"
+        else
+            echo ""
+            echo "Available projects:"
+            gcloud projects list --format="table(projectId,name)" 2>/dev/null
+            echo ""
+            read -p "Enter project ID: " PROJECT_ID < /dev/tty
+            gcloud config set project "$PROJECT_ID"
+        fi
+        echo -e "${GREEN}Project set: $PROJECT_ID${NC}"
+
+        # Enable APIs
+        echo ""
+        echo -e "${YELLOW}[5/6] Enabling APIs (this may take a minute)...${NC}"
+        APIS=(
+            "gmail.googleapis.com"
+            "calendar-json.googleapis.com"
+            "drive.googleapis.com"
+            "docs.googleapis.com"
+            "sheets.googleapis.com"
+            "slides.googleapis.com"
+        )
+        for API in "${APIS[@]}"; do
+            echo -e "  Enabling $API..."
+            gcloud services enable "$API" 2>/dev/null || true
+        done
+        echo -e "${GREEN}All APIs enabled!${NC}"
+
+        # OAuth Consent Screen (Manual)
+        echo ""
+        echo -e "${YELLOW}[6/6] OAuth Consent Screen Setup (Manual step required)${NC}"
+        echo ""
+        echo -e "${CYAN}========================================${NC}"
+        echo -e "${CYAN}  MANUAL STEP REQUIRED${NC}"
+        echo -e "${CYAN}========================================${NC}"
+        echo ""
+
+        CONSOLE_URL="https://console.cloud.google.com/apis/credentials/consent?project=$PROJECT_ID"
+        echo "Opening browser to OAuth consent screen..."
+        echo ""
+
+        # Open browser (Mac/Linux)
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            open "$CONSOLE_URL"
+        elif command -v xdg-open &> /dev/null; then
+            xdg-open "$CONSOLE_URL"
+        else
+            echo -e "${YELLOW}Please open this URL manually:${NC}"
+            echo -e "${CYAN}$CONSOLE_URL${NC}"
+        fi
+
+        sleep 2
+
+        echo "Follow these steps in the browser:"
+        echo ""
+        echo -e "  ${YELLOW}** If you see 'Configure consent screen' button, click it first **${NC}"
+        echo ""
+        echo -e "  ${CYAN}[1] App Info${NC}"
+        echo "      - App name: Google Workspace MCP"
+        echo "      - User support email: (select your email)"
+        echo "      -> Click 'Next'"
+        echo ""
+        echo -e "  ${CYAN}[2] Audience${NC}"
+        if [ "$APP_TYPE" == "internal" ]; then
+            echo -e "      - ${YELLOW}Select 'Internal'${NC}"
+        else
+            echo -e "      - ${YELLOW}Select 'External'${NC}"
+        fi
+        echo "      -> Click 'Next'"
+        echo ""
+        echo -e "  ${CYAN}[3] Contact Info${NC}"
+        echo "      - Email: (enter your email)"
+        echo "      -> Click 'Next'"
+        echo ""
+        echo -e "  ${CYAN}[4] Finish${NC}"
+        echo "      - Check the agreement box"
+        echo "      -> Click 'Continue'"
+
+        if [ "$APP_TYPE" == "external" ]; then
+            echo ""
+            echo -e "  ${YELLOW}[5] After setup, add TEST USERS:${NC}"
+            echo "      - Left menu: click 'Audience'"
+            echo "      - Click 'Add Users' and add your email"
+        fi
+
+        echo ""
+        echo "----------------------------------------"
+        read -p "Press Enter when you have completed the above steps..." < /dev/tty
+
+        # Create OAuth Client
+        echo ""
+        echo -e "${YELLOW}[7/7] Creating OAuth Client...${NC}"
+        echo ""
+        echo "In the left menu, click 'Clients'"
+        echo ""
+        echo -e "  ${CYAN}[1] Click '+ Create Client'${NC}"
+        echo "  [2] Application type: 'Desktop app'"
+        echo "  [3] Name: any name (e.g. MCP Client)"
+        echo "  [4] Click 'Create'"
+        echo ""
+        echo -e "  ${CYAN}[5] Click the created client name${NC}"
+        echo "  [6] Find 'Client Secret' section"
+        echo -e "  ${YELLOW}[7] Click download icon (arrow down) to download JSON${NC}"
+        echo ""
+        echo -e "${YELLOW}Save the file as:${NC}"
+        echo -e "${CYAN}  ~/.google-workspace/client_secret.json${NC}"
+        echo ""
+
+        # Create folder if not exists
+        CONFIG_DIR="$HOME/.google-workspace"
+        if [ ! -d "$CONFIG_DIR" ]; then
+            mkdir -p "$CONFIG_DIR"
+            echo -e "${GREEN}Created folder: $CONFIG_DIR${NC}"
+        fi
+
+        # Open folder (Mac)
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            open "$CONFIG_DIR"
+        fi
+
+        echo "----------------------------------------"
+        read -p "Press Enter when you have saved client_secret.json..." < /dev/tty
+
+        # Verify file exists
+        CLIENT_SECRET_PATH="$CONFIG_DIR/client_secret.json"
+        if [ -f "$CLIENT_SECRET_PATH" ]; then
+            echo -e "${GREEN}client_secret.json found!${NC}"
+        else
+            echo -e "${YELLOW}Warning: client_secret.json not found at $CLIENT_SECRET_PATH${NC}"
+            echo -e "${YELLOW}Make sure to save it there before continuing.${NC}"
+        fi
+
+        echo ""
+        echo -e "${CYAN}========================================${NC}"
+        echo -e "${CYAN}  Admin Setup Complete!${NC}"
+        echo -e "${CYAN}========================================${NC}"
+        echo ""
+        echo "Summary:"
+        echo "  - Project: $PROJECT_ID"
+        echo "  - App Type: $APP_TYPE"
+        echo "  - APIs: 6 enabled"
+        echo ""
+
+        if [ "$APP_TYPE" == "external" ]; then
+            echo -e "${YELLOW}Note (External app):${NC}"
+            echo "  - Add test user emails in OAuth consent screen"
+            echo "  - Tokens expire every 7 days (re-login required)"
+            echo ""
+        fi
+
+        echo -e "${YELLOW}Now continuing with Docker setup...${NC}"
+        echo ""
+    fi
+
+    # Employee path (also runs after Admin setup)
+    if [[ "$roleChoice" == "2" || "$roleChoice" == "1" ]]; then
         # Employee path
         echo ""
         echo -e "${YELLOW}Setting up Google MCP...${NC}"

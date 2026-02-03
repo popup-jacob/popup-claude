@@ -68,35 +68,249 @@ if ($googleChoice -eq "y" -or $googleChoice -eq "Y") {
     $roleChoice = Read-Host "Select (1/2)"
 
     if ($roleChoice -eq "1") {
-        # Admin path
+        # Admin path - Full Google Cloud setup
         Write-Host ""
-        Write-Host "========================================" -ForegroundColor Yellow
-        Write-Host "  Admin Setup Required" -ForegroundColor Yellow
-        Write-Host "========================================" -ForegroundColor Yellow
-        Write-Host ""
-        Write-Host "You need to set up Google Cloud Console first." -ForegroundColor White
-        Write-Host ""
-        Write-Host "Required steps:" -ForegroundColor White
-        Write-Host "  1. Create Google Cloud project" -ForegroundColor Gray
-        Write-Host "  2. Enable APIs (Gmail, Calendar, Drive, etc.)" -ForegroundColor Gray
-        Write-Host "  3. Set up OAuth consent screen" -ForegroundColor Gray
-        Write-Host "  4. Create OAuth Client ID" -ForegroundColor Gray
-        Write-Host "  5. Download client_secret.json" -ForegroundColor Gray
+        Write-Host "========================================" -ForegroundColor Cyan
+        Write-Host "  Google Cloud Admin Setup" -ForegroundColor Cyan
+        Write-Host "========================================" -ForegroundColor Cyan
         Write-Host ""
 
-        $openGuide = Read-Host "Open setup guide in browser? (y/n)"
-        if ($openGuide -eq "y" -or $openGuide -eq "Y") {
-            Start-Process "https://console.cloud.google.com"
+        # Check gcloud CLI
+        Write-Host "[1/6] Checking gcloud CLI..." -ForegroundColor Yellow
+        $gcloudCheck = Get-Command gcloud -ErrorAction SilentlyContinue
+        if (-not $gcloudCheck) {
+            Write-Host "gcloud CLI is not installed." -ForegroundColor Red
             Write-Host ""
-            Write-Host "After completing the setup:" -ForegroundColor White
-            Write-Host "  1. Run this script again" -ForegroundColor Gray
-            Write-Host "  2. Select 'Employee' option" -ForegroundColor Gray
-            Write-Host "  3. Provide client_secret.json" -ForegroundColor Gray
+            $wingetCheck = Get-Command winget -ErrorAction SilentlyContinue
+            if ($wingetCheck) {
+                Write-Host "Installing gcloud CLI via winget..." -ForegroundColor Yellow
+                winget install Google.CloudSDK --accept-source-agreements --accept-package-agreements
+                $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+                $gcloudCheck = Get-Command gcloud -ErrorAction SilentlyContinue
+                if (-not $gcloudCheck) {
+                    Write-Host ""
+                    Write-Host "gcloud installed but not in PATH yet." -ForegroundColor Yellow
+                    Write-Host "Please close this window and run the script again." -ForegroundColor White
+                    Read-Host "Press Enter to exit"
+                    exit 1
+                }
+            } else {
+                Write-Host "winget not available. Opening download page..." -ForegroundColor Yellow
+                Start-Process "https://cloud.google.com/sdk/docs/install"
+                Write-Host "Please install Google Cloud SDK manually, then run this script again." -ForegroundColor White
+                Read-Host "Press Enter to exit"
+                exit 1
+            }
         }
-        Write-Host ""
-        Write-Host "Google MCP admin setup skipped for now." -ForegroundColor Yellow
+        Write-Host "gcloud CLI OK!" -ForegroundColor Green
 
-    } else {
+        # Check gcloud login
+        Write-Host ""
+        Write-Host "[2/6] Checking gcloud login..." -ForegroundColor Yellow
+        $ErrorActionPreference = "Continue"
+        $account = (gcloud config get-value account 2>&1) | Out-String
+        $account = $account.Trim()
+        $ErrorActionPreference = "Stop"
+
+        if (-not $account -or $account -match "unset" -or $account -eq "") {
+            Write-Host "Not logged in. Opening browser for login..." -ForegroundColor White
+            $ErrorActionPreference = "Continue"
+            gcloud auth login --launch-browser 2>&1 | Out-Null
+            $ErrorActionPreference = "Stop"
+            Read-Host "Press Enter after completing login in the browser"
+            $ErrorActionPreference = "Continue"
+            $account = (gcloud config get-value account 2>&1) | Out-String
+            $account = $account.Trim()
+            $ErrorActionPreference = "Stop"
+            if (-not $account -or $account -match "unset" -or $account -eq "") {
+                Write-Host "Login failed or cancelled. Please try again." -ForegroundColor Red
+                Read-Host "Press Enter to exit"
+                exit 1
+            }
+        }
+        if ($account -match "[\w\.\-]+@[\w\.\-]+") { $account = $Matches[0] }
+        Write-Host "Logged in as: $account" -ForegroundColor Green
+
+        # Ask Internal vs External
+        Write-Host ""
+        Write-Host "[3/6] Setup type selection..." -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "Do you use Google Workspace (company email like @company.com)?" -ForegroundColor White
+        Write-Host ""
+        Write-Host "  1. Yes - I have a company email (@company.com)" -ForegroundColor White
+        Write-Host "       -> Internal app (unlimited users, no token expiry)" -ForegroundColor DarkGray
+        Write-Host ""
+        Write-Host "  2. No - I use personal Gmail (@gmail.com)" -ForegroundColor White
+        Write-Host "       -> External app (100 test users, 7-day token expiry)" -ForegroundColor DarkGray
+        Write-Host ""
+        $appTypeChoice = Read-Host "Select (1 or 2)"
+        if ($appTypeChoice -eq "1") {
+            $appType = "internal"
+            Write-Host "Selected: Internal (Google Workspace)" -ForegroundColor Green
+        } else {
+            $appType = "external"
+            Write-Host "Selected: External (Personal Gmail)" -ForegroundColor Green
+        }
+
+        # Create or select project
+        Write-Host ""
+        Write-Host "[4/6] Setting up Google Cloud project..." -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "Options:" -ForegroundColor White
+        Write-Host "  1. Create new project" -ForegroundColor White
+        Write-Host "  2. Use existing project" -ForegroundColor White
+        Write-Host ""
+        $projectChoice = Read-Host "Select (1 or 2)"
+
+        $ErrorActionPreference = "Continue"
+        if ($projectChoice -eq "1") {
+            $projectId = "workspace-mcp-" + (Get-Random -Minimum 100000 -Maximum 999999)
+            Write-Host "Creating project: $projectId" -ForegroundColor Yellow
+            gcloud projects create $projectId --name="Google Workspace MCP" 2>&1 | Out-Null
+            gcloud config set project $projectId 2>&1 | Out-Null
+        } else {
+            Write-Host ""
+            Write-Host "Available projects:" -ForegroundColor White
+            gcloud projects list --format="table(projectId,name)"
+            Write-Host ""
+            $projectId = Read-Host "Enter project ID"
+            gcloud config set project $projectId 2>&1 | Out-Null
+        }
+        $ErrorActionPreference = "Stop"
+        Write-Host "Project set: $projectId" -ForegroundColor Green
+
+        # Enable APIs
+        Write-Host ""
+        Write-Host "[5/6] Enabling APIs (this may take a minute)..." -ForegroundColor Yellow
+        $apis = @(
+            "gmail.googleapis.com",
+            "calendar-json.googleapis.com",
+            "drive.googleapis.com",
+            "docs.googleapis.com",
+            "sheets.googleapis.com",
+            "slides.googleapis.com"
+        )
+        $ErrorActionPreference = "Continue"
+        foreach ($api in $apis) {
+            Write-Host "  Enabling $api..." -ForegroundColor DarkGray
+            gcloud services enable $api 2>&1 | Out-Null
+        }
+        $ErrorActionPreference = "Stop"
+        Write-Host "All APIs enabled!" -ForegroundColor Green
+
+        # OAuth Consent Screen (Manual)
+        Write-Host ""
+        Write-Host "[6/6] OAuth Consent Screen Setup (Manual step required)" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "========================================" -ForegroundColor Cyan
+        Write-Host "  MANUAL STEP REQUIRED" -ForegroundColor Cyan
+        Write-Host "========================================" -ForegroundColor Cyan
+        Write-Host ""
+        $consoleUrl = "https://console.cloud.google.com/apis/credentials/consent?project=$projectId"
+        Write-Host "Opening browser to OAuth consent screen..." -ForegroundColor White
+        Start-Process $consoleUrl
+        Start-Sleep -Seconds 2
+
+        Write-Host ""
+        Write-Host "Follow these steps in the browser:" -ForegroundColor White
+        Write-Host ""
+        Write-Host "  ** If you see 'Configure consent screen' button, click it first **" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "  [1] App Info" -ForegroundColor Cyan
+        Write-Host "      - App name: Google Workspace MCP" -ForegroundColor White
+        Write-Host "      - User support email: (select your email)" -ForegroundColor White
+        Write-Host "      -> Click 'Next'" -ForegroundColor DarkGray
+        Write-Host ""
+        Write-Host "  [2] Audience" -ForegroundColor Cyan
+        if ($appType -eq "internal") {
+            Write-Host "      - Select 'Internal'" -ForegroundColor Yellow
+        } else {
+            Write-Host "      - Select 'External'" -ForegroundColor Yellow
+        }
+        Write-Host "      -> Click 'Next'" -ForegroundColor DarkGray
+        Write-Host ""
+        Write-Host "  [3] Contact Info" -ForegroundColor Cyan
+        Write-Host "      - Email: (enter your email)" -ForegroundColor White
+        Write-Host "      -> Click 'Next'" -ForegroundColor DarkGray
+        Write-Host ""
+        Write-Host "  [4] Finish" -ForegroundColor Cyan
+        Write-Host "      - Check the agreement box" -ForegroundColor White
+        Write-Host "      -> Click 'Continue'" -ForegroundColor DarkGray
+
+        if ($appType -eq "external") {
+            Write-Host ""
+            Write-Host "  [5] After setup, add TEST USERS:" -ForegroundColor Yellow
+            Write-Host "      - Left menu: click 'Audience'" -ForegroundColor White
+            Write-Host "      - Click 'Add Users' and add your email" -ForegroundColor White
+        }
+
+        Write-Host ""
+        Write-Host "----------------------------------------" -ForegroundColor DarkGray
+        Read-Host "Press Enter when you have completed the above steps"
+
+        # Create OAuth Client
+        Write-Host ""
+        Write-Host "[7/7] Creating OAuth Client..." -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "In the left menu, click 'Clients'" -ForegroundColor White
+        Write-Host ""
+        Write-Host "  [1] Click '+ Create Client'" -ForegroundColor Cyan
+        Write-Host "  [2] Application type: 'Desktop app'" -ForegroundColor White
+        Write-Host "  [3] Name: any name (e.g. MCP Client)" -ForegroundColor White
+        Write-Host "  [4] Click 'Create'" -ForegroundColor White
+        Write-Host ""
+        Write-Host "  [5] Click the created client name" -ForegroundColor Cyan
+        Write-Host "  [6] Find 'Client Secret' section" -ForegroundColor White
+        Write-Host "  [7] Click download icon (arrow down) to download JSON" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "Save the file as:" -ForegroundColor Yellow
+        Write-Host "  $env:USERPROFILE\.google-workspace\client_secret.json" -ForegroundColor Cyan
+        Write-Host ""
+
+        # Create config folder
+        $configDir = "$env:USERPROFILE\.google-workspace"
+        if (-not (Test-Path $configDir)) {
+            New-Item -ItemType Directory -Path $configDir -Force | Out-Null
+            Write-Host "Created folder: $configDir" -ForegroundColor Green
+        }
+        Start-Process explorer.exe -ArgumentList $configDir
+
+        Write-Host "----------------------------------------" -ForegroundColor DarkGray
+        Read-Host "Press Enter when you have saved client_secret.json"
+
+        # Verify file exists
+        $clientSecretPath = "$configDir\client_secret.json"
+        if (Test-Path $clientSecretPath) {
+            Write-Host "client_secret.json found!" -ForegroundColor Green
+        } else {
+            Write-Host "Warning: client_secret.json not found at $clientSecretPath" -ForegroundColor Yellow
+            Write-Host "Make sure to save it there before continuing." -ForegroundColor Yellow
+        }
+
+        Write-Host ""
+        Write-Host "========================================" -ForegroundColor Cyan
+        Write-Host "  Admin Setup Complete!" -ForegroundColor Cyan
+        Write-Host "========================================" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "Summary:" -ForegroundColor White
+        Write-Host "  - Project: $projectId" -ForegroundColor White
+        Write-Host "  - App Type: $appType" -ForegroundColor White
+        Write-Host "  - APIs: 6 enabled" -ForegroundColor White
+        Write-Host ""
+
+        if ($appType -eq "external") {
+            Write-Host "Note (External app):" -ForegroundColor Yellow
+            Write-Host "  - Add test user emails in OAuth consent screen" -ForegroundColor White
+            Write-Host "  - Tokens expire every 7 days (re-login required)" -ForegroundColor White
+            Write-Host ""
+        }
+
+        Write-Host "Now continuing with Docker setup..." -ForegroundColor Yellow
+        Write-Host ""
+    }
+
+    # Employee path (also runs after Admin setup)
+    if ($roleChoice -eq "2" -or $roleChoice -eq "1") {
         # Employee path
         Write-Host ""
         Write-Host "Setting up Google MCP..." -ForegroundColor Yellow
