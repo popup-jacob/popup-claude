@@ -23,18 +23,29 @@
 
 ---
 
-## 관리자가 할 일 요약
+## 자동 설정 스크립트 (권장)
 
-```
-1. Google Cloud Console 설정 (20분)
-   └── client_secret.json 생성
+스크립트가 프로젝트 생성, API 활성화를 자동으로 처리하고 OAuth 설정을 안내합니다.
 
-2. 직원에게 client_secret.json 전달
+**Windows:**
+```powershell
+powershell -ep bypass -File final-installer\setup_admin.ps1
 ```
+
+**Mac/Linux:**
+```bash
+chmod +x final-installer/setup_admin.sh && ./final-installer/setup_admin.sh
+```
+
+스크립트 실행 후 `client_secret.json`을 다운로드하면 완료입니다.
+
+> 아래 수동 설정은 스크립트를 사용하지 않거나 참고가 필요한 경우에만 확인하세요.
 
 ---
 
-## 1단계: Google Cloud Console 설정
+## 수동 설정 (참고용)
+
+### 1단계: Google Cloud Console 설정
 
 ### 1-1. 프로젝트 생성
 
