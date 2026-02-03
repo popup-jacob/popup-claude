@@ -96,11 +96,30 @@ claude login
 
 팀을 위해 Google MCP를 설정하는 **관리자**라면:
 
-1. Google Cloud Console 설정 (프로젝트 생성, API 활성화, OAuth 설정)
-2. 관리자 가이드 참고: [docs/SETUP_GOOGLE_INTERNAL_ADMIN.md](docs/SETUP_GOOGLE_INTERNAL_ADMIN.md)
-3. 직원들에게 `client_secret.json` 공유
+### 자동 설정 스크립트 (권장)
 
-외부 (Google Workspace 외) 설정: [docs/SETUP_GOOGLE_EXTERNAL_ADMIN.md](docs/SETUP_GOOGLE_EXTERNAL_ADMIN.md)
+**Windows:**
+```powershell
+powershell -ep bypass -File final-installer\setup_admin.ps1
+```
+
+**Mac/Linux:**
+```bash
+chmod +x final-installer/setup_admin.sh && ./final-installer/setup_admin.sh
+```
+
+스크립트가 자동으로:
+- gcloud CLI 설치
+- Google Cloud 프로젝트 생성
+- API 6개 활성화 (Gmail, Calendar, Drive, Docs, Sheets, Slides)
+- OAuth 설정 안내
+
+완료 후 `client_secret.json`을 직원들에게 공유하세요.
+
+### 수동 설정 (참고용)
+
+- Internal (Google Workspace): [docs/SETUP_GOOGLE_INTERNAL_ADMIN.md](docs/SETUP_GOOGLE_INTERNAL_ADMIN.md)
+- External (개인 Gmail): [docs/SETUP_GOOGLE_EXTERNAL_ADMIN.md](docs/SETUP_GOOGLE_EXTERNAL_ADMIN.md)
 
 ---
 

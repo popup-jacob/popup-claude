@@ -151,6 +151,22 @@ chmod +x install_dev.sh && ./install_dev.sh
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
+### 관리자 자동 설정 (권장)
+
+스크립트를 사용하면 프로젝트 생성, API 활성화, OAuth 설정을 자동화할 수 있습니다:
+
+**Windows:**
+```powershell
+powershell -ep bypass -File final-installer\setup_admin.ps1
+```
+
+**Mac/Linux:**
+```bash
+chmod +x final-installer/setup_admin.sh && ./final-installer/setup_admin.sh
+```
+
+### 수동 설정 가이드
+
 | 회사 유형 | 역할 | 가이드 |
 |-----------|------|--------|
 | Google Workspace 회사 | 관리자 (설정하는 사람) | [SETUP_GOOGLE_INTERNAL_ADMIN.md](SETUP_GOOGLE_INTERNAL_ADMIN.md) |
