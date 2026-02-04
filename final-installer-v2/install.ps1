@@ -22,8 +22,15 @@ param(
 $BaseUrl = "https://raw.githubusercontent.com/popup-jacob/popup-claude/master/final-installer-v2"
 
 # For local development, use local files
-$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$UseLocal = Test-Path "$ScriptDir\modules"
+# 원격 실행 시 $MyInvocation.MyCommand.Path가 null이므로 체크 필요
+$ScriptPath = $MyInvocation.MyCommand.Path
+if ($ScriptPath) {
+    $ScriptDir = Split-Path -Parent $ScriptPath
+    $UseLocal = Test-Path "$ScriptDir\modules"
+} else {
+    $ScriptDir = $null
+    $UseLocal = $false
+}
 
 # ============================================
 # 1. Scan Modules Folder (before admin check for -list)
