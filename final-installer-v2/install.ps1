@@ -18,8 +18,8 @@ param(
     [switch]$list                # List available modules
 )
 
-# Base URL for module downloads
-$BaseUrl = "https://raw.githubusercontent.com/popup-jacob/popup-claude/master/final-installer-v2"
+# Base URL for module downloads - jsDelivr CDN with version tag
+$BaseUrl = "https://cdn.jsdelivr.net/gh/popup-jacob/popup-claude@v2.0.2/final-installer-v2"
 
 # For local development, use local files
 # 원격 실행 시 $MyInvocation.MyCommand.Path가 null이므로 체크 필요
