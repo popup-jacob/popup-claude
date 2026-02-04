@@ -1,0 +1,38 @@
+{
+  "name": "atlassian",
+  "displayName": "Atlassian (Jira + Confluence)",
+  "description": "View issues, create tasks, search Confluence pages",
+  "version": "1.0.0",
+  "author": "popup-jacob",
+  "required": false,
+  "order": 2,
+
+  "type": "mcp",
+  "complexity": "moderate",
+
+  "requirements": {
+    "docker": false,
+    "node": false,
+    "adminSetup": false
+  },
+
+  "mcpConfig": {
+    "serverName": "atlassian",
+    "command": "docker",
+    "args": [
+      "run", "-i", "--rm",
+      "-e", "CONFLUENCE_URL={confluenceUrl}",
+      "-e", "CONFLUENCE_USERNAME={email}",
+      "-e", "CONFLUENCE_API_TOKEN={apiToken}",
+      "-e", "JIRA_URL={jiraUrl}",
+      "-e", "JIRA_USERNAME={email}",
+      "-e", "JIRA_API_TOKEN={apiToken}",
+      "ghcr.io/sooperset/mcp-atlassian:latest"
+    ]
+  },
+
+  "links": {
+    "docs": "https://github.com/sooperset/mcp-atlassian",
+    "rovo": "https://support.atlassian.com/atlassian-rovo-mcp-server/"
+  }
+}

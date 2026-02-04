@@ -1,0 +1,33 @@
+{
+  "name": "slack",
+  "displayName": "Slack",
+  "description": "Send messages, read channels, manage conversations",
+  "version": "1.0.0",
+  "author": "popup-jacob",
+  "required": false,
+  "order": 3,
+
+  "type": "mcp",
+  "complexity": "simple",
+
+  "requirements": {
+    "docker": false,
+    "node": true,
+    "adminSetup": false
+  },
+
+  "mcpConfig": {
+    "serverName": "slack",
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-slack"],
+    "env": {
+      "SLACK_BOT_TOKEN": "{botToken}",
+      "SLACK_TEAM_ID": "{teamId}"
+    }
+  },
+
+  "links": {
+    "docs": "https://github.com/modelcontextprotocol/servers/tree/main/src/slack",
+    "setup": "https://api.slack.com/apps"
+  }
+}

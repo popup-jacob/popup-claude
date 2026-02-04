@@ -1,0 +1,32 @@
+{
+  "name": "notion",
+  "displayName": "Notion",
+  "description": "Read and search Notion pages and databases",
+  "version": "1.0.0",
+  "author": "popup-jacob",
+  "required": false,
+  "order": 4,
+
+  "type": "mcp",
+  "complexity": "simple",
+
+  "requirements": {
+    "docker": false,
+    "node": true,
+    "adminSetup": false
+  },
+
+  "mcpConfig": {
+    "serverName": "notion",
+    "command": "npx",
+    "args": ["-y", "@notionhq/notion-mcp-server"],
+    "env": {
+      "NOTION_TOKEN": "{apiToken}"
+    }
+  },
+
+  "links": {
+    "docs": "https://github.com/makenotion/notion-mcp-server",
+    "setup": "https://www.notion.so/my-integrations"
+  }
+}

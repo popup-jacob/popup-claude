@@ -1,0 +1,32 @@
+{
+  "name": "google",
+  "displayName": "Google Workspace",
+  "description": "Gmail, Calendar, Drive, Docs, Sheets, Slides access for Claude",
+  "version": "1.0.0",
+  "author": "popup-jacob",
+  "required": false,
+  "order": 1,
+
+  "type": "mcp",
+  "complexity": "complex",
+
+  "requirements": {
+    "docker": true,
+    "node": false,
+    "adminSetup": true
+  },
+
+  "mcpConfig": {
+    "serverName": "google-workspace",
+    "command": "docker",
+    "args": [
+      "run", "-i", "--rm",
+      "-v", "{configDir}:/app/.google-workspace",
+      "ghcr.io/popup-jacob/google-workspace-mcp:latest"
+    ]
+  },
+
+  "links": {
+    "docs": "https://github.com/popup-jacob/google-workspace-mcp"
+  }
+}

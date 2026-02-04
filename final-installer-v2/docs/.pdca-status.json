@@ -1,0 +1,37 @@
+{
+  "currentFeature": "dynamic-module-system",
+  "phase": "do",
+  "createdAt": "2026-02-03",
+  "updatedAt": "2026-02-04",
+  "matchRate": 50,
+  "iteration": 0,
+  "completedItems": [
+    "module.json 스펙 정의",
+    "install.ps1 동적 로딩",
+    "install.sh 동적 로딩",
+    "base 모듈",
+    "google 모듈",
+    "atlassian 모듈"
+  ],
+  "needsTestingItems": [
+    "slack 모듈 (스크립트 작성됨, 테스트 필요)",
+    "notion 모듈 (스크립트 작성됨, 테스트 필요)",
+    "github 모듈 (스크립트 작성됨, 테스트 필요)",
+    "figma 모듈 (스크립트 작성됨, 테스트 필요)"
+  ],
+  "pendingItems": [
+    "registry.json",
+    "web/index.html (또는 adw-landing-page 연동)",
+    "docs/CONTRIBUTING.md",
+    "modules/*/README.md (7개)"
+  ],
+  "documents": {
+    "plan": "docs/01-plan/features/dynamic-module-system.plan.md",
+    "design": "docs/02-design/features/dynamic-module-system.design.md"
+  },
+  "previousFeature": {
+    "name": "script-modularization",
+    "phase": "completed",
+    "matchRate": 100
+  }
+}
