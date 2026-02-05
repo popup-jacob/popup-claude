@@ -82,7 +82,7 @@ load_modules() {
         done
     else
         # Remote: fetch known modules
-        local known_modules=("base" "google" "atlassian" "slack" "notion" "github" "figma")
+        local known_modules=("base" "google" "atlassian" "notion" "github" "figma")
         for name in "${known_modules[@]}"; do
             local json=$(curl -sSL "$BASE_URL/modules/$name/module.json" 2>/dev/null || echo "")
             if [ -n "$json" ]; then
@@ -375,11 +375,5 @@ if [ -f "$MCP_CONFIG" ]; then
     done
 fi
 
-echo ""
-echo "Test commands in Claude:"
-echo -e "  ${GRAY}- 'Show my calendar' (Google)${NC}"
-echo -e "  ${GRAY}- 'List Jira projects' (Atlassian)${NC}"
-echo -e "  ${GRAY}- 'Send a Slack message' (Slack)${NC}"
-echo -e "  ${GRAY}- 'Search Notion pages' (Notion)${NC}"
 echo ""
 read -p "Press Enter to close" < /dev/tty

@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================
-# Figma Module - MCP Server Installation
+# Figma Module — Remote MCP Server + Auto OAuth
 # ============================================
 
 # Colors
@@ -15,67 +15,58 @@ echo ""
 echo -e "${CYAN}Figma MCP Server Setup${NC}"
 echo -e "${CYAN}----------------------${NC}"
 echo ""
-
-# ============================================
-# 1. Get Figma Personal Access Token
-# ============================================
-echo -e "${YELLOW}Figma Personal Access Token is required.${NC}"
-echo ""
-echo -e "${WHITE}How to get your token:${NC}"
-echo -e "  ${GRAY}1. Go to https://www.figma.com/developers/api#access-tokens${NC}"
-echo -e "  ${GRAY}2. Click 'Get personal access token'${NC}"
-echo -e "  ${GRAY}3. Copy the generated token${NC}"
-echo ""
-
-read -p "Enter your Figma Personal Access Token: " ACCESS_TOKEN < /dev/tty
-
-if [ -z "$ACCESS_TOKEN" ]; then
-    echo -e "${YELLOW}No token provided. Skipping Figma setup.${NC}"
-    exit 0
-fi
-
-# ============================================
-# 2. Update .mcp.json
-# ============================================
-echo ""
-echo -e "${YELLOW}Configuring MCP...${NC}"
-
-MCP_CONFIG="$HOME/.mcp.json"
-
-# Create or update config using Node.js for proper JSON handling
-node -e "
-const fs = require('fs');
-const configPath = '$MCP_CONFIG';
-
-let config = { mcpServers: {} };
-if (fs.existsSync(configPath)) {
-    try {
-        config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    } catch (e) {
-        config = { mcpServers: {} };
-    }
-}
-
-if (!config.mcpServers) {
-    config.mcpServers = {};
-}
-
-config.mcpServers.figma = {
-    command: 'npx',
-    args: ['-y', '@anthropic/mcp-figma'],
-    env: {
-        FIGMA_PERSONAL_ACCESS_TOKEN: '$ACCESS_TOKEN'
-    }
-};
-
-fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-console.log('  OK - Figma MCP configured');
-"
-
-echo -e "  ${GREEN}OK - Figma MCP configured${NC}"
-echo ""
-echo -e "${WHITE}You can now use Claude to:${NC}"
+echo "Figma MCP lets Claude access:"
 echo -e "  ${GRAY}- Read Figma file contents${NC}"
 echo -e "  ${GRAY}- Inspect design components${NC}"
 echo -e "  ${GRAY}- Extract design tokens and styles${NC}"
+echo ""
+
+# Check Claude CLI
+echo -e "${YELLOW}[Check] Claude CLI...${NC}"
+if ! command -v claude &> /dev/null; then
+    echo -e "  ${RED}Claude CLI is required. Please install base module first.${NC}"
+    exit 1
+fi
+echo -e "  ${GREEN}OK${NC}"
+
+# Check python3 (required for OAuth)
+echo -e "${YELLOW}[Check] Python 3...${NC}"
+if ! command -v python3 &> /dev/null; then
+    echo -e "  ${RED}Python 3 is required for OAuth authentication.${NC}"
+    echo -e "  ${YELLOW}Install with: brew install python3 (Mac) or apt install python3 (Linux)${NC}"
+    exit 1
+fi
+echo -e "  ${GREEN}OK${NC}"
+
+# Register Remote MCP server
+echo ""
+echo -e "${YELLOW}[Config] Registering Figma Remote MCP server...${NC}"
+claude mcp add --transport http figma https://mcp.figma.com/mcp
+echo -e "  ${GREEN}OK${NC}"
+
+# Auto OAuth authentication
+echo ""
+echo -e "${CYAN}========================================${NC}"
+echo -e "${CYAN}  Figma OAuth Login${NC}"
+echo -e "${CYAN}========================================${NC}"
+echo ""
+echo "Starting automatic OAuth authentication..."
+echo ""
+
+# Load OAuth helper
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../shared/oauth-helper.sh"
+
+mcp_oauth_flow "figma" "https://mcp.figma.com/mcp"
+oauth_result=$?
+
+echo ""
+echo "----------------------------------------"
+if [ $oauth_result -eq 0 ]; then
+    echo -e "${GREEN}Figma MCP setup complete! Ready to use.${NC}"
+else
+    echo -e "${YELLOW}Figma MCP registered but OAuth login failed.${NC}"
+    echo -e "${YELLOW}You can retry by running this installer again,${NC}"
+    echo -e "${YELLOW}or manually authenticate via /mcp in Claude Code.${NC}"
+fi
 echo ""

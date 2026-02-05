@@ -67,7 +67,7 @@ if ! gh auth status &> /dev/null; then
     echo "A browser will open for GitHub login."
     echo ""
 
-    gh auth login --web
+    gh auth login --hostname github.com --git-protocol https --web
 
     if [ $? -ne 0 ]; then
         echo -e "  ${RED}Authentication failed or cancelled.${NC}"

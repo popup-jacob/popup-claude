@@ -50,7 +50,7 @@ function Get-AvailableModules {
         }
     } else {
         # Remote: fetch known modules (hardcoded list for remote, but modules are self-contained)
-        $knownModules = @("base", "google", "atlassian", "slack", "notion", "github", "figma")
+        $knownModules = @("base", "google", "atlassian", "notion", "github", "figma")
         foreach ($name in $knownModules) {
             try {
                 $moduleJson = irm "$BaseUrl/modules/$name/module.json" -ErrorAction SilentlyContinue
@@ -343,7 +343,10 @@ if (Test-Path $mcpConfigPath) {
     foreach ($modName in $sortedModules) {
         $mod = $availableModules | Where-Object { $_.name -eq $modName }
 
-        if ($mod.mcpConfig -and $mod.mcpConfig.serverName) {
+        if ($mod.type -eq "remote-mcp") {
+            # Remote MCP servers are registered via 'claude mcp add', not in .mcp.json
+            Write-Host "  [OK] $($mod.displayName) (Remote MCP)" -ForegroundColor Green
+        } elseif ($mod.mcpConfig -and $mod.mcpConfig.serverName) {
             if ($mcpJson.mcpServers.$($mod.mcpConfig.serverName)) {
                 Write-Host "  [OK] $($mod.displayName)" -ForegroundColor Green
             }
@@ -353,11 +356,5 @@ if (Test-Path $mcpConfigPath) {
     }
 }
 
-Write-Host ""
-Write-Host "Test commands in Claude:" -ForegroundColor White
-Write-Host "  - 'Show my calendar' (Google)" -ForegroundColor Gray
-Write-Host "  - 'List Jira projects' (Atlassian)" -ForegroundColor Gray
-Write-Host "  - 'Send a Slack message' (Slack)" -ForegroundColor Gray
-Write-Host "  - 'Search Notion pages' (Notion)" -ForegroundColor Gray
 Write-Host ""
 cmd /c pause

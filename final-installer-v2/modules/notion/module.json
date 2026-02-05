@@ -7,26 +7,23 @@
   "required": false,
   "order": 4,
 
-  "type": "mcp",
+  "type": "remote-mcp",
   "complexity": "simple",
 
   "requirements": {
     "docker": false,
-    "node": true,
+    "node": false,
     "adminSetup": false
   },
 
   "mcpConfig": {
     "serverName": "notion",
-    "command": "npx",
-    "args": ["-y", "@notionhq/notion-mcp-server"],
-    "env": {
-      "NOTION_TOKEN": "{apiToken}"
-    }
+    "transport": "http",
+    "url": "https://mcp.notion.com/mcp"
   },
 
   "links": {
     "docs": "https://github.com/makenotion/notion-mcp-server",
-    "setup": "https://www.notion.so/my-integrations"
+    "setup": "https://www.notion.so/help/mcp"
   }
 }

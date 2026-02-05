@@ -49,7 +49,7 @@ if ($LASTEXITCODE -ne 0) {
     Write-Host "A browser will open for GitHub login." -ForegroundColor White
     Write-Host ""
 
-    gh auth login --web
+    gh auth login --hostname github.com --git-protocol https --web
 
     if ($LASTEXITCODE -ne 0) {
         Write-Host "  Authentication failed or cancelled." -ForegroundColor Red
