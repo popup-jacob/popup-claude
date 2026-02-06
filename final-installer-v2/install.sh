@@ -37,10 +37,11 @@ fi
 # ============================================
 # 1. Parse Arguments
 # ============================================
-MODULES=""
-INSTALL_ALL=false
-SKIP_BASE=false
-LIST_ONLY=false
+# Support both environment variables and command-line arguments
+MODULES="${MODULES:-}"
+INSTALL_ALL="${INSTALL_ALL:-false}"
+SKIP_BASE="${SKIP_BASE:-false}"
+LIST_ONLY="${LIST_ONLY:-false}"
 
 while [[ $# -gt 0 ]]; do
     case $1 in
