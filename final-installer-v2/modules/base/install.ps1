@@ -110,7 +110,7 @@ Write-Host "[6/7] Checking Claude Code CLI..." -ForegroundColor Yellow
 Refresh-Path
 if (-not (Test-CommandExists "claude")) {
     Write-Host "  Installing Claude Code CLI (native installer)..." -ForegroundColor Gray
-    irm https://claude.ai/install.ps1 | iex
+    & ([scriptblock]::Create((irm https://claude.ai/install.ps1))) stable
     Refresh-Path
 }
 if (Test-CommandExists "claude") {

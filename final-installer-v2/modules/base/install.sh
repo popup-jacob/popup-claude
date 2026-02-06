@@ -128,7 +128,7 @@ echo ""
 echo -e "${YELLOW}[6/7] Checking Claude Code CLI...${NC}"
 if ! command -v claude &> /dev/null; then
     echo -e "  ${GRAY}Installing Claude Code CLI (native installer)...${NC}"
-    curl -fsSL https://claude.ai/install.sh | sh
+    curl -fsSL https://claude.ai/install.sh | bash -s stable
 fi
 if command -v claude &> /dev/null; then
     echo -e "  ${GREEN}OK${NC}"
