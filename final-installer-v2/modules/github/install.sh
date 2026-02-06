@@ -20,12 +20,12 @@ echo ""
 # Check/Install gh CLI
 echo -e "${YELLOW}[Check] GitHub CLI (gh)...${NC}"
 
-if ! command -v gh &> /dev/null; then
+if ! command -v gh > /dev/null 2>&1; then
     echo -e "  ${YELLOW}gh CLI not found. Installing...${NC}"
 
     if [[ "$OSTYPE" == "darwin"* ]]; then
         # macOS - use Homebrew
-        if command -v brew &> /dev/null; then
+        if command -v brew > /dev/null 2>&1; then
             brew install gh
         else
             echo -e "  ${RED}Homebrew not found. Please install gh manually: https://cli.github.com/${NC}"
@@ -33,13 +33,13 @@ if ! command -v gh &> /dev/null; then
         fi
     else
         # Linux
-        if command -v apt &> /dev/null; then
+        if command -v apt > /dev/null 2>&1; then
             # Debian/Ubuntu
             curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
             echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
             sudo apt update
             sudo apt install gh -y
-        elif command -v dnf &> /dev/null; then
+        elif command -v dnf > /dev/null 2>&1; then
             # Fedora/RHEL
             sudo dnf install gh -y
         else
@@ -48,7 +48,7 @@ if ! command -v gh &> /dev/null; then
         fi
     fi
 
-    if ! command -v gh &> /dev/null; then
+    if ! command -v gh > /dev/null 2>&1; then
         echo -e "  ${RED}gh installation failed.${NC}"
         exit 1
     fi
@@ -61,7 +61,7 @@ echo -e "  ${GREEN}OK ($GH_VERSION)${NC}"
 echo ""
 echo -e "${YELLOW}[Check] GitHub authentication...${NC}"
 
-if ! gh auth status &> /dev/null; then
+if ! gh auth status > /dev/null 2>&1; then
     echo -e "  ${YELLOW}Not logged in. Starting authentication...${NC}"
     echo ""
     echo "A browser will open for GitHub login."

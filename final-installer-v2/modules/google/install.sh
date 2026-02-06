@@ -16,7 +16,7 @@ NC='\033[0m'
 # 1. Docker Check
 # ============================================
 echo -e "${YELLOW}[Check] Docker is running...${NC}"
-if ! docker info &> /dev/null; then
+if ! docker info > /dev/null 2>&1; then
     echo ""
     echo -e "${RED}Docker is not running!${NC}"
     echo ""
@@ -49,10 +49,10 @@ if [ "$roleChoice" = "1" ]; then
 
     # Check/Install gcloud CLI
     echo -e "${YELLOW}[1/6] Checking gcloud CLI...${NC}"
-    if ! command -v gcloud &> /dev/null; then
+    if ! command -v gcloud > /dev/null 2>&1; then
         echo -e "  ${RED}gcloud CLI is not installed.${NC}"
         if [[ "$OSTYPE" == "darwin"* ]]; then
-            if command -v brew &> /dev/null; then
+            if command -v brew > /dev/null 2>&1; then
                 echo -e "  ${YELLOW}Installing via Homebrew...${NC}"
                 brew install --cask google-cloud-sdk
                 # Source the path
@@ -69,7 +69,7 @@ if [ "$roleChoice" = "1" ]; then
             source "$HOME/google-cloud-sdk/path.bash.inc"
         fi
 
-        if ! command -v gcloud &> /dev/null; then
+        if ! command -v gcloud > /dev/null 2>&1; then
             echo -e "${YELLOW}gcloud installed but not in PATH. Restart terminal and run again.${NC}"
             exit 1
         fi
@@ -159,7 +159,7 @@ if [ "$roleChoice" = "1" ]; then
     CONSOLE_URL="https://console.cloud.google.com/apis/credentials/consent?project=$PROJECT_ID"
     if [[ "$OSTYPE" == "darwin"* ]]; then
         open "$CONSOLE_URL"
-    elif command -v xdg-open &> /dev/null; then
+    elif command -v xdg-open > /dev/null 2>&1; then
         xdg-open "$CONSOLE_URL"
     else
         echo -e "${YELLOW}Open this URL: $CONSOLE_URL${NC}"

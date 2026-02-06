@@ -19,7 +19,7 @@ DOCKER_NEEDS_RESTART=false
 # ============================================
 echo -e "${YELLOW}[1/7] Checking Homebrew...${NC}"
 if [[ "$OSTYPE" == "darwin"* ]]; then
-    if ! command -v brew &> /dev/null; then
+    if ! command -v brew > /dev/null 2>&1; then
         echo -e "  ${GRAY}Installing Homebrew...${NC}"
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
@@ -38,7 +38,7 @@ fi
 # ============================================
 echo ""
 echo -e "${YELLOW}[2/7] Checking Node.js...${NC}"
-if ! command -v node &> /dev/null; then
+if ! command -v node > /dev/null 2>&1; then
     echo -e "  ${GRAY}Installing Node.js...${NC}"
     if [[ "$OSTYPE" == "darwin"* ]]; then
         brew install node
@@ -48,7 +48,7 @@ if ! command -v node &> /dev/null; then
         sudo apt-get install -y nodejs
     fi
 fi
-if command -v node &> /dev/null; then
+if command -v node > /dev/null 2>&1; then
     NODE_VERSION=$(node --version)
     echo -e "  ${GREEN}OK - $NODE_VERSION${NC}"
 else
@@ -60,7 +60,7 @@ fi
 # ============================================
 echo ""
 echo -e "${YELLOW}[3/7] Checking Git...${NC}"
-if ! command -v git &> /dev/null; then
+if ! command -v git > /dev/null 2>&1; then
     echo -e "  ${GRAY}Installing Git...${NC}"
     if [[ "$OSTYPE" == "darwin"* ]]; then
         brew install git
@@ -68,7 +68,7 @@ if ! command -v git &> /dev/null; then
         sudo apt-get install -y git
     fi
 fi
-if command -v git &> /dev/null; then
+if command -v git > /dev/null 2>&1; then
     GIT_VERSION=$(git --version)
     echo -e "  ${GREEN}OK - $GIT_VERSION${NC}"
 else
@@ -80,13 +80,13 @@ fi
 # ============================================
 echo ""
 echo -e "${YELLOW}[4/7] Checking VS Code...${NC}"
-if ! command -v code &> /dev/null && [ ! -d "/Applications/Visual Studio Code.app" ]; then
+if ! command -v code > /dev/null 2>&1 && [ ! -d "/Applications/Visual Studio Code.app" ]; then
     echo -e "  ${GRAY}Installing VS Code...${NC}"
     if [[ "$OSTYPE" == "darwin"* ]]; then
         brew install --cask visual-studio-code
     else
         # Linux - use snap or download
-        if command -v snap &> /dev/null; then
+        if command -v snap > /dev/null 2>&1; then
             sudo snap install code --classic
         else
             echo -e "  ${YELLOW}Please install VS Code manually from https://code.visualstudio.com${NC}"
@@ -101,7 +101,7 @@ echo -e "  ${GREEN}OK${NC}"
 echo ""
 echo -e "${YELLOW}[5/7] Checking Docker...${NC}"
 if [ "$NEEDS_DOCKER" = true ]; then
-    if ! command -v docker &> /dev/null; then
+    if ! command -v docker > /dev/null 2>&1; then
         echo -e "  ${GRAY}Installing Docker Desktop...${NC}"
         if [[ "$OSTYPE" == "darwin"* ]]; then
             brew install --cask docker
@@ -126,11 +126,11 @@ fi
 # ============================================
 echo ""
 echo -e "${YELLOW}[6/7] Checking Claude Code CLI...${NC}"
-if ! command -v claude &> /dev/null; then
+if ! command -v claude > /dev/null 2>&1; then
     echo -e "  ${GRAY}Installing Claude Code CLI (npm)...${NC}"
     npm install -g @anthropic-ai/claude-code@2.1.28
 fi
-if command -v claude &> /dev/null; then
+if command -v claude > /dev/null 2>&1; then
     echo -e "  ${GREEN}OK${NC}"
 else
     echo -e "  ${YELLOW}Installed (restart terminal to use)${NC}"

@@ -22,9 +22,9 @@ echo ""
 # ============================================
 HAS_DOCKER=false
 DOCKER_RUNNING=false
-if command -v docker &> /dev/null; then
+if command -v docker > /dev/null 2>&1; then
     HAS_DOCKER=true
-    if docker info &> /dev/null; then
+    if docker info > /dev/null 2>&1; then
         DOCKER_RUNNING=true
     fi
 fi
@@ -95,7 +95,7 @@ if [ "$USE_DOCKER" = true ]; then
             exit 1
         fi
 
-        if ! docker info &> /dev/null; then
+        if ! docker info > /dev/null 2>&1; then
             echo -e "${RED}Docker가 아직 실행되지 않았습니다.${NC}"
             exit 1
         fi
@@ -114,7 +114,7 @@ if [ "$USE_DOCKER" = true ]; then
     if [ "$openToken" = "y" ] || [ "$openToken" = "Y" ]; then
         if [[ "$OSTYPE" == "darwin"* ]]; then
             open "https://id.atlassian.com/manage-profile/security/api-tokens"
-        elif command -v xdg-open &> /dev/null; then
+        elif command -v xdg-open > /dev/null 2>&1; then
             xdg-open "https://id.atlassian.com/manage-profile/security/api-tokens"
         fi
         echo -e "${YELLOW}토큰을 생성하고 복사하세요.${NC}"

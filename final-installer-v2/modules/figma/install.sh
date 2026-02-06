@@ -23,7 +23,7 @@ echo ""
 
 # Check Claude CLI
 echo -e "${YELLOW}[Check] Claude CLI...${NC}"
-if ! command -v claude &> /dev/null; then
+if ! command -v claude > /dev/null 2>&1; then
     echo -e "  ${RED}Claude CLI is required. Please install base module first.${NC}"
     exit 1
 fi
@@ -31,7 +31,7 @@ echo -e "  ${GREEN}OK${NC}"
 
 # Check python3 (required for OAuth)
 echo -e "${YELLOW}[Check] Python 3...${NC}"
-if ! command -v python3 &> /dev/null; then
+if ! command -v python3 > /dev/null 2>&1; then
     echo -e "  ${RED}Python 3 is required for OAuth authentication.${NC}"
     echo -e "  ${YELLOW}Install with: brew install python3 (Mac) or apt install python3 (Linux)${NC}"
     exit 1

@@ -33,9 +33,9 @@ _urlencode() {
 
 # Open browser (cross-platform)
 _open_browser() {
-    if command -v open &>/dev/null; then
+    if command -v open > /dev/null 2>&1; then
         open "$1"
-    elif command -v xdg-open &>/dev/null; then
+    elif command -v xdg-open > /dev/null 2>&1; then
         xdg-open "$1"
     else
         echo -e "  ${YELLOW}Please open this URL manually:${NC}"
@@ -249,7 +249,7 @@ mcp_oauth_flow() {
 
     # Trigger Claude Code to register the client (creates credentials entry)
     echo -e "  ${GRAY}Initializing MCP connection...${NC}"
-    claude mcp list &>/dev/null
+    claude mcp list > /dev/null 2>&1
 
     if [ -f "$CRED_FILE" ]; then
         local entry_info

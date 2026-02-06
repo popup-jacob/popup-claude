@@ -180,16 +180,16 @@ done
 # 5. Smart Status Check
 # ============================================
 get_install_status() {
-    HAS_NODE=$(command -v node &> /dev/null && echo "true" || echo "false")
-    HAS_GIT=$(command -v git &> /dev/null && echo "true" || echo "false")
-    HAS_VSCODE=$(command -v code &> /dev/null || [ -d "/Applications/Visual Studio Code.app" ] && echo "true" || echo "false")
-    HAS_DOCKER=$(command -v docker &> /dev/null && echo "true" || echo "false")
-    HAS_CLAUDE=$(command -v claude &> /dev/null && echo "true" || echo "false")
+    if command -v node > /dev/null 2>&1; then HAS_NODE="true"; else HAS_NODE="false"; fi
+    if command -v git > /dev/null 2>&1; then HAS_GIT="true"; else HAS_GIT="false"; fi
+    if command -v code > /dev/null 2>&1 || [ -d "/Applications/Visual Studio Code.app" ]; then HAS_VSCODE="true"; else HAS_VSCODE="false"; fi
+    if command -v docker > /dev/null 2>&1; then HAS_DOCKER="true"; else HAS_DOCKER="false"; fi
+    if command -v claude > /dev/null 2>&1; then HAS_CLAUDE="true"; else HAS_CLAUDE="false"; fi
     HAS_BKIT="false"
     DOCKER_RUNNING="false"
 
     if [ "$HAS_DOCKER" = "true" ]; then
-        docker info &> /dev/null && DOCKER_RUNNING="true" || true
+        if docker info > /dev/null 2>&1; then DOCKER_RUNNING="true"; fi
     fi
 
     if [ "$HAS_CLAUDE" = "true" ]; then
@@ -249,7 +249,7 @@ if [ "$NEEDS_DOCKER" = true ] && [ "$HAS_DOCKER" = "true" ] && [ "$DOCKER_RUNNIN
     read -p "Press Enter after starting Docker (or 'q' to quit): " DOCKER_WAIT < /dev/tty
     if [ "$DOCKER_WAIT" = "q" ]; then exit 0; fi
 
-    if ! docker info &> /dev/null; then
+    if ! docker info > /dev/null 2>&1; then
         echo -e "${RED}Docker still not running. Please start it and try again.${NC}"
         read -p "Press Enter to exit" < /dev/tty
         exit 1
@@ -358,13 +358,17 @@ echo ""
 echo "Installed:"
 
 if [ "$SKIP_BASE" = false ]; then
-    command -v node &> /dev/null && echo -e "  ${GREEN}[OK] Node.js${NC}"
-    command -v git &> /dev/null && echo -e "  ${GREEN}[OK] Git${NC}"
+    if command -v node > /dev/null 2>&1; then echo -e "  ${GREEN}[OK] Node.js${NC}"; fi
+    if command -v git > /dev/null 2>&1; then echo -e "  ${GREEN}[OK] Git${NC}"; fi
     if [ "$NEEDS_DOCKER" = true ]; then
-        command -v docker &> /dev/null && echo -e "  ${GREEN}[OK] Docker${NC}" || echo -e "  ${YELLOW}[!] Docker (start Docker Desktop)${NC}"
+        if command -v docker > /dev/null 2>&1; then
+            echo -e "  ${GREEN}[OK] Docker${NC}"
+        else
+            echo -e "  ${YELLOW}[!] Docker (start Docker Desktop)${NC}"
+        fi
     fi
-    command -v claude &> /dev/null && echo -e "  ${GREEN}[OK] Claude Code CLI${NC}"
-    claude plugin list 2>/dev/null | grep -q "bkit" && echo -e "  ${GREEN}[OK] bkit Plugin${NC}" || true
+    if command -v claude > /dev/null 2>&1; then echo -e "  ${GREEN}[OK] Claude Code CLI${NC}"; fi
+    if claude plugin list 2>/dev/null | grep -q "bkit"; then echo -e "  ${GREEN}[OK] bkit Plugin${NC}"; fi
 fi
 
 # Check MCP config
