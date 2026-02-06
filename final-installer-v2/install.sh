@@ -26,10 +26,12 @@ NC='\033[0m'
 BASE_URL="https://raw.githubusercontent.com/popup-jacob/popup-claude/master/final-installer-v2"
 
 # Check if running locally
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 USE_LOCAL=false
-if [ -d "$SCRIPT_DIR/modules" ]; then
-    USE_LOCAL=true
+if [ -n "${BASH_SOURCE[0]:-}" ] && [ -f "${BASH_SOURCE[0]}" ]; then
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    if [ -d "$SCRIPT_DIR/modules" ]; then
+        USE_LOCAL=true
+    fi
 fi
 
 # ============================================
@@ -66,33 +68,33 @@ load_modules() {
     local idx=0
 
     if [ "$USE_LOCAL" = true ]; then
-        # Local: scan modules/ folder
+        # Local: scan modules/ folder (using grep/sed for JSON parsing - no node required)
         for dir in "$SCRIPT_DIR/modules"/*/; do
             if [ -f "${dir}module.json" ]; then
                 local json=$(cat "${dir}module.json")
-                MODULE_NAMES[$idx]=$(echo "$json" | node -e "console.log(JSON.parse(require('fs').readFileSync(0,'utf8')).name)")
-                MODULE_DISPLAY_NAMES[$idx]=$(echo "$json" | node -e "console.log(JSON.parse(require('fs').readFileSync(0,'utf8')).displayName)")
-                MODULE_DESCRIPTIONS[$idx]=$(echo "$json" | node -e "console.log(JSON.parse(require('fs').readFileSync(0,'utf8')).description)")
-                MODULE_ORDERS[$idx]=$(echo "$json" | node -e "console.log(JSON.parse(require('fs').readFileSync(0,'utf8')).order || 99)")
-                MODULE_REQUIRED[$idx]=$(echo "$json" | node -e "console.log(JSON.parse(require('fs').readFileSync(0,'utf8')).required || false)")
-                MODULE_COMPLEXITY[$idx]=$(echo "$json" | node -e "console.log(JSON.parse(require('fs').readFileSync(0,'utf8')).complexity || 'simple')")
-                MODULE_DOCKER_REQ[$idx]=$(echo "$json" | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.requirements && d.requirements.docker || false)")
+                MODULE_NAMES[$idx]=$(echo "$json" | grep '"name"' | head -1 | sed 's/.*"name"[^"]*"\([^"]*\)".*/\1/')
+                MODULE_DISPLAY_NAMES[$idx]=$(echo "$json" | grep '"displayName"' | sed 's/.*"displayName"[^"]*"\([^"]*\)".*/\1/')
+                MODULE_DESCRIPTIONS[$idx]=$(echo "$json" | grep '"description"' | sed 's/.*"description"[^"]*"\([^"]*\)".*/\1/')
+                MODULE_ORDERS[$idx]=$(echo "$json" | grep '"order"' | sed 's/.*"order"[^0-9]*\([0-9]*\).*/\1/')
+                MODULE_REQUIRED[$idx]=$(echo "$json" | grep '"required"' | sed 's/.*"required"[^a-z]*\([a-z]*\).*/\1/')
+                MODULE_COMPLEXITY[$idx]=$(echo "$json" | grep '"complexity"' | sed 's/.*"complexity"[^"]*"\([^"]*\)".*/\1/')
+                MODULE_DOCKER_REQ[$idx]=$(echo "$json" | grep -A5 '"requirements"' | grep '"docker"' | sed 's/.*"docker"[^a-z]*\([a-z]*\).*/\1/')
                 ((idx++))
             fi
         done
     else
-        # Remote: fetch known modules
+        # Remote: fetch known modules (using grep/sed for JSON parsing - no node required)
         local known_modules=("base" "google" "atlassian" "notion" "github" "figma")
         for name in "${known_modules[@]}"; do
             local json=$(curl -sSL "$BASE_URL/modules/$name/module.json" 2>/dev/null || echo "")
             if [ -n "$json" ]; then
                 MODULE_NAMES[$idx]="$name"
-                MODULE_DISPLAY_NAMES[$idx]=$(echo "$json" | node -e "console.log(JSON.parse(require('fs').readFileSync(0,'utf8')).displayName)")
-                MODULE_DESCRIPTIONS[$idx]=$(echo "$json" | node -e "console.log(JSON.parse(require('fs').readFileSync(0,'utf8')).description)")
-                MODULE_ORDERS[$idx]=$(echo "$json" | node -e "console.log(JSON.parse(require('fs').readFileSync(0,'utf8')).order || 99)")
-                MODULE_REQUIRED[$idx]=$(echo "$json" | node -e "console.log(JSON.parse(require('fs').readFileSync(0,'utf8')).required || false)")
-                MODULE_COMPLEXITY[$idx]=$(echo "$json" | node -e "console.log(JSON.parse(require('fs').readFileSync(0,'utf8')).complexity || 'simple')")
-                MODULE_DOCKER_REQ[$idx]=$(echo "$json" | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.requirements && d.requirements.docker || false)")
+                MODULE_DISPLAY_NAMES[$idx]=$(echo "$json" | grep '"displayName"' | sed 's/.*"displayName"[^"]*"\([^"]*\)".*/\1/')
+                MODULE_DESCRIPTIONS[$idx]=$(echo "$json" | grep '"description"' | sed 's/.*"description"[^"]*"\([^"]*\)".*/\1/')
+                MODULE_ORDERS[$idx]=$(echo "$json" | grep '"order"' | sed 's/.*"order"[^0-9]*\([0-9]*\).*/\1/')
+                MODULE_REQUIRED[$idx]=$(echo "$json" | grep '"required"' | sed 's/.*"required"[^a-z]*\([a-z]*\).*/\1/')
+                MODULE_COMPLEXITY[$idx]=$(echo "$json" | grep '"complexity"' | sed 's/.*"complexity"[^"]*"\([^"]*\)".*/\1/')
+                MODULE_DOCKER_REQ[$idx]=$(echo "$json" | grep -A5 '"requirements"' | grep '"docker"' | sed 's/.*"docker"[^a-z]*\([a-z]*\).*/\1/')
                 ((idx++))
             fi
         done
