@@ -110,7 +110,7 @@ Write-Host "[6/7] Checking Claude Code CLI..." -ForegroundColor Yellow
 Refresh-Path
 if (-not (Test-CommandExists "claude")) {
     Write-Host "  Installing Claude Code CLI (npm)..." -ForegroundColor Gray
-    npm install -g @anthropic-ai/claude-code
+    npm install -g @anthropic-ai/claude-code@2.1.28
     Refresh-Path
 }
 if (Test-CommandExists "claude") {
