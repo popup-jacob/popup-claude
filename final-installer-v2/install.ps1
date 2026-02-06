@@ -167,7 +167,7 @@ function Get-InstallStatus {
     }
 
     if ($status.Claude) {
-        $bkitCheck = claude plugin list 2>$null | Select-String "bkit@"
+        $bkitCheck = claude plugin list 2>$null | Select-String "bkit"
         $status.Bkit = [bool]$bkitCheck
     }
 
@@ -332,7 +332,7 @@ if (-not $skipBase) {
         if (Get-Command docker -ErrorAction SilentlyContinue) { Write-Host "  [OK] Docker" -ForegroundColor Green }
     }
     if (Get-Command claude -ErrorAction SilentlyContinue) { Write-Host "  [OK] Claude Code CLI" -ForegroundColor Green }
-    $bkitCheck = claude plugin list 2>$null | Select-String "bkit@"
+    $bkitCheck = claude plugin list 2>$null | Select-String "bkit"
     if ($bkitCheck) { Write-Host "  [OK] bkit Plugin" -ForegroundColor Green }
 }
 

@@ -189,11 +189,11 @@ get_install_status() {
     DOCKER_RUNNING="false"
 
     if [ "$HAS_DOCKER" = "true" ]; then
-        docker info &> /dev/null && DOCKER_RUNNING="true"
+        docker info &> /dev/null && DOCKER_RUNNING="true" || true
     fi
 
     if [ "$HAS_CLAUDE" = "true" ]; then
-        claude plugin list 2>/dev/null | grep -q "bkit@" && HAS_BKIT="true"
+        claude plugin list 2>/dev/null | grep -q "bkit" && HAS_BKIT="true" || true
     fi
 }
 
@@ -364,7 +364,7 @@ if [ "$SKIP_BASE" = false ]; then
         command -v docker &> /dev/null && echo -e "  ${GREEN}[OK] Docker${NC}" || echo -e "  ${YELLOW}[!] Docker (start Docker Desktop)${NC}"
     fi
     command -v claude &> /dev/null && echo -e "  ${GREEN}[OK] Claude Code CLI${NC}"
-    claude plugin list 2>/dev/null | grep -q "bkit@" && echo -e "  ${GREEN}[OK] bkit Plugin${NC}"
+    claude plugin list 2>/dev/null | grep -q "bkit" && echo -e "  ${GREEN}[OK] bkit Plugin${NC}" || true
 fi
 
 # Check MCP config
