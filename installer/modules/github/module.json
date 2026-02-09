@@ -1,0 +1,25 @@
+{
+  "name": "github",
+  "displayName": "GitHub CLI",
+  "description": "Install and configure GitHub CLI (gh) for repository access",
+  "version": "1.0.0",
+  "author": "popup-jacob",
+  "required": false,
+  "order": 5,
+
+  "type": "cli",
+  "complexity": "moderate",
+
+  "requirements": {
+    "docker": false,
+    "node": false,
+    "adminSetup": false
+  },
+
+  "mcpConfig": null,
+
+  "links": {
+    "docs": "https://cli.github.com/",
+    "setup": "https://github.com/settings/tokens"
+  }
+}

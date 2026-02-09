@@ -1,0 +1,32 @@
+{
+  "name": "figma",
+  "displayName": "Figma",
+  "description": "Read Figma files, inspect designs, extract design tokens",
+  "version": "1.0.0",
+  "author": "popup-jacob",
+  "required": false,
+  "order": 7,
+
+  "type": "mcp",
+  "complexity": "simple",
+
+  "requirements": {
+    "docker": false,
+    "node": true,
+    "adminSetup": false
+  },
+
+  "mcpConfig": {
+    "serverName": "figma",
+    "command": "npx",
+    "args": ["-y", "@anthropic/mcp-figma"],
+    "env": {
+      "FIGMA_PERSONAL_ACCESS_TOKEN": "{accessToken}"
+    }
+  },
+
+  "links": {
+    "docs": "https://github.com/anthropics/anthropic-quickstarts/tree/main/mcp-figma",
+    "setup": "https://www.figma.com/developers/api#access-tokens"
+  }
+}

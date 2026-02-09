@@ -1,0 +1,25 @@
+{
+  "name": "base",
+  "displayName": "Base (Claude + bkit)",
+  "description": "Node.js, Git, VS Code, Docker, Claude CLI, bkit plugin",
+  "version": "1.0.0",
+  "author": "popup-jacob",
+  "required": true,
+  "order": 0,
+
+  "type": "cli",
+  "complexity": "moderate",
+
+  "requirements": {
+    "docker": false,
+    "node": false,
+    "adminSetup": false
+  },
+
+  "mcpConfig": null,
+
+  "links": {
+    "docs": "https://github.com/anthropics/claude-code",
+    "bkit": "https://github.com/anthropics/claude-code/tree/main/plugins/bkit"
+  }
+}

@@ -1,0 +1,40 @@
+# bkit plugin (auto-generated tracking files)
+.bkit-memory.json
+.pdca-status.json
+.pdca-snapshots/
+
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Test
+coverage/
+
+# Temporary
+*.tmp
+*.temp
+landing-page/
