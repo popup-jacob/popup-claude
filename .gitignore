@@ -1,3 +1,7 @@
+# Claude Code
+.claude/
+REVIEW_CHECKLIST.md
+
 # bkit plugin (auto-generated tracking files)
 .bkit-memory.json
 .pdca-status.json
