@@ -324,10 +324,23 @@ run_module() {
     echo -e "  ${GRAY}$description${NC}"
     echo ""
 
+    # Temporarily disable set -e to catch errors
+    set +e
     if [ "$USE_LOCAL" = true ]; then
         source "$SCRIPT_DIR/modules/$module_name/install.sh"
+        local result=$?
     else
         curl -sSL "$BASE_URL/modules/$module_name/install.sh" | bash
+        local result=$?
+    fi
+    set -e
+
+    if [ $result -ne 0 ]; then
+        echo ""
+        echo -e "${RED}Error in $display_name (exit code: $result)${NC}"
+        echo -e "${RED}Installation aborted.${NC}"
+        read -p "Press Enter to exit" < /dev/tty
+        exit 1
     fi
 }
 

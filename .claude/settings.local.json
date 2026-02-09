@@ -1,0 +1,7 @@
+{
+  "enabledMcpjsonServers": [
+    "google-workspace",
+    "atlassian"
+  ],
+  "enableAllProjectMcpServers": true
+}

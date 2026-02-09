@@ -83,6 +83,13 @@ if (-not $vscodeInstalled) {
 }
 Write-Host "  OK" -ForegroundColor Green
 
+# Install Claude extension for VS Code
+if (Test-CommandExists "code") {
+    Write-Host "  Installing Claude extension..." -ForegroundColor Gray
+    code --install-extension anthropic.claude-code 2>$null
+    Write-Host "  Claude extension installed" -ForegroundColor Green
+}
+
 # ============================================
 # 5. Docker Desktop (only if needed)
 # ============================================

@@ -95,6 +95,13 @@ if ! command -v code > /dev/null 2>&1 && [ ! -d "/Applications/Visual Studio Cod
 fi
 echo -e "  ${GREEN}OK${NC}"
 
+# Install Claude extension for VS Code
+if command -v code > /dev/null 2>&1; then
+    echo -e "  ${GRAY}Installing Claude extension...${NC}"
+    code --install-extension anthropic.claude-code 2>/dev/null || true
+    echo -e "  ${GREEN}Claude extension installed${NC}"
+fi
+
 # ============================================
 # 5. Docker Desktop (only if needed)
 # ============================================
