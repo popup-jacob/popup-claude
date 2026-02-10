@@ -215,6 +215,7 @@ $status = Get-InstallStatus
 
 # Check Docker requirement for selected modules (before status display)
 $script:needsDocker = $false
+$script:needsDockerRunning = $false
 # Parameter or environment variable to force Docker installation (for Step 1)
 if ($installDocker -or $env:INSTALL_DOCKER -eq "true" -or $env:INSTALL_DOCKER -eq "1") {
     $script:needsDocker = $true
@@ -223,6 +224,7 @@ foreach ($modName in $selectedModules) {
     $mod = $availableModules | Where-Object { $_.name -eq $modName }
     if ($mod.requirements.docker) {
         $script:needsDocker = $true
+        $script:needsDockerRunning = $true
         break
     }
 }
@@ -238,7 +240,7 @@ Write-Host "  Claude:   $(if($status.Claude){'[OK]'}else{'[  ]'})" -ForegroundCo
 Write-Host "  bkit:     $(if($status.Bkit){'[OK]'}else{'[  ]'})" -ForegroundColor $(if($status.Bkit){'Green'}else{'DarkGray'})
 Write-Host ""
 
-if ($script:needsDocker -and $status.Docker -and -not $status.DockerRunning) {
+if ($script:needsDockerRunning -and $status.Docker -and -not $status.DockerRunning) {
     Write-Host "========================================" -ForegroundColor Yellow
     Write-Host "  Docker Desktop is not running!" -ForegroundColor Yellow
     Write-Host "========================================" -ForegroundColor Yellow
