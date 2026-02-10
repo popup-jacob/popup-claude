@@ -261,12 +261,14 @@ if [ -f "$TOKEN_PATH" ]; then
 fi
 
 echo ""
-echo "========================================"
-echo -e "${YELLOW}  Google Login Required${NC}"
-echo "========================================"
-echo ""
-echo "A browser will open for Google login."
-read -p "Press Enter to start" < /dev/tty
+echo -e "${YELLOW}Opening browser for Google login...${NC}"
+
+# Stop any leftover auth container on port 3000
+OLD_CONTAINER=$(docker ps -q --filter "publish=3000" 2>/dev/null)
+if [ -n "$OLD_CONTAINER" ]; then
+    docker stop "$OLD_CONTAINER" > /dev/null 2>&1
+    docker rm "$OLD_CONTAINER" > /dev/null 2>&1
+fi
 
 # Run auth container in background
 CONTAINER_ID=$(docker run -d -p 3000:3000 -v "$CONFIG_DIR:/app/.google-workspace" \
@@ -278,8 +280,7 @@ if [ -z "$CONTAINER_ID" ]; then
 else
     # Poll for OAuth URL and auto-open browser
     OPENED=false
-    for i in $(seq 1 30); do
-        sleep 1
+    for i in $(seq 1 60); do
         AUTH_URL=$(docker logs "$CONTAINER_ID" 2>&1 | grep -o "https://accounts.google.com/[^ ]*" | head -1)
         if [ -n "$AUTH_URL" ]; then
             if [ "$OPENED" = false ]; then
@@ -295,6 +296,7 @@ else
         fi
         RUNNING=$(docker inspect --format='{{.State.Running}}' "$CONTAINER_ID" 2>/dev/null)
         if [ "$RUNNING" != "true" ]; then break; fi
+        sleep 0.5
     done
 
     if [ "$OPENED" = false ]; then

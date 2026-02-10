@@ -261,15 +261,14 @@ if (Test-Path $tokenPath) {
 }
 
 Write-Host ""
-Write-Host "========================================" -ForegroundColor Yellow
-Write-Host "  Google Login Required" -ForegroundColor Yellow
-Write-Host "========================================" -ForegroundColor Yellow
-Write-Host ""
-Write-Host "A browser will open for Google login." -ForegroundColor White
-Read-Host "Press Enter to start"
+Write-Host "Opening browser for Google login..." -ForegroundColor Yellow
 
 $configDirUnix = $configDir -replace '\\', '/'
 $ErrorActionPreference = "Continue"
+
+# Stop any leftover auth container on port 3000
+$oldContainer = (docker ps -q --filter "publish=3000") 2>$null
+if ($oldContainer) { docker stop $oldContainer 2>$null | Out-Null; docker rm $oldContainer 2>$null | Out-Null }
 
 # Run auth container in background
 $containerId = (docker run -d -p 3000:3000 -v "${configDirUnix}:/app/.google-workspace" ghcr.io/popup-jacob/google-workspace-mcp:latest node -e "require('./dist/auth/oauth.js').getAuthenticatedClient().then(() => { console.log('Authentication complete!'); process.exit(0); }).catch(e => { console.error(e); process.exit(1); })") 2>$null
@@ -280,8 +279,7 @@ if (-not $containerId) {
 } else {
     # Poll for OAuth URL and auto-open browser
     $opened = $false
-    for ($i = 0; $i -lt 30; $i++) {
-        Start-Sleep -Seconds 1
+    for ($i = 0; $i -lt 60; $i++) {
         $logOutput = docker logs $containerId 2>&1 | Out-String -Width 10000
         if ($logOutput -match "(https://accounts\.google\.com/\S+)") {
             if (-not $opened) {
@@ -294,6 +292,7 @@ if (-not $containerId) {
         }
         $running = (docker inspect --format='{{.State.Running}}' $containerId 2>$null) | Out-String
         if ($running.Trim() -ne "true") { break }
+        Start-Sleep -Milliseconds 500
     }
 
     if (-not $opened) {
