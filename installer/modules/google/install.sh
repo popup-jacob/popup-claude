@@ -268,18 +268,45 @@ echo ""
 echo "A browser will open for Google login."
 read -p "Press Enter to start" < /dev/tty
 
-docker run --rm -p 3000:3000 -v "$CONFIG_DIR:/app/.google-workspace" \
+# Run auth container in background
+CONTAINER_ID=$(docker run -d -p 3000:3000 -v "$CONFIG_DIR:/app/.google-workspace" \
     ghcr.io/popup-jacob/google-workspace-mcp:latest \
-    node -e "require('./dist/auth/oauth.js').getAuthenticatedClient().then(() => { console.log('Authentication complete!'); process.exit(0); }).catch(e => { console.error(e); process.exit(1); })" 2>&1 | while IFS= read -r line; do
-    echo "$line"
-    if [[ "$line" == https://accounts.google.com/* ]]; then
-        if [[ "$OSTYPE" == "darwin"* ]]; then
-            open "$line" 2>/dev/null &
-        elif command -v xdg-open > /dev/null 2>&1; then
-            xdg-open "$line" 2>/dev/null &
+    node -e "require('./dist/auth/oauth.js').getAuthenticatedClient().then(() => { console.log('Authentication complete!'); process.exit(0); }).catch(e => { console.error(e); process.exit(1); })")
+
+if [ -z "$CONTAINER_ID" ]; then
+    echo -e "  ${RED}Failed to start auth container${NC}"
+else
+    # Poll for OAuth URL and auto-open browser
+    OPENED=false
+    for i in $(seq 1 30); do
+        sleep 1
+        AUTH_URL=$(docker logs "$CONTAINER_ID" 2>&1 | grep -o "https://accounts.google.com/[^ ]*" | head -1)
+        if [ -n "$AUTH_URL" ]; then
+            if [ "$OPENED" = false ]; then
+                if [[ "$OSTYPE" == "darwin"* ]]; then
+                    open "$AUTH_URL" 2>/dev/null
+                elif command -v xdg-open > /dev/null 2>&1; then
+                    xdg-open "$AUTH_URL" 2>/dev/null
+                fi
+                echo -e "  ${GREEN}Browser opened for Google login!${NC}"
+                OPENED=true
+            fi
+            break
         fi
+        RUNNING=$(docker inspect --format='{{.State.Running}}' "$CONTAINER_ID" 2>/dev/null)
+        if [ "$RUNNING" != "true" ]; then break; fi
+    done
+
+    if [ "$OPENED" = false ]; then
+        echo -e "  ${YELLOW}Could not detect login URL. Check Docker logs:${NC}"
+        docker logs "$CONTAINER_ID" 2>&1
     fi
-done
+
+    # Wait for auth to complete
+    echo -e "  ${GRAY}Waiting for login to complete...${NC}"
+    docker wait "$CONTAINER_ID" > /dev/null 2>&1
+    docker rm "$CONTAINER_ID" > /dev/null 2>&1
+fi
 
 if [ -f "$TOKEN_PATH" ]; then
     echo -e "  ${GREEN}Google login successful!${NC}"

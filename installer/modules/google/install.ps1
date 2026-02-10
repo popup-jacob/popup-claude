@@ -269,12 +269,40 @@ Write-Host "A browser will open for Google login." -ForegroundColor White
 Read-Host "Press Enter to start"
 
 $configDirUnix = $configDir -replace '\\', '/'
-docker run --rm -p 3000:3000 -v "${configDirUnix}:/app/.google-workspace" ghcr.io/popup-jacob/google-workspace-mcp:latest node -e "require('./dist/auth/oauth.js').getAuthenticatedClient().then(() => { console.log('Authentication complete!'); process.exit(0); }).catch(e => { console.error(e); process.exit(1); })" 2>&1 | ForEach-Object {
-    $line = $_.ToString()
-    Write-Host $line
-    if ($line -match "^https://accounts\.google\.com/") {
-        Start-Process $line.Trim()
+
+# Run auth container in background
+$containerId = (docker run -d -p 3000:3000 -v "${configDirUnix}:/app/.google-workspace" ghcr.io/popup-jacob/google-workspace-mcp:latest node -e "require('./dist/auth/oauth.js').getAuthenticatedClient().then(() => { console.log('Authentication complete!'); process.exit(0); }).catch(e => { console.error(e); process.exit(1); })").Trim()
+
+if (-not $containerId) {
+    Write-Host "  Failed to start auth container" -ForegroundColor Red
+} else {
+    # Poll for OAuth URL and auto-open browser
+    $opened = $false
+    for ($i = 0; $i -lt 30; $i++) {
+        Start-Sleep -Seconds 1
+        $logOutput = docker logs $containerId 2>&1
+        $logText = ($logOutput | ForEach-Object { "$_" }) -join "`n"
+        if ($logText -match "(https://accounts\.google\.com/[^\s]+)") {
+            if (-not $opened) {
+                Start-Process $Matches[1]
+                Write-Host "  Browser opened for Google login!" -ForegroundColor Green
+                $opened = $true
+            }
+            break
+        }
+        $running = docker inspect --format='{{.State.Running}}' $containerId 2>$null
+        if ($running -ne "true") { break }
     }
+
+    if (-not $opened) {
+        Write-Host "  Could not detect login URL. Check Docker logs:" -ForegroundColor Yellow
+        docker logs $containerId 2>&1 | ForEach-Object { Write-Host "  $_" }
+    }
+
+    # Wait for auth to complete
+    Write-Host "  Waiting for login to complete..." -ForegroundColor Gray
+    docker wait $containerId 2>$null | Out-Null
+    docker rm $containerId 2>$null | Out-Null
 }
 
 if (Test-Path $tokenPath) {
