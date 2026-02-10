@@ -1,7 +1,6 @@
 name: Test Installer
 
 on:
-  # 수동 트리거 - 원하는 옵션 선택 가능
   workflow_dispatch:
     inputs:
       os:
@@ -23,13 +22,9 @@ on:
           - figma
         default: 'base'
 
-  # PR이나 push 시 자동 실행 (선택적)
-  # push:
-  #   paths:
-  #     - 'installer/**'
-  # pull_request:
-  #   paths:
-  #     - 'installer/**'
+env:
+  TERM: xterm
+  CI: true
 
 jobs:
   test-windows:
@@ -42,6 +37,8 @@ jobs:
       - name: Run installer (base module)
         shell: pwsh
         run: |
+          # CI에서 Clear-Host 실패 방지
+          function Clear-Host {}
           Write-Host "Testing Windows installer..."
           $env:MODULES = '${{ github.event.inputs.module }}'
           & ./installer/install.ps1 -modules '${{ github.event.inputs.module }}'
@@ -53,23 +50,23 @@ jobs:
 
           # Check Node.js
           if (Get-Command node -ErrorAction SilentlyContinue) {
-            Write-Host "✅ Node.js: $(node --version)"
+            Write-Host "OK Node.js: $(node --version)"
           } else {
-            Write-Host "❌ Node.js not found"
+            Write-Host "FAIL Node.js not found"
           }
 
           # Check Git
           if (Get-Command git -ErrorAction SilentlyContinue) {
-            Write-Host "✅ Git: $(git --version)"
+            Write-Host "OK Git: $(git --version)"
           } else {
-            Write-Host "❌ Git not found"
+            Write-Host "FAIL Git not found"
           }
 
           # Check Claude
           if (Get-Command claude -ErrorAction SilentlyContinue) {
-            Write-Host "✅ Claude: $(claude --version)"
+            Write-Host "OK Claude: $(claude --version)"
           } else {
-            Write-Host "⚠️ Claude not in PATH (may need terminal restart)"
+            Write-Host "WARN Claude not in PATH (may need terminal restart)"
           }
 
   test-macos:
@@ -83,31 +80,28 @@ jobs:
         run: |
           echo "Testing macOS installer..."
           chmod +x ./installer/install.sh
-          MODULES='${{ github.event.inputs.module }}' ./installer/install.sh --modules '${{ github.event.inputs.module }}'
+          MODULES='${{ github.event.inputs.module }}' bash ./installer/install.sh
 
       - name: Verify installation
         run: |
           echo "Checking installed tools..."
 
-          # Check Node.js
           if command -v node &> /dev/null; then
-            echo "✅ Node.js: $(node --version)"
+            echo "OK Node.js: $(node --version)"
           else
-            echo "❌ Node.js not found"
+            echo "FAIL Node.js not found"
           fi
 
-          # Check Git
           if command -v git &> /dev/null; then
-            echo "✅ Git: $(git --version)"
+            echo "OK Git: $(git --version)"
           else
-            echo "❌ Git not found"
+            echo "FAIL Git not found"
           fi
 
-          # Check Claude
           if command -v claude &> /dev/null; then
-            echo "✅ Claude: $(claude --version)"
+            echo "OK Claude: $(claude --version)"
           else
-            echo "⚠️ Claude not in PATH (may need terminal restart)"
+            echo "WARN Claude not in PATH (may need terminal restart)"
           fi
 
   test-ubuntu:
@@ -121,29 +115,26 @@ jobs:
         run: |
           echo "Testing Ubuntu installer..."
           chmod +x ./installer/install.sh
-          MODULES='${{ github.event.inputs.module }}' ./installer/install.sh --modules '${{ github.event.inputs.module }}'
+          MODULES='${{ github.event.inputs.module }}' bash ./installer/install.sh
 
       - name: Verify installation
         run: |
           echo "Checking installed tools..."
 
-          # Check Node.js
           if command -v node &> /dev/null; then
-            echo "✅ Node.js: $(node --version)"
+            echo "OK Node.js: $(node --version)"
           else
-            echo "❌ Node.js not found"
+            echo "FAIL Node.js not found"
           fi
 
-          # Check Git
           if command -v git &> /dev/null; then
-            echo "✅ Git: $(git --version)"
+            echo "OK Git: $(git --version)"
           else
-            echo "❌ Git not found"
+            echo "FAIL Git not found"
           fi
 
-          # Check Claude
           if command -v claude &> /dev/null; then
-            echo "✅ Claude: $(claude --version)"
+            echo "OK Claude: $(claude --version)"
           else
-            echo "⚠️ Claude not in PATH (may need terminal restart)"
+            echo "WARN Claude not in PATH (may need terminal restart)"
           fi
