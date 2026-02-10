@@ -6,7 +6,7 @@ import * as http from "http";
 import { URL } from "url";
 import open from "open";
 
-// 설정 파일 경로
+// Config file paths
 const CONFIG_DIR = process.env.GOOGLE_CONFIG_DIR || path.join(process.cwd(), ".google-workspace");
 const CLIENT_SECRET_PATH = path.join(CONFIG_DIR, "client_secret.json");
 const TOKEN_PATH = path.join(CONFIG_DIR, "token.json");
@@ -43,7 +43,7 @@ interface TokenData {
 }
 
 /**
- * 설정 디렉토리 확인 및 생성
+ * Ensure config directory exists
  */
 function ensureConfigDir(): void {
   if (!fs.existsSync(CONFIG_DIR)) {
@@ -52,15 +52,15 @@ function ensureConfigDir(): void {
 }
 
 /**
- * client_secret.json 파일 로드
+ * Load client_secret.json
  */
 function loadClientSecret(): ClientSecretConfig {
   if (!fs.existsSync(CLIENT_SECRET_PATH)) {
     throw new Error(
-      `client_secret.json 파일이 없습니다.\n` +
-      `1. Google Cloud Console에서 OAuth 2.0 클라이언트 ID를 생성하세요.\n` +
-      `2. JSON 파일을 다운로드하세요.\n` +
-      `3. ${CLIENT_SECRET_PATH}에 저장하세요.`
+      `client_secret.json not found.\n` +
+      `1. Create an OAuth 2.0 Client ID in Google Cloud Console.\n` +
+      `2. Download the JSON file.\n` +
+      `3. Save it to ${CLIENT_SECRET_PATH}.`
     );
   }
 
@@ -69,12 +69,12 @@ function loadClientSecret(): ClientSecretConfig {
 }
 
 /**
- * OAuth2 클라이언트 생성
+ * Create OAuth2 client
  */
 function createOAuth2Client(config: ClientSecretConfig): OAuth2Client {
   const credentials = config.installed || config.web;
   if (!credentials) {
-    throw new Error("client_secret.json 형식이 올바르지 않습니다.");
+    throw new Error("Invalid client_secret.json format.");
   }
 
   return new google.auth.OAuth2(
@@ -85,7 +85,7 @@ function createOAuth2Client(config: ClientSecretConfig): OAuth2Client {
 }
 
 /**
- * 저장된 토큰 로드
+ * Load saved token
  */
 function loadToken(): TokenData | null {
   if (!fs.existsSync(TOKEN_PATH)) {
@@ -97,7 +97,7 @@ function loadToken(): TokenData | null {
 }
 
 /**
- * 토큰 저장
+ * Save token
  */
 function saveToken(token: TokenData): void {
   ensureConfigDir();
@@ -105,7 +105,7 @@ function saveToken(token: TokenData): void {
 }
 
 /**
- * 브라우저에서 로그인 후 콜백 처리
+ * Handle OAuth callback from browser login
  */
 async function getTokenFromBrowser(oauth2Client: OAuth2Client): Promise<TokenData> {
   const authUrl = oauth2Client.generateAuthUrl({
@@ -126,9 +126,9 @@ async function getTokenFromBrowser(oauth2Client: OAuth2Client): Promise<TokenDat
 
           if (!code) {
             res.writeHead(400, { "Content-Type": "text/html; charset=utf-8" });
-            res.end("<h1>오류: 인증 코드가 없습니다.</h1>");
+            res.end("<h1>Error: No authorization code received.</h1>");
             clearTimeout(timeoutId);
-            reject(new Error("인증 코드가 없습니다."));
+            reject(new Error("No authorization code received."));
             return;
           }
 
@@ -138,10 +138,10 @@ async function getTokenFromBrowser(oauth2Client: OAuth2Client): Promise<TokenDat
           res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
           res.end(`
             <html>
-              <head><title>인증 완료</title></head>
+              <head><title>Authentication Complete</title></head>
               <body style="font-family: sans-serif; text-align: center; padding: 50px;">
-                <h1>Google 인증이 완료되었습니다!</h1>
-                <p>이 창을 닫고 Claude로 돌아가세요.</p>
+                <h1>Google authentication complete!</h1>
+                <p>You can close this window and return to Claude.</p>
               </body>
             </html>
           `);
@@ -152,7 +152,7 @@ async function getTokenFromBrowser(oauth2Client: OAuth2Client): Promise<TokenDat
         }
       } catch (error) {
         res.writeHead(500, { "Content-Type": "text/html; charset=utf-8" });
-        res.end("<h1>오류가 발생했습니다.</h1>");
+        res.end("<h1>An error occurred.</h1>");
         clearTimeout(timeoutId);
         reject(error);
       }
@@ -160,28 +160,26 @@ async function getTokenFromBrowser(oauth2Client: OAuth2Client): Promise<TokenDat
 
     server.listen(3000, () => {
       console.error("\n========================================");
-      console.error("Google 로그인이 필요합니다!");
+      console.error("Google Login Required!");
       console.error("========================================");
-      console.error("\n아래 URL을 브라우저에서 열어주세요:\n");
+      console.error("\nOpen the following URL in your browser:\n");
       console.error(authUrl);
       console.error("\n========================================\n");
 
-      // Docker 외부에서는 자동으로 브라우저 열기 시도
-      open(authUrl).catch(() => {
-        // Docker 내부에서는 실패해도 무시 (URL이 이미 출력됨)
-      });
+      // Try to open browser automatically (fails silently inside Docker)
+      open(authUrl).catch(() => {});
     });
 
-    // 5분 타임아웃
+    // 5 minute timeout
     timeoutId = setTimeout(() => {
       server.close();
-      reject(new Error("로그인 타임아웃 (5분)"));
+      reject(new Error("Login timeout (5 minutes)"));
     }, 5 * 60 * 1000);
   });
 }
 
 /**
- * 인증된 OAuth2 클라이언트 가져오기
+ * Get authenticated OAuth2 client
  */
 export async function getAuthenticatedClient(): Promise<OAuth2Client> {
   ensureConfigDir();
@@ -189,21 +187,21 @@ export async function getAuthenticatedClient(): Promise<OAuth2Client> {
   const config = loadClientSecret();
   const oauth2Client = createOAuth2Client(config);
 
-  // 저장된 토큰 확인
+  // Check for saved token
   const token = loadToken();
 
   if (token) {
     oauth2Client.setCredentials(token);
 
-    // 토큰 만료 확인 및 갱신
+    // Check token expiry and refresh
     if (token.expiry_date && token.expiry_date < Date.now()) {
-      console.error("토큰이 만료되어 갱신합니다...");
+      console.error("Token expired, refreshing...");
       try {
         const { credentials } = await oauth2Client.refreshAccessToken();
         saveToken(credentials as TokenData);
         oauth2Client.setCredentials(credentials);
       } catch (error) {
-        console.error("토큰 갱신 실패, 다시 로그인합니다...");
+        console.error("Token refresh failed, re-authenticating...");
         const newToken = await getTokenFromBrowser(oauth2Client);
         saveToken(newToken);
       }
@@ -212,8 +210,8 @@ export async function getAuthenticatedClient(): Promise<OAuth2Client> {
     return oauth2Client;
   }
 
-  // 새로 로그인
-  console.error("Google 로그인이 필요합니다...");
+  // New login required
+  console.error("Google login required...");
   const newToken = await getTokenFromBrowser(oauth2Client);
   saveToken(newToken);
 
@@ -221,7 +219,7 @@ export async function getAuthenticatedClient(): Promise<OAuth2Client> {
 }
 
 /**
- * Google API 서비스 인스턴스 생성
+ * Create Google API service instances
  */
 export async function getGoogleServices() {
   const auth = await getAuthenticatedClient();
