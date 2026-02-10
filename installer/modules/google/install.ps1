@@ -292,7 +292,7 @@ if (-not $containerId) {
         }
         $running = (docker inspect --format='{{.State.Running}}' $containerId 2>$null) | Out-String
         if ($running.Trim() -ne "true") { break }
-        Start-Sleep -Milliseconds 500
+        Start-Sleep -Milliseconds 200
     }
 
     if (-not $opened) {

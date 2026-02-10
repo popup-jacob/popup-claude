@@ -296,7 +296,7 @@ else
         fi
         RUNNING=$(docker inspect --format='{{.State.Running}}' "$CONTAINER_ID" 2>/dev/null)
         if [ "$RUNNING" != "true" ]; then break; fi
-        sleep 0.5
+        sleep 0.2
     done
 
     if [ "$OPENED" = false ]; then
