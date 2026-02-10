@@ -137,7 +137,7 @@ if (-not (Test-Admin)) {
     Write-Host "Administrator privileges required. Restarting as admin..." -ForegroundColor Yellow
 
     $params = @()
-    if ($modules) { $params += "-modules `"$modules`"" }
+    if ($modules) { $params += "-modules '$modules'" }
     if ($all) { $params += "-all" }
     if ($skipBase) { $params += "-skipBase" }
     if ($installDocker) { $params += "-installDocker" }
