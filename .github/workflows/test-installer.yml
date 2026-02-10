@@ -1,0 +1,149 @@
+name: Test Installer
+
+on:
+  # 수동 트리거 - 원하는 옵션 선택 가능
+  workflow_dispatch:
+    inputs:
+      os:
+        description: 'Test OS'
+        type: choice
+        options:
+          - all
+          - windows
+          - macos
+          - ubuntu
+        default: 'all'
+      module:
+        description: 'Module to test'
+        type: choice
+        options:
+          - base
+          - github
+          - notion
+          - figma
+        default: 'base'
+
+  # PR이나 push 시 자동 실행 (선택적)
+  # push:
+  #   paths:
+  #     - 'installer/**'
+  # pull_request:
+  #   paths:
+  #     - 'installer/**'
+
+jobs:
+  test-windows:
+    if: ${{ github.event.inputs.os == 'all' || github.event.inputs.os == 'windows' }}
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run installer (base module)
+        shell: pwsh
+        run: |
+          Write-Host "Testing Windows installer..."
+          $env:MODULES = '${{ github.event.inputs.module }}'
+          & ./installer/install.ps1 -modules '${{ github.event.inputs.module }}'
+
+      - name: Verify installation
+        shell: pwsh
+        run: |
+          Write-Host "Checking installed tools..."
+
+          # Check Node.js
+          if (Get-Command node -ErrorAction SilentlyContinue) {
+            Write-Host "✅ Node.js: $(node --version)"
+          } else {
+            Write-Host "❌ Node.js not found"
+          }
+
+          # Check Git
+          if (Get-Command git -ErrorAction SilentlyContinue) {
+            Write-Host "✅ Git: $(git --version)"
+          } else {
+            Write-Host "❌ Git not found"
+          }
+
+          # Check Claude
+          if (Get-Command claude -ErrorAction SilentlyContinue) {
+            Write-Host "✅ Claude: $(claude --version)"
+          } else {
+            Write-Host "⚠️ Claude not in PATH (may need terminal restart)"
+          }
+
+  test-macos:
+    if: ${{ github.event.inputs.os == 'all' || github.event.inputs.os == 'macos' }}
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run installer (base module)
+        run: |
+          echo "Testing macOS installer..."
+          chmod +x ./installer/install.sh
+          MODULES='${{ github.event.inputs.module }}' ./installer/install.sh --modules '${{ github.event.inputs.module }}'
+
+      - name: Verify installation
+        run: |
+          echo "Checking installed tools..."
+
+          # Check Node.js
+          if command -v node &> /dev/null; then
+            echo "✅ Node.js: $(node --version)"
+          else
+            echo "❌ Node.js not found"
+          fi
+
+          # Check Git
+          if command -v git &> /dev/null; then
+            echo "✅ Git: $(git --version)"
+          else
+            echo "❌ Git not found"
+          fi
+
+          # Check Claude
+          if command -v claude &> /dev/null; then
+            echo "✅ Claude: $(claude --version)"
+          else
+            echo "⚠️ Claude not in PATH (may need terminal restart)"
+          fi
+
+  test-ubuntu:
+    if: ${{ github.event.inputs.os == 'all' || github.event.inputs.os == 'ubuntu' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run installer (base module)
+        run: |
+          echo "Testing Ubuntu installer..."
+          chmod +x ./installer/install.sh
+          MODULES='${{ github.event.inputs.module }}' ./installer/install.sh --modules '${{ github.event.inputs.module }}'
+
+      - name: Verify installation
+        run: |
+          echo "Checking installed tools..."
+
+          # Check Node.js
+          if command -v node &> /dev/null; then
+            echo "✅ Node.js: $(node --version)"
+          else
+            echo "❌ Node.js not found"
+          fi
+
+          # Check Git
+          if command -v git &> /dev/null; then
+            echo "✅ Git: $(git --version)"
+          else
+            echo "❌ Git not found"
+          fi
+
+          # Check Claude
+          if command -v claude &> /dev/null; then
+            echo "✅ Claude: $(claude --version)"
+          else
+            echo "⚠️ Claude not in PATH (may need terminal restart)"
+          fi
