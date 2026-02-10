@@ -11,6 +11,9 @@ const CONFIG_DIR = process.env.GOOGLE_CONFIG_DIR || path.join(process.cwd(), ".g
 const CLIENT_SECRET_PATH = path.join(CONFIG_DIR, "client_secret.json");
 const TOKEN_PATH = path.join(CONFIG_DIR, "token.json");
 
+// OAuth callback port (dynamic via env var)
+const OAUTH_PORT = parseInt(process.env.OAUTH_PORT || "3000", 10);
+
 // Google API Scopes
 const SCOPES = [
   "https://www.googleapis.com/auth/gmail.modify",
@@ -80,7 +83,7 @@ function createOAuth2Client(config: ClientSecretConfig): OAuth2Client {
   return new google.auth.OAuth2(
     credentials.client_id,
     credentials.client_secret,
-    "http://localhost:3000/callback"
+    `http://localhost:${OAUTH_PORT}/callback`
   );
 }
 
@@ -119,7 +122,7 @@ async function getTokenFromBrowser(oauth2Client: OAuth2Client): Promise<TokenDat
 
     const server = http.createServer(async (req, res) => {
       try {
-        const url = new URL(req.url || "", "http://localhost:3000");
+        const url = new URL(req.url || "", `http://localhost:${OAUTH_PORT}`);
 
         if (url.pathname === "/callback") {
           const code = url.searchParams.get("code");
@@ -158,7 +161,7 @@ async function getTokenFromBrowser(oauth2Client: OAuth2Client): Promise<TokenDat
       }
     });
 
-    server.listen(3000, () => {
+    server.listen(OAUTH_PORT, () => {
       console.error("\n========================================");
       console.error("Google Login Required!");
       console.error("========================================");

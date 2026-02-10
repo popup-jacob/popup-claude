@@ -266,12 +266,18 @@ Write-Host "Opening browser for Google login..." -ForegroundColor Yellow
 $configDirUnix = $configDir -replace '\\', '/'
 $ErrorActionPreference = "Continue"
 
-# Stop any leftover auth container on port 3000
-$oldContainer = (docker ps -q --filter "publish=3000") 2>$null
+# Stop any leftover Google MCP auth container
+$oldContainer = (docker ps -q --filter "ancestor=ghcr.io/popup-jacob/google-workspace-mcp:latest") 2>$null
 if ($oldContainer) { docker stop $oldContainer 2>$null | Out-Null; docker rm $oldContainer 2>$null | Out-Null }
 
-# Run auth container in background
-$containerId = (docker run -d -p 3000:3000 -v "${configDirUnix}:/app/.google-workspace" ghcr.io/popup-jacob/google-workspace-mcp:latest node -e "require('./dist/auth/oauth.js').getAuthenticatedClient().then(() => { console.log('Authentication complete!'); process.exit(0); }).catch(e => { console.error(e); process.exit(1); })") 2>$null
+# Find a free port for OAuth callback
+$listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, 0)
+$listener.Start()
+$authPort = $listener.LocalEndpoint.Port
+$listener.Stop()
+
+# Run auth container in background with dynamic port
+$containerId = (docker run -d -p "${authPort}:${authPort}" -e "OAUTH_PORT=$authPort" -v "${configDirUnix}:/app/.google-workspace" ghcr.io/popup-jacob/google-workspace-mcp:latest node -e "require('./dist/auth/oauth.js').getAuthenticatedClient().then(() => { console.log('Authentication complete!'); process.exit(0); }).catch(e => { console.error(e); process.exit(1); })") 2>$null
 if ($containerId) { $containerId = $containerId.Trim() }
 
 if (-not $containerId) {

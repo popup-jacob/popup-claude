@@ -263,15 +263,18 @@ fi
 echo ""
 echo -e "${YELLOW}Opening browser for Google login...${NC}"
 
-# Stop any leftover auth container on port 3000
-OLD_CONTAINER=$(docker ps -q --filter "publish=3000" 2>/dev/null)
+# Stop any leftover Google MCP auth container
+OLD_CONTAINER=$(docker ps -q --filter "ancestor=ghcr.io/popup-jacob/google-workspace-mcp:latest" 2>/dev/null)
 if [ -n "$OLD_CONTAINER" ]; then
     docker stop "$OLD_CONTAINER" > /dev/null 2>&1
     docker rm "$OLD_CONTAINER" > /dev/null 2>&1
 fi
 
-# Run auth container in background
-CONTAINER_ID=$(docker run -d -p 3000:3000 -v "$CONFIG_DIR:/app/.google-workspace" \
+# Find a free port for OAuth callback
+AUTH_PORT=$(python3 -c 'import socket; s=socket.socket(); s.bind(("",0)); print(s.getsockname()[1]); s.close()' 2>/dev/null || echo 52836)
+
+# Run auth container in background with dynamic port
+CONTAINER_ID=$(docker run -d -p "${AUTH_PORT}:${AUTH_PORT}" -e "OAUTH_PORT=$AUTH_PORT" -v "$CONFIG_DIR:/app/.google-workspace" \
     ghcr.io/popup-jacob/google-workspace-mcp:latest \
     node -e "require('./dist/auth/oauth.js').getAuthenticatedClient().then(() => { console.log('Authentication complete!'); process.exit(0); }).catch(e => { console.error(e); process.exit(1); })")
 
