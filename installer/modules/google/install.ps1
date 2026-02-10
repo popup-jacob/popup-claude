@@ -282,10 +282,11 @@ if (-not $containerId) {
     $opened = $false
     for ($i = 0; $i -lt 30; $i++) {
         Start-Sleep -Seconds 1
-        $logOutput = docker logs $containerId 2>&1 | Out-String
-        if ($logOutput -match "(https://accounts\.google\.com/[^\s]+)") {
+        $logOutput = docker logs $containerId 2>&1 | Out-String -Width 10000
+        if ($logOutput -match "(https://accounts\.google\.com/\S+)") {
             if (-not $opened) {
-                Start-Process $Matches[1]
+                $authUrl = $Matches[1]
+                Start-Process $authUrl
                 Write-Host "  Browser opened for Google login!" -ForegroundColor Green
                 $opened = $true
             }
