@@ -413,4 +413,4 @@ if [ -f "$MCP_CONFIG" ]; then
 fi
 
 echo ""
-read -p "Press Enter to close" < /dev/tty
+[ "$CI" != "true" ] && read -p "Press Enter to close" < /dev/tty
