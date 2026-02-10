@@ -118,12 +118,12 @@ Refresh-Path
 if (-not (Test-CommandExists "claude")) {
     Write-Host "  Installing Claude Code CLI (native)..." -ForegroundColor Gray
     irm https://claude.ai/install.ps1 | iex
-    # Native install puts claude in ~/.local/bin
+    Refresh-Path
+    # Native install puts claude in ~/.local/bin (not in registry PATH yet)
     $claudePath = "$env:USERPROFILE\.local\bin"
-    if (Test-Path $claudePath) {
+    if ((Test-Path $claudePath) -and ($env:PATH -notlike "*$claudePath*")) {
         $env:PATH = "$claudePath;$env:PATH"
     }
-    Refresh-Path
 }
 if (Test-CommandExists "claude") {
     $claudeVersion = claude --version 2>$null
