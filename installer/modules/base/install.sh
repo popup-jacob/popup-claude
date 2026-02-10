@@ -111,9 +111,27 @@ if [ "$NEEDS_DOCKER" = true ]; then
     if ! command -v docker > /dev/null 2>&1; then
         echo -e "  ${GRAY}Installing Docker Desktop...${NC}"
         if [[ "$OSTYPE" == "darwin"* ]]; then
-            brew install --cask docker
-            DOCKER_NEEDS_RESTART=true
-            echo -e "  ${YELLOW}Installed (start Docker Desktop after setup)${NC}"
+            echo -e "  ${GRAY}This may take 3~5 minutes. Please wait...${NC}"
+            # Run brew install in background with spinner
+            brew install --cask docker > /dev/null 2>&1 &
+            BREW_PID=$!
+            SPINNER='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+            while kill -0 $BREW_PID 2>/dev/null; do
+                for (( i=0; i<${#SPINNER}; i++ )); do
+                    kill -0 $BREW_PID 2>/dev/null || break
+                    printf "\r  ${GRAY}%s Installing Docker Desktop...${NC}" "${SPINNER:$i:1}"
+                    sleep 0.3
+                done
+            done
+            wait $BREW_PID
+            BREW_EXIT=$?
+            printf "\r%-65s\r" ""
+            if [ $BREW_EXIT -eq 0 ]; then
+                DOCKER_NEEDS_RESTART=true
+                echo -e "  ${YELLOW}Installed (start Docker Desktop after setup)${NC}"
+            else
+                echo -e "  ${RED}Installation failed. Please install Docker Desktop manually.${NC}"
+            fi
         else
             # Linux
             curl -fsSL https://get.docker.com | sh
