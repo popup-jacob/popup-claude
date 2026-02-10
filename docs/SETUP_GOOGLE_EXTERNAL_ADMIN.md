@@ -184,4 +184,9 @@ curl -fsSL https://raw.githubusercontent.com/popup-jacob/popup-claude/master/ins
 ## 다음 단계
 
 - 팀원들에게 위의 "팀원 안내 메시지 예시"를 공유하세요
-- Atlassian도 연동하려면 installer에서 `-modules 'google,atlassian'` 옵션 사용
+- 다른 모듈도 함께 설치할 수 있습니다:
+  - Atlassian: `-modules 'google,atlassian'` (Docker 필요)
+  - Notion: `-modules 'google,notion'`
+  - GitHub: `-modules 'google,github'`
+  - Figma: `-modules 'google,figma'`
+  - 전체: `-all`

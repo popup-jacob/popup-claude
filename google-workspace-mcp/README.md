@@ -8,20 +8,17 @@ Claude Code에서 Google Workspace (Gmail, Calendar, Drive)에 접근할 수 있
 
 ### 일반 사용자 (권장)
 
-원클릭 설치를 사용하세요:
+ADW 설치 프로그램을 사용하세요:
 
-**Windows:**
+**Windows:** `Win + R` 후 실행
 ```
-Win + R 누르고 실행:
-powershell -ep bypass -c "irm https://raw.githubusercontent.com/popup-jacob/popup-claude/master/adw/manual-installer/setup_mcp.ps1|iex"
+powershell -ep bypass -c "$env:MODULES='google'; irm https://raw.githubusercontent.com/popup-jacob/popup-claude/master/installer/install.ps1 | iex"
 ```
 
-**Mac:**
+**Mac/Linux:** 터미널에서 실행
 ```bash
-curl -fsSL https://raw.githubusercontent.com/popup-jacob/popup-claude/master/adw/manual-installer/setup_all.sh | bash
+curl -fsSL https://raw.githubusercontent.com/popup-jacob/popup-claude/master/installer/install.sh | MODULES="google" bash
 ```
-
-설치 중 "Set up Google MCP? (y/n)" 질문에 `y`를 입력하세요.
 
 ### 관리자
 

@@ -1,4 +1,7 @@
-# Google Workspace MCP 설정 가이드
+# Google Workspace MCP 설정 가이드 (개발자용 수동 설정)
+
+> 일반 사용자는 [ADW 설치 프로그램](../README.md)을 사용하세요.
+> 이 가이드는 Google MCP를 직접 빌드/개발하려는 경우를 위한 것입니다.
 
 ## 1단계: Google Cloud Console 설정
 
