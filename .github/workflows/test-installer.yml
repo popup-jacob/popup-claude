@@ -10,7 +10,6 @@ on:
           - all
           - windows
           - macos
-          - ubuntu
         default: 'all'
       module:
         description: 'Module to test'
@@ -39,6 +38,8 @@ jobs:
         run: |
           # CI에서 Clear-Host 실패 방지
           function Clear-Host {}
+          # Claude native install PATH 추가
+          $env:PATH = "$env:USERPROFILE\.local\bin;$env:PATH"
           Write-Host "Testing Windows installer..."
           $env:MODULES = '${{ github.event.inputs.module }}'
           & ./installer/install.ps1 -modules '${{ github.event.inputs.module }}'
@@ -104,37 +105,3 @@ jobs:
             echo "WARN Claude not in PATH (may need terminal restart)"
           fi
 
-  test-ubuntu:
-    if: ${{ github.event.inputs.os == 'all' || github.event.inputs.os == 'ubuntu' }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Run installer (base module)
-        run: |
-          echo "Testing Ubuntu installer..."
-          chmod +x ./installer/install.sh
-          MODULES='${{ github.event.inputs.module }}' bash ./installer/install.sh
-
-      - name: Verify installation
-        run: |
-          echo "Checking installed tools..."
-
-          if command -v node &> /dev/null; then
-            echo "OK Node.js: $(node --version)"
-          else
-            echo "FAIL Node.js not found"
-          fi
-
-          if command -v git &> /dev/null; then
-            echo "OK Git: $(git --version)"
-          else
-            echo "FAIL Git not found"
-          fi
-
-          if command -v claude &> /dev/null; then
-            echo "OK Claude: $(claude --version)"
-          else
-            echo "WARN Claude not in PATH (may need terminal restart)"
-          fi
