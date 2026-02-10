@@ -320,7 +320,7 @@ for mod in $SELECTED_MODULES; do
     echo -e "  ${GREEN}[*] ${MODULE_DISPLAY_NAMES[$idx]}${NC}"
 done
 echo ""
-[ "$CI" != "true" ] && read -p "Press Enter to start installation" < /dev/tty || true
+read -p "Press Enter to start installation" < /dev/tty
 
 # ============================================
 # 7. Module Execution Function
@@ -413,4 +413,4 @@ if [ -f "$MCP_CONFIG" ]; then
 fi
 
 echo ""
-[ "$CI" != "true" ] && read -p "Press Enter to close" < /dev/tty || true
+read -p "Press Enter to close" < /dev/tty
