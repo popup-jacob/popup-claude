@@ -269,9 +269,11 @@ Write-Host "A browser will open for Google login." -ForegroundColor White
 Read-Host "Press Enter to start"
 
 $configDirUnix = $configDir -replace '\\', '/'
+$ErrorActionPreference = "Continue"
 
 # Run auth container in background
-$containerId = (docker run -d -p 3000:3000 -v "${configDirUnix}:/app/.google-workspace" ghcr.io/popup-jacob/google-workspace-mcp:latest node -e "require('./dist/auth/oauth.js').getAuthenticatedClient().then(() => { console.log('Authentication complete!'); process.exit(0); }).catch(e => { console.error(e); process.exit(1); })").Trim()
+$containerId = (docker run -d -p 3000:3000 -v "${configDirUnix}:/app/.google-workspace" ghcr.io/popup-jacob/google-workspace-mcp:latest node -e "require('./dist/auth/oauth.js').getAuthenticatedClient().then(() => { console.log('Authentication complete!'); process.exit(0); }).catch(e => { console.error(e); process.exit(1); })") 2>$null
+if ($containerId) { $containerId = $containerId.Trim() }
 
 if (-not $containerId) {
     Write-Host "  Failed to start auth container" -ForegroundColor Red
@@ -280,9 +282,8 @@ if (-not $containerId) {
     $opened = $false
     for ($i = 0; $i -lt 30; $i++) {
         Start-Sleep -Seconds 1
-        $logOutput = docker logs $containerId 2>&1
-        $logText = ($logOutput | ForEach-Object { "$_" }) -join "`n"
-        if ($logText -match "(https://accounts\.google\.com/[^\s]+)") {
+        $logOutput = docker logs $containerId 2>&1 | Out-String
+        if ($logOutput -match "(https://accounts\.google\.com/[^\s]+)") {
             if (-not $opened) {
                 Start-Process $Matches[1]
                 Write-Host "  Browser opened for Google login!" -ForegroundColor Green
@@ -290,8 +291,8 @@ if (-not $containerId) {
             }
             break
         }
-        $running = docker inspect --format='{{.State.Running}}' $containerId 2>$null
-        if ($running -ne "true") { break }
+        $running = (docker inspect --format='{{.State.Running}}' $containerId 2>$null) | Out-String
+        if ($running.Trim() -ne "true") { break }
     }
 
     if (-not $opened) {
@@ -304,6 +305,7 @@ if (-not $containerId) {
     docker wait $containerId 2>$null | Out-Null
     docker rm $containerId 2>$null | Out-Null
 }
+$ErrorActionPreference = "Stop"
 
 if (Test-Path $tokenPath) {
     Write-Host "  Google login successful!" -ForegroundColor Green
