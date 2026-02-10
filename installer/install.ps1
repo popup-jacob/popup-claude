@@ -28,7 +28,7 @@ param(
 # ============================================
 # $env:MODULES        - Module selection (e.g., "google", "google,atlassian")
 # $env:SKIP_BASE      - Skip base module ("true" or "1")
-# $env:ALL_MODULES    - Install all modules ("true" or "1")
+# $env:INSTALL_ALL    - Install all modules ("true" or "1")
 # $env:INSTALL_DOCKER - Force Docker installation ("true" or "1")
 #
 # Step 1: $env:INSTALL_DOCKER='true'; irm .../install.ps1 | iex
@@ -39,7 +39,7 @@ if (-not $modules -and $env:MODULES) {
 if ($env:SKIP_BASE -eq "true" -or $env:SKIP_BASE -eq "1") {
     $skipBase = $true
 }
-if ($env:ALL_MODULES -eq "true" -or $env:ALL_MODULES -eq "1") {
+if ($env:INSTALL_ALL -eq "true" -or $env:INSTALL_ALL -eq "1") {
     $all = $true
 }
 
@@ -74,16 +74,20 @@ function Get-AvailableModules {
             }
         }
     } else {
-        # Remote: fetch known modules (hardcoded list for remote, but modules are self-contained)
-        $knownModules = @("base", "google", "atlassian", "notion", "github", "figma")
-        foreach ($name in $knownModules) {
-            try {
-                $moduleJson = irm "$BaseUrl/modules/$name/module.json" -ErrorAction SilentlyContinue
-                if ($moduleJson) {
-                    $moduleList += $moduleJson
+        # Remote: fetch module list from modules.json
+        try {
+            $modulesIndex = irm "$BaseUrl/modules.json" -ErrorAction SilentlyContinue
+            if ($modulesIndex -and $modulesIndex.modules) {
+                foreach ($mod in $modulesIndex.modules) {
+                    try {
+                        $moduleJson = irm "$BaseUrl/modules/$($mod.name)/module.json" -ErrorAction SilentlyContinue
+                        if ($moduleJson) {
+                            $moduleList += $moduleJson
+                        }
+                    } catch {}
                 }
-            } catch {}
-        }
+            }
+        } catch {}
     }
 
     # Sort by order

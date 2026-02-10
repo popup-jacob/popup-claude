@@ -34,22 +34,22 @@ fi
 # ============================================
 echo "========================================"
 if [ "$HAS_DOCKER" = true ]; then
-    echo -e "${GREEN}  Docker가 설치되어 있습니다!${NC}"
+    echo -e "${GREEN}  Docker is installed!${NC}"
     echo "========================================"
     echo ""
-    echo "설치 방식을 선택하세요:"
-    echo -e "  ${GREEN}1. 로컬 설치 (권장) - Docker 사용, 내 컴퓨터에서 실행${NC}"
-    echo "  2. 간편 설치 - 브라우저 로그인만"
+    echo "Select installation method:"
+    echo -e "  ${GREEN}1. Local install (Recommended) - Uses Docker, runs on your machine${NC}"
+    echo "  2. Simple install - Browser login only"
 else
-    echo -e "${YELLOW}  Docker가 설치되어 있지 않습니다.${NC}"
+    echo -e "${YELLOW}  Docker is not installed.${NC}"
     echo "========================================"
     echo ""
-    echo "설치 방식을 선택하세요:"
-    echo -e "  ${GREEN}1. 간편 설치 (권장) - 브라우저 로그인만, 추가 설치 없음${NC}"
-    echo "  2. 로컬 설치 - Docker 설치 필요"
+    echo "Select installation method:"
+    echo -e "  ${GREEN}1. Simple install (Recommended) - Browser login only, no extra install${NC}"
+    echo "  2. Local install - Requires Docker"
 fi
 echo ""
-read -p "선택 (1/2): " choice < /dev/tty
+read -p "Select (1/2): " choice < /dev/tty
 
 # Determine which mode based on Docker status and choice
 USE_DOCKER=false
@@ -76,8 +76,8 @@ if [ "$USE_DOCKER" = true ]; then
     # Check Docker is available
     if [ "$HAS_DOCKER" = false ]; then
         echo ""
-        echo -e "${RED}Docker가 설치되어 있지 않습니다!${NC}"
-        echo "먼저 Docker Desktop을 설치해주세요:"
+        echo -e "${RED}Docker is not installed!${NC}"
+        echo "Please install Docker Desktop first:"
         echo -e "  ${CYAN}https://www.docker.com/products/docker-desktop/${NC}"
         echo ""
         exit 1
@@ -86,43 +86,43 @@ if [ "$USE_DOCKER" = true ]; then
     # Check Docker is running
     if [ "$DOCKER_RUNNING" = false ]; then
         echo ""
-        echo -e "${YELLOW}Docker가 실행되고 있지 않습니다!${NC}"
-        echo "Docker Desktop을 시작해주세요."
+        echo -e "${YELLOW}Docker is not running!${NC}"
+        echo "Please start Docker Desktop."
         echo ""
-        read -p "Docker 시작 후 Enter를 누르세요 (취소: q): " waitDocker < /dev/tty
+        read -p "Press Enter after starting Docker (q to cancel): " waitDocker < /dev/tty
         if [ "$waitDocker" = "q" ]; then
-            echo "취소되었습니다."
+            echo "Cancelled."
             exit 1
         fi
 
         if ! docker info > /dev/null 2>&1; then
-            echo -e "${RED}Docker가 아직 실행되지 않았습니다.${NC}"
+            echo -e "${RED}Docker is still not running.${NC}"
             exit 1
         fi
     fi
     echo ""
-    echo -e "${GREEN}[OK] Docker 확인 완료${NC}"
+    echo -e "${GREEN}[OK] Docker check complete${NC}"
 
     echo ""
     echo -e "${YELLOW}Setting up mcp-atlassian (Docker)...${NC}"
     echo ""
-    echo "API 토큰이 필요합니다. 아래에서 생성하세요:"
+    echo "API token required. Create one here:"
     echo -e "  ${CYAN}https://id.atlassian.com/manage-profile/security/api-tokens${NC}"
     echo ""
 
-    read -p "브라우저에서 API 토큰 페이지 열기? (y/n): " openToken < /dev/tty
+    read -p "Open API token page in browser? (y/n): " openToken < /dev/tty
     if [ "$openToken" = "y" ] || [ "$openToken" = "Y" ]; then
         if [[ "$OSTYPE" == "darwin"* ]]; then
             open "https://id.atlassian.com/manage-profile/security/api-tokens"
         elif command -v xdg-open > /dev/null 2>&1; then
             xdg-open "https://id.atlassian.com/manage-profile/security/api-tokens"
         fi
-        echo -e "${YELLOW}토큰을 생성하고 복사하세요.${NC}"
-        read -p "준비되면 Enter: " < /dev/tty
+        echo -e "${YELLOW}Create and copy the token.${NC}"
+        read -p "Press Enter when ready: " < /dev/tty
     fi
 
     echo ""
-    read -p "Atlassian URL (예: https://company.atlassian.net): " atlassianUrl < /dev/tty
+    read -p "Atlassian URL (e.g., https://company.atlassian.net): " atlassianUrl < /dev/tty
     atlassianUrl="${atlassianUrl%/}"
     jiraUrl="$atlassianUrl"
     confluenceUrl="$atlassianUrl/wiki"
@@ -130,18 +130,18 @@ if [ "$USE_DOCKER" = true ]; then
     echo -e "  ${GRAY}Jira: $jiraUrl${NC}"
     echo -e "  ${GRAY}Confluence: $confluenceUrl${NC}"
     echo ""
-    read -p "이메일: " email < /dev/tty
-    read -p "API 토큰: " apiToken < /dev/tty
+    read -p "Email: " email < /dev/tty
+    read -p "API Token: " apiToken < /dev/tty
 
     # Pull Docker image
     echo ""
-    echo -e "${YELLOW}[Pull] mcp-atlassian Docker 이미지 다운로드...${NC}"
+    echo -e "${YELLOW}[Pull] Downloading mcp-atlassian Docker image...${NC}"
     docker pull ghcr.io/sooperset/mcp-atlassian:latest 2>/dev/null
     echo -e "  ${GREEN}OK${NC}"
 
     # Update .mcp.json using Node.js
     echo ""
-    echo -e "${YELLOW}[Config] .mcp.json 업데이트...${NC}"
+    echo -e "${YELLOW}[Config] Updating .mcp.json...${NC}"
     MCP_CONFIG_PATH="$HOME/.mcp.json"
 
     node -e "
@@ -179,18 +179,18 @@ else
     echo ""
     echo -e "${YELLOW}Setting up Atlassian Rovo MCP...${NC}"
     echo ""
-    echo "브라우저에서 Atlassian 로그인 페이지가 열립니다."
-    echo "로그인하여 권한을 승인해주세요."
+    echo "A browser will open for Atlassian login."
+    echo "Please login and authorize the access."
     echo ""
 
     claude mcp add --transport sse atlassian https://mcp.atlassian.com/v1/sse
 
     echo ""
-    echo -e "  ${GREEN}Rovo MCP 설정 완료!${NC}"
+    echo -e "  ${GREEN}Rovo MCP setup complete!${NC}"
     echo ""
-    echo -e "${GRAY}가이드: https://support.atlassian.com/atlassian-rovo-mcp-server/${NC}"
+    echo -e "${GRAY}Guide: https://support.atlassian.com/atlassian-rovo-mcp-server/${NC}"
 fi
 
 echo ""
 echo "----------------------------------------"
-echo -e "${GREEN}Atlassian MCP 설치 완료!${NC}"
+echo -e "${GREEN}Atlassian MCP installation complete!${NC}"

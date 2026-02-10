@@ -291,11 +291,9 @@ mcp_oauth_flow() {
     local callback_result
     callback_result=$(_wait_for_callback)
 
+    # Parse callback result (format: code||state||error)
     local code returned_state error_param
-    code=$(echo "$callback_result" | cut -d'|' -f1)
-    # separator is || so we need to handle this
-    returned_state=$(echo "$callback_result" | sed 's/.*||\(.*\)||.*/\1/')
-    error_param=$(echo "$callback_result" | sed 's/.*||\(.*\)/\1/' | sed 's/.*||//')
+    IFS='|' read -r code _ returned_state _ error_param <<< "$callback_result"
 
     if [ -z "$code" ]; then
         echo -e "  ${RED}Authentication failed: $error_param${NC}"

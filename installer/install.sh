@@ -25,6 +25,19 @@ NC='\033[0m'
 # Base URL for module downloads
 BASE_URL="https://raw.githubusercontent.com/popup-jacob/popup-claude/master/installer"
 
+# JSON parser using osascript (macOS built-in)
+parse_json() {
+    local json="$1"
+    local key="$2"
+    osascript -l JavaScript -e "
+        var obj = JSON.parse(\`$json\`);
+        var keys = '$key'.split('.');
+        var val = obj;
+        for (var k of keys) val = val ? val[k] : undefined;
+        val === undefined ? '' : String(val);
+    " 2>/dev/null || echo ""
+}
+
 # Check if running locally
 USE_LOCAL=false
 if [ -n "${BASH_SOURCE[0]:-}" ] && [ -f "${BASH_SOURCE[0]}" ]; then
@@ -69,36 +82,40 @@ load_modules() {
     local idx=0
 
     if [ "$USE_LOCAL" = true ]; then
-        # Local: scan modules/ folder (using grep/sed for JSON parsing - no node required)
+        # Local: scan modules/ folder
         for dir in "$SCRIPT_DIR/modules"/*/; do
             if [ -f "${dir}module.json" ]; then
                 local json=$(cat "${dir}module.json")
-                MODULE_NAMES[$idx]=$(echo "$json" | grep '"name"' | head -1 | sed 's/.*"name"[^"]*"\([^"]*\)".*/\1/')
-                MODULE_DISPLAY_NAMES[$idx]=$(echo "$json" | grep '"displayName"' | sed 's/.*"displayName"[^"]*"\([^"]*\)".*/\1/')
-                MODULE_DESCRIPTIONS[$idx]=$(echo "$json" | grep '"description"' | sed 's/.*"description"[^"]*"\([^"]*\)".*/\1/')
-                MODULE_ORDERS[$idx]=$(echo "$json" | grep '"order"' | sed 's/.*"order"[^0-9]*\([0-9]*\).*/\1/')
-                MODULE_REQUIRED[$idx]=$(echo "$json" | grep '"required"' | sed 's/.*"required"[^a-z]*\([a-z]*\).*/\1/')
-                MODULE_COMPLEXITY[$idx]=$(echo "$json" | grep '"complexity"' | sed 's/.*"complexity"[^"]*"\([^"]*\)".*/\1/')
-                MODULE_DOCKER_REQ[$idx]=$(echo "$json" | grep -A5 '"requirements"' | grep '"docker"' | sed 's/.*"docker"[^a-z]*\([a-z]*\).*/\1/')
+                MODULE_NAMES[$idx]=$(parse_json "$json" "name")
+                MODULE_DISPLAY_NAMES[$idx]=$(parse_json "$json" "displayName")
+                MODULE_DESCRIPTIONS[$idx]=$(parse_json "$json" "description")
+                MODULE_ORDERS[$idx]=$(parse_json "$json" "order")
+                MODULE_REQUIRED[$idx]=$(parse_json "$json" "required")
+                MODULE_COMPLEXITY[$idx]=$(parse_json "$json" "complexity")
+                MODULE_DOCKER_REQ[$idx]=$(parse_json "$json" "requirements.docker")
                 ((idx++))
             fi
         done
     else
-        # Remote: fetch known modules (using grep/sed for JSON parsing - no node required)
-        local known_modules=("base" "google" "atlassian" "notion" "github" "figma")
-        for name in "${known_modules[@]}"; do
-            local json=$(curl -sSL "$BASE_URL/modules/$name/module.json" 2>/dev/null || echo "")
-            if [ -n "$json" ]; then
-                MODULE_NAMES[$idx]="$name"
-                MODULE_DISPLAY_NAMES[$idx]=$(echo "$json" | grep '"displayName"' | sed 's/.*"displayName"[^"]*"\([^"]*\)".*/\1/')
-                MODULE_DESCRIPTIONS[$idx]=$(echo "$json" | grep '"description"' | sed 's/.*"description"[^"]*"\([^"]*\)".*/\1/')
-                MODULE_ORDERS[$idx]=$(echo "$json" | grep '"order"' | sed 's/.*"order"[^0-9]*\([0-9]*\).*/\1/')
-                MODULE_REQUIRED[$idx]=$(echo "$json" | grep '"required"' | sed 's/.*"required"[^a-z]*\([a-z]*\).*/\1/')
-                MODULE_COMPLEXITY[$idx]=$(echo "$json" | grep '"complexity"' | sed 's/.*"complexity"[^"]*"\([^"]*\)".*/\1/')
-                MODULE_DOCKER_REQ[$idx]=$(echo "$json" | grep -A5 '"requirements"' | grep '"docker"' | sed 's/.*"docker"[^a-z]*\([a-z]*\).*/\1/')
-                ((idx++))
-            fi
-        done
+        # Remote: fetch module list, then load each module
+        local modules_json=$(curl -sSL "$BASE_URL/modules.json" 2>/dev/null || echo "")
+        if [ -n "$modules_json" ]; then
+            # Parse module names from modules.json
+            local module_names=$(osascript -l JavaScript -e "JSON.parse(\`$modules_json\`).modules.map(m => m.name).join(' ')" 2>/dev/null)
+            for name in $module_names; do
+                local json=$(curl -sSL "$BASE_URL/modules/$name/module.json" 2>/dev/null || echo "")
+                if [ -n "$json" ]; then
+                    MODULE_NAMES[$idx]=$(parse_json "$json" "name")
+                    MODULE_DISPLAY_NAMES[$idx]=$(parse_json "$json" "displayName")
+                    MODULE_DESCRIPTIONS[$idx]=$(parse_json "$json" "description")
+                    MODULE_ORDERS[$idx]=$(parse_json "$json" "order")
+                    MODULE_REQUIRED[$idx]=$(parse_json "$json" "required")
+                    MODULE_COMPLEXITY[$idx]=$(parse_json "$json" "complexity")
+                    MODULE_DOCKER_REQ[$idx]=$(parse_json "$json" "requirements.docker")
+                    ((idx++))
+                fi
+            done
+        fi
     fi
 }
 
