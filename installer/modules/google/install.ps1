@@ -164,6 +164,8 @@ if ($roleChoice -eq "1") {
 
     Write-Host "Follow these steps in the browser:" -ForegroundColor White
     Write-Host ""
+    Write-Host "  [0] Click 'Get Started' button on the OAuth overview page" -ForegroundColor Yellow
+    Write-Host ""
     Write-Host "  [1] App Info" -ForegroundColor Cyan
     Write-Host "      - App name: Google Workspace MCP"
     Write-Host "      - User support email: (select your email)"
@@ -177,7 +179,10 @@ if ($roleChoice -eq "1") {
     }
     Write-Host "      -> Click 'Next'"
     Write-Host ""
-    Write-Host "  [3] Contact Info -> Click 'Next'" -ForegroundColor Cyan
+    Write-Host "  [3] Contact Info" -ForegroundColor Cyan
+    Write-Host "      - Enter your email address"
+    Write-Host "      -> Click 'Next'"
+    Write-Host ""
     Write-Host "  [4] Finish -> Check agreement, Click 'Continue'" -ForegroundColor Cyan
 
     if ($appType -eq "external") {
@@ -264,7 +269,13 @@ Write-Host "A browser will open for Google login." -ForegroundColor White
 Read-Host "Press Enter to start"
 
 $configDirUnix = $configDir -replace '\\', '/'
-docker run -i --rm -p 3000:3000 -v "${configDirUnix}:/app/.google-workspace" ghcr.io/popup-jacob/google-workspace-mcp:latest node -e "require('./dist/auth/oauth.js').getAuthenticatedClient().then(() => { console.log('Authentication complete!'); process.exit(0); }).catch(e => { console.error(e); process.exit(1); })"
+docker run --rm -p 3000:3000 -v "${configDirUnix}:/app/.google-workspace" ghcr.io/popup-jacob/google-workspace-mcp:latest node -e "require('./dist/auth/oauth.js').getAuthenticatedClient().then(() => { console.log('Authentication complete!'); process.exit(0); }).catch(e => { console.error(e); process.exit(1); })" 2>&1 | ForEach-Object {
+    $line = $_.ToString()
+    Write-Host $line
+    if ($line -match "^https://accounts\.google\.com/") {
+        Start-Process $line.Trim()
+    }
+}
 
 if (Test-Path $tokenPath) {
     Write-Host "  Google login successful!" -ForegroundColor Green

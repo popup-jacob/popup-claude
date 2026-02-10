@@ -165,17 +165,29 @@ if [ "$roleChoice" = "1" ]; then
         echo -e "${YELLOW}Open this URL: $CONSOLE_URL${NC}"
     fi
 
-    echo "Follow the browser steps to configure OAuth consent screen."
+    echo "Follow these steps in the browser:"
     echo ""
-    echo "  [1] App name: Google Workspace MCP"
+    echo -e "  [0] ${YELLOW}Click 'Get Started' button on the OAuth overview page${NC}"
+    echo ""
+    echo "  [1] App Info"
+    echo "      - App name: Google Workspace MCP"
+    echo "      - User support email: (select your email)"
+    echo "      -> Click 'Next'"
+    echo ""
     if [ "$APP_TYPE" = "internal" ]; then
-        echo -e "  [2] Audience: ${YELLOW}Internal${NC}"
+        echo -e "  [2] Audience: ${YELLOW}Select 'Internal'${NC} -> Click 'Next'"
     else
-        echo -e "  [2] Audience: ${YELLOW}External${NC}"
+        echo -e "  [2] Audience: ${YELLOW}Select 'External'${NC} -> Click 'Next'"
     fi
-    echo "  [3] Complete the wizard"
+    echo ""
+    echo "  [3] Contact Info"
+    echo "      - Enter your email address"
+    echo "      -> Click 'Next'"
+    echo ""
+    echo "  [4] Finish -> Check agreement, Click 'Continue'"
     if [ "$APP_TYPE" = "external" ]; then
-        echo -e "  [4] ${YELLOW}Add test users in Audience section${NC}"
+        echo ""
+        echo -e "  [5] ${YELLOW}Add TEST USERS in Audience section${NC}"
     fi
     echo ""
     read -p "Press Enter when consent screen is configured" < /dev/tty
@@ -256,9 +268,18 @@ echo ""
 echo "A browser will open for Google login."
 read -p "Press Enter to start" < /dev/tty
 
-docker run -i --rm -p 3000:3000 -v "$CONFIG_DIR:/app/.google-workspace" \
+docker run --rm -p 3000:3000 -v "$CONFIG_DIR:/app/.google-workspace" \
     ghcr.io/popup-jacob/google-workspace-mcp:latest \
-    node -e "require('./dist/auth/oauth.js').getAuthenticatedClient().then(() => { console.log('Authentication complete!'); process.exit(0); }).catch(e => { console.error(e); process.exit(1); })"
+    node -e "require('./dist/auth/oauth.js').getAuthenticatedClient().then(() => { console.log('Authentication complete!'); process.exit(0); }).catch(e => { console.error(e); process.exit(1); })" 2>&1 | while IFS= read -r line; do
+    echo "$line"
+    if [[ "$line" == https://accounts.google.com/* ]]; then
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            open "$line" 2>/dev/null &
+        elif command -v xdg-open > /dev/null 2>&1; then
+            xdg-open "$line" 2>/dev/null &
+        fi
+    fi
+done
 
 if [ -f "$TOKEN_PATH" ]; then
     echo -e "  ${GREEN}Google login successful!${NC}"
