@@ -116,12 +116,13 @@ Write-Host ""
 Write-Host "[6/7] Checking Claude Code CLI..." -ForegroundColor Yellow
 Refresh-Path
 if (-not (Test-CommandExists "claude")) {
-    Write-Host "  Installing Claude Code CLI (npm)..." -ForegroundColor Gray
-    npm install -g @anthropic-ai/claude-code@2.1.28
+    Write-Host "  Installing Claude Code CLI (native)..." -ForegroundColor Gray
+    irm https://claude.ai/install.ps1 | iex
     Refresh-Path
 }
 if (Test-CommandExists "claude") {
-    Write-Host "  OK" -ForegroundColor Green
+    $claudeVersion = claude --version 2>$null
+    Write-Host "  OK - $claudeVersion" -ForegroundColor Green
 } else {
     Write-Host "  Installed (restart terminal to use)" -ForegroundColor Yellow
 }

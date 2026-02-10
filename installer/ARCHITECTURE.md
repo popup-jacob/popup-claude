@@ -246,30 +246,24 @@ document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
 
 ## Known Issues & Version Pinning
 
-### Claude Code 버전 고정 (2026-02-06)
+### Claude Code 설치 방식 (2026-02-10)
 
-현재 installer-v2는 Claude Code를 **npm 방식으로 v2.1.28에 고정**하여 설치합니다.
+현재 installer-v2는 Claude Code를 **Native 방식**으로 설치합니다. (npm은 deprecated)
 
 | 항목 | 내용 |
 |------|------|
-| **현재 설치 방식** | `npm install -g @anthropic-ai/claude-code@2.1.28` |
-| **고정 이유** | v2.1.32~33에서 타이핑 입력 불가 버그 발생 (GitHub [#23445](https://github.com/anthropics/claude-code/issues/23445)) |
-| **변경 이유** | native installer는 자동 업데이트로 버그 버전까지 받을 수 있음 |
+| **Mac/Linux** | `curl -fsSL https://claude.ai/install.sh \| bash` |
+| **Windows** | `irm https://claude.ai/install.ps1 \| iex` |
+| **장점** | 자동 업데이트, Node.js 불필요 |
 
-**버그 해결 후 복원 방법:**
+**Stable 버전 설치 (선택적):**
 
-Anthropic에서 타이핑 버그가 수정된 버전이 릴리즈되면, 아래 파일을 native stable로 변경:
+```bash
+# Mac/Linux
+curl -fsSL https://claude.ai/install.sh | bash -s stable
 
-```
-대상 파일:
-  modules/base/install.ps1 (113번 라인)
-  modules/base/install.sh  (131번 라인)
-
-Windows 복원:
-  & ([scriptblock]::Create((irm https://claude.ai/install.ps1))) stable
-
-Mac/Linux 복원:
-  curl -fsSL https://claude.ai/install.sh | bash -s stable
+# Windows
+& ([scriptblock]::Create((irm https://claude.ai/install.ps1))) stable
 ```
 
 ---

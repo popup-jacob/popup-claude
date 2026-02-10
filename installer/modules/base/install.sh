@@ -134,11 +134,12 @@ fi
 echo ""
 echo -e "${YELLOW}[6/7] Checking Claude Code CLI...${NC}"
 if ! command -v claude > /dev/null 2>&1; then
-    echo -e "  ${GRAY}Installing Claude Code CLI (npm)...${NC}"
-    npm install -g @anthropic-ai/claude-code@2.1.28
+    echo -e "  ${GRAY}Installing Claude Code CLI (native)...${NC}"
+    curl -fsSL https://claude.ai/install.sh | bash
 fi
 if command -v claude > /dev/null 2>&1; then
-    echo -e "  ${GREEN}OK${NC}"
+    CLAUDE_VERSION=$(claude --version 2>/dev/null || echo "unknown")
+    echo -e "  ${GREEN}OK - $CLAUDE_VERSION${NC}"
 else
     echo -e "  ${YELLOW}Installed (restart terminal to use)${NC}"
 fi
