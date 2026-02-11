@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "author": "popup-jacob",
   "required": false,
-  "order": 5,
+  "order": 3,
 
   "type": "mcp",
   "complexity": "simple",

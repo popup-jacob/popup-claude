@@ -2,10 +2,11 @@
   "version": "1.0.0",
   "modules": [
     { "name": "base", "order": 0 },
-    { "name": "google", "order": 1 },
-    { "name": "atlassian", "order": 2 },
-    { "name": "notion", "order": 3 },
-    { "name": "github", "order": 4 },
-    { "name": "figma", "order": 5 }
+    { "name": "notion", "order": 1 },
+    { "name": "github", "order": 2 },
+    { "name": "figma", "order": 3 },
+    { "name": "pencil", "order": 4 },
+    { "name": "atlassian", "order": 5 },
+    { "name": "google", "order": 6 }
   ]
 }

@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "author": "popup-jacob",
   "required": false,
-  "order": 3,
+  "order": 1,
 
   "type": "remote-mcp",
   "complexity": "simple",
