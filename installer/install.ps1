@@ -373,7 +373,7 @@ if (-not $skipBase) {
 }
 
 # Check MCP config
-$mcpConfigPath = "$env:USERPROFILE\.mcp.json"
+$mcpConfigPath = "$env:USERPROFILE\.claude\mcp.json"
 if (Test-Path $mcpConfigPath) {
     $mcpJson = Get-Content $mcpConfigPath -Raw | ConvertFrom-Json
     foreach ($modName in $sortedModules) {

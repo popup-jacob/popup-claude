@@ -120,7 +120,8 @@ if ($useDocker) {
     # Update .mcp.json
     Write-Host ""
     Write-Host "[Config] Updating .mcp.json..." -ForegroundColor Yellow
-    $mcpConfigPath = "$env:USERPROFILE\.mcp.json"
+    $mcpConfigPath = "$env:USERPROFILE\.claude\mcp.json"
+    if (-not (Test-Path "$env:USERPROFILE\.claude")) { New-Item -ItemType Directory -Path "$env:USERPROFILE\.claude" -Force | Out-Null }
 
     $mcpConfig = @{ mcpServers = @{} }
     if (Test-Path $mcpConfigPath) {
