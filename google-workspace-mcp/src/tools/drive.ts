@@ -24,6 +24,9 @@ export const driveTools = {
         q,
         pageSize: maxResults,
         fields: "files(id, name, mimeType, modifiedTime, webViewLink, owners, size, parents)",
+        supportsAllDrives: true,
+        includeItemsFromAllDrives: true,
+        corpora: "allDrives",
       });
 
       return {
@@ -57,6 +60,9 @@ export const driveTools = {
         pageSize: maxResults,
         fields: "files(id, name, mimeType, modifiedTime, webViewLink, size)",
         orderBy,
+        supportsAllDrives: true,
+        includeItemsFromAllDrives: true,
+        corpora: "allDrives",
       });
 
       return {
@@ -86,6 +92,7 @@ export const driveTools = {
       const response = await drive.files.get({
         fileId,
         fields: "id, name, mimeType, modifiedTime, createdTime, webViewLink, size, owners, parents, shared, permissions",
+        supportsAllDrives: true,
       });
 
       return {
@@ -119,6 +126,7 @@ export const driveTools = {
           parents: parentId ? [parentId] : undefined,
         },
         fields: "id, name, webViewLink",
+        supportsAllDrives: true,
       });
 
       return {
@@ -148,6 +156,7 @@ export const driveTools = {
           parents: parentId ? [parentId] : undefined,
         },
         fields: "id, name, webViewLink",
+        supportsAllDrives: true,
       });
 
       return {
@@ -173,6 +182,7 @@ export const driveTools = {
       const file = await drive.files.get({
         fileId,
         fields: "parents",
+        supportsAllDrives: true,
       });
 
       const previousParents = file.data.parents?.join(",") || "";
@@ -182,6 +192,7 @@ export const driveTools = {
         addParents: newParentId,
         removeParents: previousParents,
         fields: "id, name, parents, webViewLink",
+        supportsAllDrives: true,
       });
 
       return {
@@ -210,6 +221,7 @@ export const driveTools = {
           name: newName,
         },
         fields: "id, name, webViewLink",
+        supportsAllDrives: true,
       });
 
       return {
@@ -235,6 +247,7 @@ export const driveTools = {
         requestBody: {
           trashed: true,
         },
+        supportsAllDrives: true,
       });
 
       return {
@@ -257,6 +270,7 @@ export const driveTools = {
         requestBody: {
           trashed: false,
         },
+        supportsAllDrives: true,
       });
 
       return {
@@ -290,6 +304,7 @@ export const driveTools = {
           emailAddress: email,
         },
         sendNotificationEmail: sendNotification,
+        supportsAllDrives: true,
       });
 
       const roleText = { reader: "보기", writer: "편집", commenter: "댓글" }[role];
@@ -317,11 +332,13 @@ export const driveTools = {
           type: type === "anyone" ? "anyone" : "domain",
           role,
         },
+        supportsAllDrives: true,
       });
 
       const file = await drive.files.get({
         fileId,
         fields: "webViewLink",
+        supportsAllDrives: true,
       });
 
       return {
@@ -345,6 +362,7 @@ export const driveTools = {
       const permissions = await drive.permissions.list({
         fileId,
         fields: "permissions(id, emailAddress)",
+        supportsAllDrives: true,
       });
 
       const permission = permissions.data.permissions?.find(
@@ -361,6 +379,7 @@ export const driveTools = {
       await drive.permissions.delete({
         fileId,
         permissionId: permission.id!,
+        supportsAllDrives: true,
       });
 
       return {
@@ -381,6 +400,7 @@ export const driveTools = {
       const response = await drive.permissions.list({
         fileId,
         fields: "permissions(id, type, role, emailAddress, displayName)",
+        supportsAllDrives: true,
       });
 
       return {
