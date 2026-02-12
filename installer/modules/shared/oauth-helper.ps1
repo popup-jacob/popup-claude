@@ -126,6 +126,9 @@ function Invoke-McpOAuth {
     Write-Host "  Opening browser for $ServerName login..." -ForegroundColor Cyan
     Write-Host "  Waiting for you to log in and allow access..." -ForegroundColor Yellow
     Write-Host ""
+    Write-Host "  If the browser doesn't open, copy and paste this URL:" -ForegroundColor DarkGray
+    Write-Host "  $authUrl" -ForegroundColor Gray
+    Write-Host ""
     Start-Process $authUrl
 
     # ── Step 8: Wait for OAuth callback ──

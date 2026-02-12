@@ -285,6 +285,9 @@ mcp_oauth_flow() {
     echo -e "  ${CYAN}Opening browser for $server_name login...${NC}"
     echo -e "  ${YELLOW}Waiting for you to log in and allow access...${NC}"
     echo ""
+    echo -e "  ${GRAY}If the browser doesn't open, copy and paste this URL:${NC}"
+    echo "  $auth_url"
+    echo ""
     _open_browser "$auth_url"
 
     # ── Step 7: Wait for callback ──

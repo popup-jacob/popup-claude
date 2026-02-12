@@ -185,11 +185,21 @@ function Get-InstallStatus {
         NodeJS = [bool](Get-Command node -ErrorAction SilentlyContinue)
         Git = [bool](Get-Command git -ErrorAction SilentlyContinue)
         VSCode = (Test-Path "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe") -or (Test-Path "$env:ProgramFiles\Microsoft VS Code\Code.exe")
+        WSL = $false
         Docker = [bool](Get-Command docker -ErrorAction SilentlyContinue)
         DockerRunning = $false
         Claude = [bool](Get-Command claude -ErrorAction SilentlyContinue)
         Bkit = $false
     }
+
+    # Check WSL
+    $prevEA = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    $wslOut = wsl --version 2>&1 | Out-String -Width 10000
+    if ($LASTEXITCODE -eq 0 -and $wslOut -match "WSL") {
+        $status.WSL = $true
+    }
+    $ErrorActionPreference = $prevEA
 
     if ($status.Docker) {
         $null = docker info 2>&1
@@ -234,6 +244,7 @@ Write-Host "  Node.js:  $(if($status.NodeJS){'[OK]'}else{'[  ]'})" -ForegroundCo
 Write-Host "  Git:      $(if($status.Git){'[OK]'}else{'[  ]'})" -ForegroundColor $(if($status.Git){'Green'}else{'DarkGray'})
 Write-Host "  VS Code:  $(if($status.VSCode){'[OK]'}else{'[  ]'})" -ForegroundColor $(if($status.VSCode){'Green'}else{'DarkGray'})
 if ($script:needsDocker) {
+    Write-Host "  WSL:      $(if($status.WSL){'[OK]'}else{'[  ]'})" -ForegroundColor $(if($status.WSL){'Green'}else{'DarkGray'})
     Write-Host "  Docker:   $(if($status.Docker){'[OK]'}else{'[  ]'}) $(if($status.Docker -and $status.DockerRunning){'(Running)'}elseif($status.Docker){'(Not Running)'}else{''})" -ForegroundColor $(if($status.DockerRunning){'Green'}elseif($status.Docker){'Yellow'}else{'DarkGray'})
 }
 Write-Host "  Claude:   $(if($status.Claude){'[OK]'}else{'[  ]'})" -ForegroundColor $(if($status.Claude){'Green'}else{'DarkGray'})
@@ -266,7 +277,7 @@ if ($script:needsDockerRunning -and $status.Docker -and -not $status.DockerRunni
 # Auto-skip base if all required tools installed
 $baseInstalled = $status.NodeJS -and $status.Git -and $status.Claude -and $status.Bkit
 if ($script:needsDocker) {
-    $baseInstalled = $baseInstalled -and $status.Docker
+    $baseInstalled = $baseInstalled -and $status.WSL -and $status.Docker
 }
 if ($baseInstalled -and -not $skipBase -and $selectedModules.Count -gt 0) {
     Write-Host "All base tools are already installed. Skipping base." -ForegroundColor Green

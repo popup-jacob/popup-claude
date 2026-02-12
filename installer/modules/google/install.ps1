@@ -292,6 +292,9 @@ if (-not $containerId) {
                 $authUrl = $Matches[1]
                 Start-Process $authUrl
                 Write-Host "  Browser opened for Google login!" -ForegroundColor Green
+                Write-Host ""
+                Write-Host "  If the browser doesn't open, copy and paste this URL:" -ForegroundColor DarkGray
+                Write-Host "  $authUrl" -ForegroundColor Gray
                 $opened = $true
             }
             break

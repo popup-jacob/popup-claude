@@ -20,7 +20,7 @@ function Test-CommandExists {
 # ============================================
 # 1. Check winget
 # ============================================
-Write-Host "[1/7] Checking winget..." -ForegroundColor Yellow
+Write-Host "[1/8] Checking winget..." -ForegroundColor Yellow
 if (-not (Test-CommandExists "winget")) {
     Write-Host ""
     Write-Host "winget not found!" -ForegroundColor Red
@@ -34,7 +34,7 @@ Write-Host "  OK" -ForegroundColor Green
 # 2. Node.js
 # ============================================
 Write-Host ""
-Write-Host "[2/7] Checking Node.js..." -ForegroundColor Yellow
+Write-Host "[2/8] Checking Node.js..." -ForegroundColor Yellow
 if (-not (Test-CommandExists "node")) {
     Write-Host "  Installing Node.js LTS..." -ForegroundColor Gray
     winget install OpenJS.NodeJS.LTS --accept-source-agreements --accept-package-agreements -h
@@ -51,7 +51,7 @@ if (Test-CommandExists "node") {
 # 3. Git
 # ============================================
 Write-Host ""
-Write-Host "[3/7] Checking Git..." -ForegroundColor Yellow
+Write-Host "[3/8] Checking Git..." -ForegroundColor Yellow
 if (-not (Test-CommandExists "git")) {
     Write-Host "  Installing Git..." -ForegroundColor Gray
     winget install Git.Git --accept-source-agreements --accept-package-agreements -h
@@ -68,7 +68,7 @@ if (Test-CommandExists "git") {
 # 4. VS Code
 # ============================================
 Write-Host ""
-Write-Host "[4/7] Checking VS Code..." -ForegroundColor Yellow
+Write-Host "[4/8] Checking VS Code..." -ForegroundColor Yellow
 $vscodePaths = @(
     "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe",
     "$env:ProgramFiles\Microsoft VS Code\Code.exe"
@@ -91,15 +91,47 @@ if (Test-CommandExists "code") {
 }
 
 # ============================================
-# 5. Docker Desktop (only if needed)
+# 5. WSL (Windows Subsystem for Linux)
 # ============================================
 Write-Host ""
-Write-Host "[5/7] Checking Docker Desktop..." -ForegroundColor Yellow
+Write-Host "[5/8] Checking WSL..." -ForegroundColor Yellow
+$script:WslNeedsRestart = $false
+if ($script:needsDocker) {
+    $prevErrorAction = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+
+    $wslInstalled = $false
+    $wslOutput = wsl --version 2>&1 | Out-String -Width 10000
+    if ($LASTEXITCODE -eq 0 -and $wslOutput -match "WSL") {
+        $wslInstalled = $true
+    }
+
+    if ($wslInstalled) {
+        Write-Host "  Updating WSL..." -ForegroundColor Gray
+        wsl --update 2>&1 | Out-Null
+        Write-Host "  OK (up to date)" -ForegroundColor Green
+    } else {
+        Write-Host "  Installing WSL..." -ForegroundColor Gray
+        wsl --install --no-distribution 2>&1 | Out-Null
+        $script:WslNeedsRestart = $true
+        Write-Host "  Installed (system restart required)" -ForegroundColor Yellow
+    }
+
+    $ErrorActionPreference = $prevErrorAction
+} else {
+    Write-Host "  Skipped (not required by selected modules)" -ForegroundColor Gray
+}
+
+# ============================================
+# 6. Docker Desktop (only if needed)
+# ============================================
+Write-Host ""
+Write-Host "[6/8] Checking Docker Desktop..." -ForegroundColor Yellow
 $script:DockerNeedsRestart = $false
 if ($script:needsDocker) {
     if (-not (Test-CommandExists "docker")) {
-        Write-Host "  Installing Docker Desktop..." -ForegroundColor Gray
-        winget install Docker.DockerDesktop --accept-source-agreements --accept-package-agreements -h
+        Write-Host "  Installing Docker Desktop (this may take a few minutes)..." -ForegroundColor Gray
+        winget install Docker.DockerDesktop --accept-source-agreements --accept-package-agreements
         $script:DockerNeedsRestart = $true
         Write-Host "  Installed (system restart required)" -ForegroundColor Yellow
     } else {
@@ -110,10 +142,10 @@ if ($script:needsDocker) {
 }
 
 # ============================================
-# 6. Claude Code CLI
+# 7. Claude Code CLI
 # ============================================
 Write-Host ""
-Write-Host "[6/7] Checking Claude Code CLI..." -ForegroundColor Yellow
+Write-Host "[7/8] Checking Claude Code CLI..." -ForegroundColor Yellow
 Refresh-Path
 if (-not (Test-CommandExists "claude")) {
     Write-Host "  Installing Claude Code CLI (native)..." -ForegroundColor Gray
@@ -133,10 +165,10 @@ if (Test-CommandExists "claude") {
 }
 
 # ============================================
-# 7. bkit Plugin
+# 8. bkit Plugin
 # ============================================
 Write-Host ""
-Write-Host "[7/7] Installing bkit Plugin..." -ForegroundColor Yellow
+Write-Host "[8/8] Installing bkit Plugin..." -ForegroundColor Yellow
 $ErrorActionPreference = "SilentlyContinue"
 claude plugin marketplace add popup-studio-ai/bkit-claude-code 2>$null
 claude plugin install bkit@bkit-marketplace 2>$null
@@ -156,11 +188,16 @@ Write-Host ""
 Write-Host "----------------------------------------" -ForegroundColor DarkGray
 Write-Host "Base installation complete!" -ForegroundColor Green
 
-if ($script:DockerNeedsRestart) {
+if ($script:WslNeedsRestart -or $script:DockerNeedsRestart) {
     Write-Host ""
-    Write-Host "IMPORTANT: Docker Desktop was installed." -ForegroundColor Yellow
+    if ($script:WslNeedsRestart) {
+        Write-Host "IMPORTANT: WSL was installed." -ForegroundColor Yellow
+    }
+    if ($script:DockerNeedsRestart) {
+        Write-Host "IMPORTANT: Docker Desktop was installed." -ForegroundColor Yellow
+    }
     Write-Host "  1. Restart your computer" -ForegroundColor White
     Write-Host "  2. Start Docker Desktop" -ForegroundColor White
     Write-Host "  3. Run installer again with -skipBase flag:" -ForegroundColor White
-    Write-Host "     .\install.ps1 -modules "google,atlassian" -skipBase" -ForegroundColor Cyan
+    Write-Host "     .\install.ps1 -modules `"google,atlassian`" -skipBase" -ForegroundColor Cyan
 }

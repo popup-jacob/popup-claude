@@ -293,6 +293,9 @@ else
                     xdg-open "$AUTH_URL" 2>/dev/null
                 fi
                 echo -e "  ${GREEN}Browser opened for Google login!${NC}"
+                echo ""
+                echo -e "  ${GRAY}If the browser doesn't open, copy and paste this URL:${NC}"
+                echo "  $AUTH_URL"
                 OPENED=true
             fi
             break
