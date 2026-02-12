@@ -195,8 +195,8 @@ function Get-InstallStatus {
     # Check WSL
     $prevEA = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
-    $wslOut = wsl --version 2>&1 | Out-String -Width 10000
-    if ($LASTEXITCODE -eq 0 -and $wslOut -match "WSL") {
+    wsl --version 2>&1 | Out-Null
+    if ($LASTEXITCODE -eq 0) {
         $status.WSL = $true
     }
     $ErrorActionPreference = $prevEA

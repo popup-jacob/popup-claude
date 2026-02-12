@@ -101,8 +101,8 @@ if ($script:needsDocker) {
     $ErrorActionPreference = "Continue"
 
     $wslInstalled = $false
-    $wslOutput = wsl --version 2>&1 | Out-String -Width 10000
-    if ($LASTEXITCODE -eq 0 -and $wslOutput -match "WSL") {
+    wsl --version 2>&1 | Out-Null
+    if ($LASTEXITCODE -eq 0) {
         $wslInstalled = $true
     }
 
