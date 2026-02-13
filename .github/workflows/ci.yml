@@ -127,7 +127,9 @@ jobs:
         run: |
           cp installer/checksums.json /tmp/checksums-original.json
           cd installer && bash generate-checksums.sh && cd ..
-          diff /tmp/checksums-original.json installer/checksums.json || {
+          # Compare ignoring the "generated" timestamp line
+          diff <(grep -v '"generated"' /tmp/checksums-original.json) \
+               <(grep -v '"generated"' installer/checksums.json) || {
             echo "ERROR: checksums.json is out of date. Run: cd installer && bash generate-checksums.sh"
             exit 1
           }
