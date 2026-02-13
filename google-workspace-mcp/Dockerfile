@@ -1,39 +1,53 @@
 # Build stage
-FROM node:20-slim AS builder
+FROM node:22-slim AS builder
 
 WORKDIR /app
 
-# 의존성 파일 복사
+# Copy dependency files
 COPY package*.json ./
 COPY tsconfig.json ./
 
-# 의존성 설치
-RUN npm install
+# Install all dependencies (including dev deps for build)
+# FR-S1-06: Use npm ci for deterministic builds (OWASP A08)
+RUN npm ci
 
-# 소스 복사 및 빌드
+# Copy source and build
 COPY src ./src
 RUN npm run build
 
 # Production stage
-FROM node:20-slim
+# FR-S4-09: Node.js 22 migration (Node.js 20 EOL 2026-04-30)
+FROM node:22-slim
 
 WORKDIR /app
 
-# 프로덕션 의존성만 설치
-COPY package*.json ./
-RUN npm install --omit=dev
+# FR-S1-06: Create non-root user and group
+RUN groupadd -r mcp && useradd -r -g mcp -d /app -s /bin/false mcp
 
-# 빌드된 파일 복사
+# Copy dependency files and install production deps only
+COPY package*.json ./
+RUN npm ci --omit=dev
+
+# Copy built artifacts from builder
 COPY --from=builder /app/dist ./dist
 
-# 설정 디렉토리 생성
-RUN mkdir -p /app/.google-workspace
+# Create config directory with correct ownership
+RUN mkdir -p /app/.google-workspace && \
+    chown -R mcp:mcp /app
 
-# 볼륨 마운트 포인트
+# FR-S1-06: Switch to non-root user BEFORE declaring VOLUME
+USER mcp
+
+# Volume mount point
 VOLUME ["/app/.google-workspace"]
 
-# 환경 변수
+# Environment
 ENV GOOGLE_CONFIG_DIR=/app/.google-workspace
+ENV NODE_ENV=production
 
-# 실행
+# Health check (for orchestration)
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+  CMD node -e "process.exit(0)"
+
+# Run
 CMD ["node", "dist/index.js"]

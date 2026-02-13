@@ -16,10 +16,13 @@ build/
 .next/
 out/
 
-# Environment
+# Environment & Credentials (FR-S5-06)
 .env
 .env.local
 .env.*.local
+credentials.env
+client_secret.json
+token.json
 
 # Logs
 *.log

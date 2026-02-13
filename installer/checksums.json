@@ -1,0 +1,29 @@
+{
+  "version": "1.0",
+  "algorithm": "sha256",
+  "generated": "2026-02-13T01:22:43Z",
+  "files": {
+    "modules.json": "61adcac86ce9b039c236bf6a47652691af0a3c58152b5771eb5667291be46eba",
+    "modules/atlassian/module.json": "bf1a8327c3a5222112d1c25b70305edb0422a2caf839c7c4baee569016c59772",
+    "modules/base/module.json": "ec1d905f79823b2f40105bdd39eef307fdcb9739c712810a6b88f6ecddf43700",
+    "modules/figma/module.json": "295d019bb853010d37b241bf6c42194bb4ffc14680f114fb8882217a9a5c4944",
+    "modules/github/module.json": "06e0bf4bb442dfaa5e5eef336ec58c81095dc83e137d176f693aa81e13c70061",
+    "modules/google/module.json": "195bf3da49da0b5d25cca3335a13f8c0a013834438b3f3b573a31babd7f0af44",
+    "modules/notion/module.json": "af68d20f2589b6b041689543d971f2a160f9883d82b7a42332fe576ca79a5800",
+    "modules/pencil/module.json": "66161567a21e359d6e6ccf200514007477aa55936ed41cfde8a1d70d3d7135ec",
+    "modules/atlassian/install.sh": "9e4c6022392f5443314360c39000dd62f63da9c9fde135978ecf2d5a402c4eca",
+    "modules/base/install.sh": "8fc77647cd78044aac323690ed2811f3fc6be168aaac54d0d4f7bba180d92d65",
+    "modules/figma/install.sh": "88261259b3931da3f80eb339ca10072eca2505173f852244f25179b81c71f7b3",
+    "modules/github/install.sh": "3b289a9dd19d93012ad166f5fc0d6b3847b14f4414cea97d54c59ea2e97464c6",
+    "modules/google/install.sh": "e84c3876ec66a5a3b8ca1f215e81081b5636e0a0290a8037fdb20389609a1703",
+    "modules/notion/install.sh": "444474a5ba4d33c48187693a1ca2bf346fb2d5e8f47a97fd9d43dacd587208b4",
+    "modules/pencil/install.sh": "f2fbac6aabb6f88f245d5469795ef218b63ed85b4aa238a1ce11eab77993e51e",
+    "modules/atlassian/install.ps1": "dfc72a44922af40f3480bab3e15a6ded33f4f5b632f6bf140461280d607f9935",
+    "modules/base/install.ps1": "48c0d0bd0de0d3370a1e8664bb048a6d10c071b63d90389cb2e99b9b627cef77",
+    "modules/figma/install.ps1": "775a54567eb47260d2b109633d322f81aedb86b9b22fe64078815d45baefdf8d",
+    "modules/github/install.ps1": "6b4cdb15a1aa3601078484d2bde09ef091146f7a9dd3f51f86b66bd45c2cbebc",
+    "modules/google/install.ps1": "54eaabbb341dc0109a72b36a12cff8472c93294976645c3b90d67ce4f0d01bc9",
+    "modules/notion/install.ps1": "dbfac490bae1e840ac7d45e56b0b49ab6be2a2e70fe3cba5ad227d2573503e36",
+    "modules/pencil/install.ps1": "3b4620b6612af05c6f31781b03e3d7831d48060425ce8d8f79b5592c1f1eb300"
+  }
+}

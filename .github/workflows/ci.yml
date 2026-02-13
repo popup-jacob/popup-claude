@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches: [master, develop]
+  pull_request:
+    branches: [master]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: cd google-workspace-mcp && npm ci
+      - run: cd google-workspace-mcp && npm run lint
+      - run: cd google-workspace-mcp && npm run format:check
+
+  build:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: cd google-workspace-mcp && npm ci && npm run build
+
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: cd google-workspace-mcp && npm ci && npm run test:coverage
+
+  smoke-tests:
+    needs: build
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run module JSON tests
+        run: bash installer/tests/test_module_json.sh
+      - name: Run install syntax tests
+        run: bash installer/tests/test_install_syntax.sh
+
+  security-audit:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: cd google-workspace-mcp && npm ci && npm audit --audit-level=high
+
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ShellCheck
+        run: sudo apt-get install -y shellcheck
+      - name: Run ShellCheck on installer scripts
+        run: |
+          find installer/ -name "*.sh" -exec shellcheck -S warning {} +
+
+  docker-build:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Docker image
+        run: cd google-workspace-mcp && docker build -t test .
+      - name: Test Docker image
+        run: |
+          docker run --rm test node -e "console.log('OK')"
+          docker run --rm test id -u | grep -q 1001
+
+  # FR-S1-11: Verify checksums.json is up to date
+  verify-checksums:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Regenerate checksums and compare
+        run: |
+          cp installer/checksums.json /tmp/checksums-original.json
+          bash installer/generate-checksums.sh installer
+          diff /tmp/checksums-original.json installer/checksums.json || {
+            echo "ERROR: checksums.json is out of date. Run ./installer/generate-checksums.sh"
+            exit 1
+          }

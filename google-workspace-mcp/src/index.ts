@@ -29,9 +29,9 @@ for (const [name, tool] of Object.entries(allTools)) {
     name,
     tool.description,
     tool.schema,
-    async (params: any) => {
+    async (params: Record<string, unknown>) => {
       try {
-        const result = await tool.handler(params);
+        const result = await tool.handler(params as never);
         return {
           content: [
             {
@@ -40,12 +40,13 @@ for (const [name, tool] of Object.entries(allTools)) {
             },
           ],
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
         return {
           content: [
             {
               type: "text" as const,
-              text: `오류: ${error.message}`,
+              text: `Error: ${message}`,
             },
           ],
           isError: true,
@@ -63,6 +64,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error("서버 시작 실패:", error);
+  console.error("Server startup failed:", error);
   process.exit(1);
 });

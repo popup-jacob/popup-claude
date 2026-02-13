@@ -4,13 +4,16 @@
 # ============================================
 # Auto-detects Docker and recommends best option
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-CYAN='\033[0;36m'
-GRAY='\033[0;90m'
-NC='\033[0m'
+# FR-S3-05a: Source shared utilities
+SHARED_DIR="${SHARED_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../shared" 2>/dev/null && pwd)}"
+if [ -n "$SHARED_DIR" ] && [ -f "$SHARED_DIR/colors.sh" ]; then
+    source "$SHARED_DIR/colors.sh"
+    source "$SHARED_DIR/docker-utils.sh"
+else
+    # Fallback for remote execution
+    RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
+    CYAN='\033[0;36m'; GRAY='\033[0;90m'; NC='\033[0m'
+fi
 
 echo "Atlassian MCP lets Claude access:"
 echo -e "  ${GRAY}- Jira (view issues, create tasks)${NC}"
@@ -22,9 +25,9 @@ echo ""
 # ============================================
 HAS_DOCKER=false
 DOCKER_RUNNING=false
-if command -v docker > /dev/null 2>&1; then
+if docker_is_installed; then
     HAS_DOCKER=true
-    if docker info > /dev/null 2>&1; then
+    if docker_is_running; then
         DOCKER_RUNNING=true
     fi
 fi
@@ -86,22 +89,13 @@ if [ "$USE_DOCKER" = true ]; then
     # Check Docker is running
     if [ "$DOCKER_RUNNING" = false ]; then
         echo ""
-        echo -e "${YELLOW}Docker is not running!${NC}"
-        echo "Please start Docker Desktop."
+        if ! docker_check; then
+            exit 1
+        fi
+    else
         echo ""
-        read -p "Press Enter after starting Docker (q to cancel): " waitDocker < /dev/tty
-        if [ "$waitDocker" = "q" ]; then
-            echo "Cancelled."
-            exit 1
-        fi
-
-        if ! docker info > /dev/null 2>&1; then
-            echo -e "${RED}Docker is still not running.${NC}"
-            exit 1
-        fi
+        echo -e "${GREEN}[OK] Docker check complete${NC}"
     fi
-    echo ""
-    echo -e "${GREEN}[OK] Docker check complete${NC}"
 
     echo ""
     echo -e "${YELLOW}Setting up mcp-atlassian (Docker)...${NC}"
@@ -139,14 +133,41 @@ if [ "$USE_DOCKER" = true ]; then
     docker pull ghcr.io/sooperset/mcp-atlassian:latest 2>/dev/null
     echo -e "  ${GREEN}OK${NC}"
 
-    # Update .mcp.json using Node.js
-    echo ""
-    echo -e "${YELLOW}[Config] Updating .mcp.json...${NC}"
-    MCP_CONFIG_PATH="$HOME/.mcp.json"
+    # FR-S1-04: Secure credential storage in .env file
+    ENV_DIR="$HOME/.atlassian-mcp"
+    ENV_FILE="$ENV_DIR/credentials.env"
 
+    mkdir -p "$ENV_DIR"
+    chmod 700 "$ENV_DIR"
+
+    # Write credentials to env file (owner-only read/write)
+    cat > "$ENV_FILE" << ENVEOF
+CONFLUENCE_URL=$confluenceUrl
+CONFLUENCE_USERNAME=$email
+CONFLUENCE_API_TOKEN=$apiToken
+JIRA_URL=$jiraUrl
+JIRA_USERNAME=$email
+JIRA_API_TOKEN=$apiToken
+ENVEOF
+    chmod 600 "$ENV_FILE"
+    echo -e "  ${GREEN}Credentials saved to $ENV_FILE (permissions: 600)${NC}"
+
+    # FR-S1-09: Use env vars for Node.js (no shell interpolation of user input)
+    # FR-S2-03: Unified MCP config path
+    echo ""
+    echo -e "${YELLOW}[Config] Updating MCP config...${NC}"
+
+    MCP_CONFIG_PATH="$HOME/.claude/mcp.json" \
+    ATLASSIAN_ENV_FILE="$ENV_FILE" \
     node -e "
 const fs = require('fs');
-const configPath = '$MCP_CONFIG_PATH';
+const configPath = process.env.MCP_CONFIG_PATH;
+const envFile = process.env.ATLASSIAN_ENV_FILE;
+
+// Ensure directory exists
+const dir = require('path').dirname(configPath);
+if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+
 let config = { mcpServers: {} };
 
 if (fs.existsSync(configPath)) {
@@ -158,17 +179,12 @@ config.mcpServers['atlassian'] = {
     command: 'docker',
     args: [
         'run', '-i', '--rm',
-        '-e', 'CONFLUENCE_URL=$confluenceUrl',
-        '-e', 'CONFLUENCE_USERNAME=$email',
-        '-e', 'CONFLUENCE_API_TOKEN=$apiToken',
-        '-e', 'JIRA_URL=$jiraUrl',
-        '-e', 'JIRA_USERNAME=$email',
-        '-e', 'JIRA_API_TOKEN=$apiToken',
+        '--env-file', envFile,
         'ghcr.io/sooperset/mcp-atlassian:latest'
     ]
 };
 
-fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+fs.writeFileSync(configPath, JSON.stringify(config, null, 2), { mode: 0o600 });
 "
     echo -e "  ${GREEN}OK${NC}"
 

@@ -4,13 +4,15 @@
 # ============================================
 # This module installs: Homebrew, Node.js, Git, VS Code, Docker, Claude CLI, bkit Plugin
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-CYAN='\033[0;36m'
-GRAY='\033[0;90m'
-NC='\033[0m'
+# FR-S3-05a: Source shared color definitions instead of inline
+SHARED_DIR="${SHARED_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../shared" 2>/dev/null && pwd)}"
+if [ -n "$SHARED_DIR" ] && [ -f "$SHARED_DIR/colors.sh" ]; then
+    source "$SHARED_DIR/colors.sh"
+else
+    # Fallback for remote execution
+    RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
+    CYAN='\033[0;36m'; GRAY='\033[0;90m'; NC='\033[0m'
+fi
 
 DOCKER_NEEDS_RESTART=false
 
@@ -43,9 +45,18 @@ if ! command -v node > /dev/null 2>&1; then
     if [[ "$OSTYPE" == "darwin"* ]]; then
         brew install node
     else
-        # Linux - use NodeSource
-        curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
-        sudo apt-get install -y nodejs
+        # FR-S2-04: Linux - multi-package manager support
+        if command -v apt-get > /dev/null 2>&1; then
+            curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+            sudo apt-get install -y nodejs
+        elif command -v dnf > /dev/null 2>&1; then
+            curl -fsSL https://rpm.nodesource.com/setup_lts.x | sudo -E bash -
+            sudo dnf install -y nodejs
+        elif command -v pacman > /dev/null 2>&1; then
+            sudo pacman -S --noconfirm nodejs npm
+        else
+            echo -e "  ${YELLOW}Unsupported package manager. Please install Node.js manually.${NC}"
+        fi
     fi
 fi
 if command -v node > /dev/null 2>&1; then
@@ -65,7 +76,14 @@ if ! command -v git > /dev/null 2>&1; then
     if [[ "$OSTYPE" == "darwin"* ]]; then
         brew install git
     else
-        sudo apt-get install -y git
+        # FR-S2-04: Multi-package manager support
+        if command -v apt-get > /dev/null 2>&1; then
+            sudo apt-get install -y git
+        elif command -v dnf > /dev/null 2>&1; then
+            sudo dnf install -y git
+        elif command -v pacman > /dev/null 2>&1; then
+            sudo pacman -S --noconfirm git
+        fi
     fi
 fi
 if command -v git > /dev/null 2>&1; then
@@ -85,9 +103,14 @@ if ! command -v code > /dev/null 2>&1 && [ ! -d "/Applications/Visual Studio Cod
     if [[ "$OSTYPE" == "darwin"* ]]; then
         brew install --cask visual-studio-code
     else
-        # Linux - use snap or download
+        # FR-S2-04: Linux - multi-package manager VS Code support
         if command -v snap > /dev/null 2>&1; then
             sudo snap install code --classic
+        elif command -v dnf > /dev/null 2>&1; then
+            sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc 2>/dev/null || true
+            echo -e "  ${YELLOW}Please install VS Code manually from https://code.visualstudio.com${NC}"
+        elif command -v pacman > /dev/null 2>&1; then
+            echo -e "  ${YELLOW}Please install VS Code from AUR or https://code.visualstudio.com${NC}"
         else
             echo -e "  ${YELLOW}Please install VS Code manually from https://code.visualstudio.com${NC}"
         fi

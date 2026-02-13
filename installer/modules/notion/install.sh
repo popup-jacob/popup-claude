@@ -3,13 +3,15 @@
 # Notion MCP Module (Mac/Linux) — Remote MCP + Auto OAuth
 # ============================================
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-CYAN='\033[0;36m'
-GRAY='\033[0;90m'
-NC='\033[0m'
+# FR-S3-05a: Source shared color definitions instead of inline
+SHARED_DIR="${SHARED_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../shared" 2>/dev/null && pwd)}"
+if [ -n "$SHARED_DIR" ] && [ -f "$SHARED_DIR/colors.sh" ]; then
+    source "$SHARED_DIR/colors.sh"
+else
+    # Fallback for remote execution
+    RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
+    CYAN='\033[0;36m'; GRAY='\033[0;90m'; NC='\033[0m'
+fi
 
 echo "Notion MCP lets Claude access:"
 echo -e "  ${GRAY}- Read Notion pages${NC}"

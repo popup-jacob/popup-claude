@@ -9,9 +9,10 @@
 
   "type": "mcp",
   "complexity": "moderate",
+  "modes": ["docker", "rovo"],
 
   "requirements": {
-    "docker": false,
+    "docker": true,
     "node": false,
     "adminSetup": false
   },

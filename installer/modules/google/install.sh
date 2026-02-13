@@ -4,30 +4,24 @@
 # ============================================
 # Prerequisites: Docker must be running
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-CYAN='\033[0;36m'
-GRAY='\033[0;90m'
-NC='\033[0m'
+# FR-S3-05a: Source shared utilities
+SHARED_DIR="${SHARED_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../shared" 2>/dev/null && pwd)}"
+if [ -n "$SHARED_DIR" ] && [ -f "$SHARED_DIR/colors.sh" ]; then
+    source "$SHARED_DIR/colors.sh"
+    source "$SHARED_DIR/docker-utils.sh"
+else
+    # Fallback for remote execution
+    RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
+    CYAN='\033[0;36m'; GRAY='\033[0;90m'; NC='\033[0m'
+fi
 
 # ============================================
 # 1. Docker Check
 # ============================================
 echo -e "${YELLOW}[Check] Docker is running...${NC}"
-if ! docker info > /dev/null 2>&1; then
-    echo ""
-    echo -e "${RED}Docker is not running!${NC}"
-    echo ""
-    echo -e "${YELLOW}How to start Docker Desktop:${NC}"
-    echo -e "  ${CYAN}- Click Docker icon in Applications (Mac)${NC}"
-    echo -e "  ${CYAN}- Or run 'sudo systemctl start docker' (Linux)${NC}"
-    echo ""
-    echo "Then run installer again."
+if ! docker_check; then
     exit 1
 fi
-echo -e "  ${GREEN}OK${NC}"
 
 # ============================================
 # 2. Role Selection (Admin / Employee)
@@ -310,9 +304,22 @@ else
         docker logs "$CONTAINER_ID" 2>&1
     fi
 
-    # Wait for auth to complete
-    echo -e "  ${GRAY}Waiting for login to complete...${NC}"
-    docker wait "$CONTAINER_ID" > /dev/null 2>&1
+    # FR-S2-08: Wait for auth to complete with timeout (300s)
+    echo -e "  ${GRAY}Waiting for login to complete (timeout: 5 min)...${NC}"
+    WAIT_ELAPSED=0
+    WAIT_TIMEOUT=300
+    while [ $WAIT_ELAPSED -lt $WAIT_TIMEOUT ]; do
+        RUNNING=$(docker inspect --format='{{.State.Running}}' "$CONTAINER_ID" 2>/dev/null)
+        if [ "$RUNNING" != "true" ]; then
+            break
+        fi
+        sleep 2
+        WAIT_ELAPSED=$((WAIT_ELAPSED + 2))
+    done
+    if [ $WAIT_ELAPSED -ge $WAIT_TIMEOUT ]; then
+        echo -e "  ${YELLOW}Auth timed out after ${WAIT_TIMEOUT}s. Stopping container...${NC}"
+        docker stop "$CONTAINER_ID" > /dev/null 2>&1
+    fi
     docker rm "$CONTAINER_ID" > /dev/null 2>&1
 fi
 
@@ -322,16 +329,31 @@ else
     echo -e "  ${YELLOW}Login may have failed. Try again later.${NC}"
 fi
 
-# Update .mcp.json using Node.js
+# FR-S2-03: Update MCP config using unified path (~/.claude/mcp.json)
 echo ""
-echo -e "${YELLOW}[Config] Updating .mcp.json...${NC}"
-MCP_CONFIG_PATH="$HOME/.mcp.json"
+echo -e "${YELLOW}[Config] Updating MCP config...${NC}"
+MCP_CONFIG_PATH="$HOME/.claude/mcp.json"
+LEGACY_MCP_PATH="$HOME/.mcp.json"
 
+# Migrate legacy config if it exists
+if [ -f "$LEGACY_MCP_PATH" ] && [ ! -f "$MCP_CONFIG_PATH" ]; then
+    mkdir -p "$(dirname "$MCP_CONFIG_PATH")"
+    cp "$LEGACY_MCP_PATH" "$MCP_CONFIG_PATH"
+    echo -e "  ${YELLOW}Migrated MCP config from $LEGACY_MCP_PATH${NC}"
+fi
+
+MCP_CONFIG_PATH="$MCP_CONFIG_PATH" \
+CONFIG_DIR="$CONFIG_DIR" \
 node -e "
 const fs = require('fs');
-const configPath = '$MCP_CONFIG_PATH';
-let config = { mcpServers: {} };
+const path = require('path');
+const configPath = process.env.MCP_CONFIG_PATH;
+const configDir = process.env.CONFIG_DIR;
 
+const dir = path.dirname(configPath);
+if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+
+let config = { mcpServers: {} };
 if (fs.existsSync(configPath)) {
     config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
     if (!config.mcpServers) config.mcpServers = {};
@@ -339,10 +361,10 @@ if (fs.existsSync(configPath)) {
 
 config.mcpServers['google-workspace'] = {
     command: 'docker',
-    args: ['run', '-i', '--rm', '-v', '$CONFIG_DIR:/app/.google-workspace', 'ghcr.io/popup-jacob/google-workspace-mcp:latest']
+    args: ['run', '-i', '--rm', '-v', configDir + ':/app/.google-workspace', 'ghcr.io/popup-jacob/google-workspace-mcp:latest']
 };
 
-fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+fs.writeFileSync(configPath, JSON.stringify(config, null, 2), { mode: 0o600 });
 "
 echo -e "  ${GREEN}OK${NC}"
 
