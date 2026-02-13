@@ -14,9 +14,7 @@ import { URL } from "url";
 import open from "open";
 
 // Config file paths
-const CONFIG_DIR =
-  process.env.GOOGLE_CONFIG_DIR ||
-  path.join(process.cwd(), ".google-workspace");
+const CONFIG_DIR = process.env.GOOGLE_CONFIG_DIR || path.join(process.cwd(), ".google-workspace");
 const CLIENT_SECRET_PATH = path.join(CONFIG_DIR, "client_secret.json");
 const TOKEN_PATH = path.join(CONFIG_DIR, "token.json");
 
@@ -45,11 +43,7 @@ function resolveScopes(): string[] {
 const SCOPES = resolveScopes();
 
 // ----- FR-S3-10: Security Event Logging -----
-function logSecurityEvent(
-  eventType: string,
-  result: "success" | "failure",
-  detail?: string
-): void {
+function logSecurityEvent(eventType: string, result: "success" | "failure", detail?: string): void {
   const entry = {
     timestamp: new Date().toISOString(),
     event_type: eventType,
@@ -123,7 +117,11 @@ function ensureConfigDir(): void {
     const currentMode = stats.mode & 0o777;
     if (currentMode !== 0o700) {
       fs.chmodSync(CONFIG_DIR, 0o700);
-      logSecurityEvent("config_dir_permission_fix", "success", `${CONFIG_DIR}: ${currentMode.toString(8)} -> 700`);
+      logSecurityEvent(
+        "config_dir_permission_fix",
+        "success",
+        `${CONFIG_DIR}: ${currentMode.toString(8)} -> 700`
+      );
     }
   } catch {
     // chmodSync may fail on Windows -- acceptable since Windows uses ACLs
@@ -178,7 +176,11 @@ function loadToken(): TokenData | null {
 
   // FR-S4-05: Validate refresh_token exists
   if (!token.refresh_token) {
-    logSecurityEvent("token_load", "failure", "Missing refresh_token -- re-authentication required");
+    logSecurityEvent(
+      "token_load",
+      "failure",
+      "Missing refresh_token -- re-authentication required"
+    );
     return null;
   }
 
@@ -220,9 +222,7 @@ function saveToken(token: TokenData): void {
  *
  * FR-S1-01: OAuth State Parameter (CSRF Prevention)
  */
-async function getTokenFromBrowser(
-  oauth2Client: OAuth2Client
-): Promise<TokenData> {
+async function getTokenFromBrowser(oauth2Client: OAuth2Client): Promise<TokenData> {
   // Generate cryptographically random state parameter (32 bytes = 64 hex chars)
   const state = crypto.randomBytes(32).toString("hex");
 
@@ -239,10 +239,7 @@ async function getTokenFromBrowser(
 
     const server = http.createServer(async (req, res) => {
       try {
-        const url = new URL(
-          req.url || "",
-          `http://localhost:${OAUTH_PORT}`
-        );
+        const url = new URL(req.url || "", `http://localhost:${OAUTH_PORT}`);
 
         if (url.pathname === "/callback") {
           // --- STATE VALIDATION (CSRF protection) ---
@@ -263,9 +260,7 @@ async function getTokenFromBrowser(
             clearTimeout(timeoutId);
             server.close();
             logSecurityEvent("oauth_callback", "failure", "State mismatch -- possible CSRF attack");
-            reject(
-              new Error("OAuth state mismatch - possible CSRF attack")
-            );
+            reject(new Error("OAuth state mismatch - possible CSRF attack"));
             return;
           }
 
@@ -327,10 +322,13 @@ async function getTokenFromBrowser(
     });
 
     // 5 minute timeout
-    timeoutId = setTimeout(() => {
-      server.close();
-      reject(new Error("Login timeout (5 minutes)"));
-    }, 5 * 60 * 1000);
+    timeoutId = setTimeout(
+      () => {
+        server.close();
+        reject(new Error("Login timeout (5 minutes)"));
+      },
+      5 * 60 * 1000
+    );
   });
 }
 
@@ -361,24 +359,17 @@ export async function getAuthenticatedClient(): Promise<OAuth2Client> {
 
         // FR-S4-05: Check token expiry with 5-minute buffer
         const expiryBuffer = 5 * 60 * 1000;
-        if (
-          token.expiry_date &&
-          token.expiry_date < Date.now() + expiryBuffer
-        ) {
+        if (token.expiry_date && token.expiry_date < Date.now() + expiryBuffer) {
           console.error("Token expired, refreshing...");
           logSecurityEvent("token_refresh", "success", "Token expiry approaching, refreshing");
           try {
-            const { credentials } =
-              await oauth2Client.refreshAccessToken();
+            const { credentials } = await oauth2Client.refreshAccessToken();
             saveToken(credentials as TokenData);
             oauth2Client.setCredentials(credentials);
           } catch (_error) {
             logSecurityEvent("token_refresh", "failure", "Refresh failed, re-authenticating");
-            console.error(
-              "Token refresh failed, re-authenticating..."
-            );
-            const newToken =
-              await getTokenFromBrowser(oauth2Client);
+            console.error("Token refresh failed, re-authenticating...");
+            const newToken = await getTokenFromBrowser(oauth2Client);
             saveToken(newToken);
           }
         }

@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { gmailTools } from '../gmail.js';
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { gmailTools } from "../gmail.js";
 
 // Mock getGoogleServices
 const mockGmailApi = {
@@ -28,13 +28,13 @@ const mockGmailApi = {
   },
 };
 
-vi.mock('../../auth/oauth', () => ({
+vi.mock("../../auth/oauth", () => ({
   getGoogleServices: vi.fn(async () => ({
     gmail: mockGmailApi,
   })),
 }));
 
-describe('Gmail Tools - Security Tests (P0)', () => {
+describe("Gmail Tools - Security Tests (P0)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -43,18 +43,18 @@ describe('Gmail Tools - Security Tests (P0)', () => {
     vi.restoreAllMocks();
   });
 
-  describe('gmail_send - TC-G01: Header Injection Prevention', () => {
-    it('should prevent CRLF injection in subject field', async () => {
-      const maliciousSubject = 'Test Subject\r\nBcc: attacker@evil.com';
+  describe("gmail_send - TC-G01: Header Injection Prevention", () => {
+    it("should prevent CRLF injection in subject field", async () => {
+      const maliciousSubject = "Test Subject\r\nBcc: attacker@evil.com";
 
       mockGmailApi.users.messages.send.mockResolvedValue({
-        data: { id: 'msg123', labelIds: ['SENT'] },
+        data: { id: "msg123", labelIds: ["SENT"] },
       });
 
       const result = await gmailTools.gmail_send.handler({
-        to: 'user@example.com',
+        to: "user@example.com",
         subject: maliciousSubject,
-        body: 'Test body',
+        body: "Test body",
       });
 
       // Verify the email was sent
@@ -67,12 +67,12 @@ describe('Gmail Tools - Security Tests (P0)', () => {
 
       // Decode the base64url encoded message
       const decoded = Buffer.from(
-        rawEncoded.replace(/-/g, '+').replace(/_/g, '/'),
-        'base64'
-      ).toString('utf-8');
+        rawEncoded.replace(/-/g, "+").replace(/_/g, "/"),
+        "base64"
+      ).toString("utf-8");
 
       // Should NOT contain the injected Bcc header
-      expect(decoded).not.toContain('Bcc: attacker@evil.com');
+      expect(decoded).not.toContain("Bcc: attacker@evil.com");
 
       // Should only have ONE blank line separating headers from body
       // (CRLF injection would create additional header sections)
@@ -80,8 +80,8 @@ describe('Gmail Tools - Security Tests (P0)', () => {
       expect(doubleCRLF?.length).toBe(1);
     });
 
-    it('should prevent header injection via To field', async () => {
-      const maliciousTo = 'user@example.com\r\nCc: attacker@evil.com';
+    it("should prevent header injection via To field", async () => {
+      const maliciousTo = "user@example.com\r\nCc: attacker@evil.com";
 
       // Note: This test expects input validation to reject malicious input
       // Current implementation does NOT validate - this is a KNOWN SECURITY GAP
@@ -97,64 +97,64 @@ describe('Gmail Tools - Security Tests (P0)', () => {
 
       // Temporary: Just verify it doesn't crash
       mockGmailApi.users.messages.send.mockResolvedValue({
-        data: { id: 'msg123' },
+        data: { id: "msg123" },
       });
 
       await gmailTools.gmail_send.handler({
         to: maliciousTo,
-        subject: 'Test',
-        body: 'Test',
+        subject: "Test",
+        body: "Test",
       });
 
       expect(mockGmailApi.users.messages.send).toHaveBeenCalled();
     });
 
-    it('should prevent header injection via Cc field', async () => {
-      const maliciousCc = 'user@example.com\r\nBcc: attacker@evil.com';
+    it("should prevent header injection via Cc field", async () => {
+      const maliciousCc = "user@example.com\r\nBcc: attacker@evil.com";
 
       mockGmailApi.users.messages.send.mockResolvedValue({
-        data: { id: 'msg123' },
+        data: { id: "msg123" },
       });
 
       await gmailTools.gmail_send.handler({
-        to: 'recipient@example.com',
+        to: "recipient@example.com",
         cc: maliciousCc,
-        subject: 'Test',
-        body: 'Test',
+        subject: "Test",
+        body: "Test",
       });
 
       const sentMessage = mockGmailApi.users.messages.send.mock.calls[0][0];
       const rawEncoded = sentMessage.requestBody.raw;
       const decoded = Buffer.from(
-        rawEncoded.replace(/-/g, '+').replace(/_/g, '/'),
-        'base64'
-      ).toString('utf-8');
+        rawEncoded.replace(/-/g, "+").replace(/_/g, "/"),
+        "base64"
+      ).toString("utf-8");
 
       // CRLF is stripped, so "Bcc:" cannot appear as a separate header line
-      const lines = decoded.split('\n');
-      const bccHeaderLine = lines.find((line: string) => line.startsWith('Bcc:'));
+      const lines = decoded.split("\n");
+      const bccHeaderLine = lines.find((line: string) => line.startsWith("Bcc:"));
       expect(bccHeaderLine).toBeUndefined();
     });
   });
 
-  describe('gmail_send - TC-G02: Email Address Validation', () => {
-    it('should accept valid email formats', async () => {
+  describe("gmail_send - TC-G02: Email Address Validation", () => {
+    it("should accept valid email formats", async () => {
       const validEmails = [
-        'user@example.com',
-        'user.name@example.com',
-        'user+tag@example.com',
-        'user@sub.example.co.uk',
+        "user@example.com",
+        "user.name@example.com",
+        "user+tag@example.com",
+        "user@sub.example.co.uk",
       ];
 
       mockGmailApi.users.messages.send.mockResolvedValue({
-        data: { id: 'msg123' },
+        data: { id: "msg123" },
       });
 
       for (const email of validEmails) {
         const result = await gmailTools.gmail_send.handler({
           to: email,
-          subject: 'Test',
-          body: 'Test',
+          subject: "Test",
+          body: "Test",
         });
 
         expect(result.success).toBe(true);
@@ -186,83 +186,83 @@ describe('Gmail Tools - Security Tests (P0)', () => {
   });
 });
 
-describe('Gmail Tools - Core Functionality (P1)', () => {
+describe("Gmail Tools - Core Functionality (P1)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  describe('gmail_read - TC-G03: MIME Parsing', () => {
-    it('should parse multipart/alternative with text/plain', async () => {
+  describe("gmail_read - TC-G03: MIME Parsing", () => {
+    it("should parse multipart/alternative with text/plain", async () => {
       const mockMessage = {
         data: {
-          id: 'msg123',
+          id: "msg123",
           payload: {
             headers: [
-              { name: 'From', value: 'sender@test.com' },
-              { name: 'Subject', value: 'Test Subject' },
-              { name: 'Date', value: 'Mon, 12 Feb 2026 10:00:00 +0900' },
+              { name: "From", value: "sender@test.com" },
+              { name: "Subject", value: "Test Subject" },
+              { name: "Date", value: "Mon, 12 Feb 2026 10:00:00 +0900" },
             ],
             parts: [
               {
-                mimeType: 'text/plain',
-                body: { data: Buffer.from('Plain text body').toString('base64') },
+                mimeType: "text/plain",
+                body: { data: Buffer.from("Plain text body").toString("base64") },
               },
               {
-                mimeType: 'text/html',
-                body: { data: Buffer.from('<p>HTML body</p>').toString('base64') },
+                mimeType: "text/html",
+                body: { data: Buffer.from("<p>HTML body</p>").toString("base64") },
               },
             ],
           },
-          labelIds: ['INBOX', 'UNREAD'],
+          labelIds: ["INBOX", "UNREAD"],
         },
       };
 
       mockGmailApi.users.messages.get.mockResolvedValue(mockMessage);
 
-      const result = await gmailTools.gmail_read.handler({ messageId: 'msg123' });
+      const result = await gmailTools.gmail_read.handler({ messageId: "msg123" });
 
-      expect(result.id).toBe('msg123');
-      expect(result.from).toBe('sender@test.com');
-      expect(result.subject).toBe('Test Subject');
-      expect(result.body).toBe('Plain text body');
+      expect(result.id).toBe("msg123");
+      expect(result.from).toBe("sender@test.com");
+      expect(result.subject).toBe("Test Subject");
+      expect(result.body).toBe("Plain text body");
     });
 
-    it('should handle single-part message without parts array', async () => {
+    it("should handle single-part message without parts array", async () => {
       const mockMessage = {
         data: {
-          id: 'msg456',
+          id: "msg456",
           payload: {
             headers: [
-              { name: 'From', value: 'sender@test.com' },
-              { name: 'Subject', value: 'Simple Message' },
+              { name: "From", value: "sender@test.com" },
+              { name: "Subject", value: "Simple Message" },
             ],
-            body: { data: Buffer.from('Direct body content').toString('base64') },
+            body: { data: Buffer.from("Direct body content").toString("base64") },
           },
-          labelIds: ['INBOX'],
+          labelIds: ["INBOX"],
         },
       };
 
       mockGmailApi.users.messages.get.mockResolvedValue(mockMessage);
 
-      const result = await gmailTools.gmail_read.handler({ messageId: 'msg456' });
+      const result = await gmailTools.gmail_read.handler({ messageId: "msg456" });
 
-      expect(result.body).toBe('Direct body content');
+      expect(result.body).toBe("Direct body content");
     });
 
-    it('should prioritize text/plain over text/html in multipart', async () => {
+    it("should prioritize text/plain over text/html in multipart", async () => {
       const mockMessage = {
         data: {
-          id: 'msg789',
+          id: "msg789",
           payload: {
             headers: [],
             parts: [
               {
-                mimeType: 'text/html',
-                body: { data: Buffer.from('<p>HTML first</p>').toString('base64') },
+                mimeType: "text/html",
+                body: { data: Buffer.from("<p>HTML first</p>").toString("base64") },
               },
               {
-                mimeType: 'text/plain',
-                body: { data: Buffer.from('Plain text second').toString('base64') },
+                mimeType: "text/plain",
+                body: { data: Buffer.from("Plain text second").toString("base64") },
               },
             ],
           },
@@ -272,23 +272,23 @@ describe('Gmail Tools - Core Functionality (P1)', () => {
 
       mockGmailApi.users.messages.get.mockResolvedValue(mockMessage);
 
-      const result = await gmailTools.gmail_read.handler({ messageId: 'msg789' });
+      const result = await gmailTools.gmail_read.handler({ messageId: "msg789" });
 
       // Should return plain text even though HTML came first
-      expect(result.body).toBe('Plain text second');
+      expect(result.body).toBe("Plain text second");
     });
   });
 
-  describe('gmail_read - TC-G04: Attachment Handling', () => {
-    it('should truncate body to 5000 characters', async () => {
-      const longBody = 'A'.repeat(10000);
+  describe("gmail_read - TC-G04: Attachment Handling", () => {
+    it("should truncate body to 5000 characters", async () => {
+      const longBody = "A".repeat(10000);
 
       const mockMessage = {
         data: {
-          id: 'msg_long',
+          id: "msg_long",
           payload: {
             headers: [],
-            body: { data: Buffer.from(longBody).toString('base64') },
+            body: { data: Buffer.from(longBody).toString("base64") },
           },
           labelIds: [],
         },
@@ -296,32 +296,32 @@ describe('Gmail Tools - Core Functionality (P1)', () => {
 
       mockGmailApi.users.messages.get.mockResolvedValue(mockMessage);
 
-      const result = await gmailTools.gmail_read.handler({ messageId: 'msg_long' });
+      const result = await gmailTools.gmail_read.handler({ messageId: "msg_long" });
 
       expect(result.body.length).toBe(5000);
-      expect(result.body).toBe('A'.repeat(5000));
+      expect(result.body).toBe("A".repeat(5000));
     });
 
-    it('should extract attachment metadata correctly', async () => {
+    it("should extract attachment metadata correctly", async () => {
       const mockMessage = {
         data: {
-          id: 'msg_attach',
+          id: "msg_attach",
           payload: {
             headers: [],
             parts: [
               {
-                mimeType: 'text/plain',
-                body: { data: Buffer.from('Email with attachment').toString('base64') },
+                mimeType: "text/plain",
+                body: { data: Buffer.from("Email with attachment").toString("base64") },
               },
               {
-                filename: 'document.pdf',
-                mimeType: 'application/pdf',
-                body: { attachmentId: 'att123', size: 50000 },
+                filename: "document.pdf",
+                mimeType: "application/pdf",
+                body: { attachmentId: "att123", size: 50000 },
               },
               {
-                filename: 'image.png',
-                mimeType: 'image/png',
-                body: { attachmentId: 'att456', size: 25000 },
+                filename: "image.png",
+                mimeType: "image/png",
+                body: { attachmentId: "att456", size: 25000 },
               },
             ],
           },
@@ -331,43 +331,43 @@ describe('Gmail Tools - Core Functionality (P1)', () => {
 
       mockGmailApi.users.messages.get.mockResolvedValue(mockMessage);
 
-      const result = await gmailTools.gmail_read.handler({ messageId: 'msg_attach' });
+      const result = await gmailTools.gmail_read.handler({ messageId: "msg_attach" });
 
       expect(result.attachments).toHaveLength(2);
       expect(result.attachments[0]).toEqual({
-        filename: 'document.pdf',
-        mimeType: 'application/pdf',
-        attachmentId: 'att123',
+        filename: "document.pdf",
+        mimeType: "application/pdf",
+        attachmentId: "att123",
         size: 50000,
       });
       expect(result.attachments[1]).toEqual({
-        filename: 'image.png',
-        mimeType: 'image/png',
-        attachmentId: 'att456',
+        filename: "image.png",
+        mimeType: "image/png",
+        attachmentId: "att456",
         size: 25000,
       });
     });
 
-    it('should filter out parts without filename or attachmentId', async () => {
+    it("should filter out parts without filename or attachmentId", async () => {
       const mockMessage = {
         data: {
-          id: 'msg_filter',
+          id: "msg_filter",
           payload: {
             headers: [],
             parts: [
               {
-                filename: 'valid.pdf',
-                mimeType: 'application/pdf',
-                body: { attachmentId: 'att1', size: 1000 },
+                filename: "valid.pdf",
+                mimeType: "application/pdf",
+                body: { attachmentId: "att1", size: 1000 },
               },
               {
                 // No filename
-                mimeType: 'application/pdf',
-                body: { attachmentId: 'att2', size: 2000 },
+                mimeType: "application/pdf",
+                body: { attachmentId: "att2", size: 2000 },
               },
               {
-                filename: 'no-attachment-id.pdf',
-                mimeType: 'application/pdf',
+                filename: "no-attachment-id.pdf",
+                mimeType: "application/pdf",
                 body: { size: 3000 }, // No attachmentId
               },
             ],
@@ -378,22 +378,22 @@ describe('Gmail Tools - Core Functionality (P1)', () => {
 
       mockGmailApi.users.messages.get.mockResolvedValue(mockMessage);
 
-      const result = await gmailTools.gmail_read.handler({ messageId: 'msg_filter' });
+      const result = await gmailTools.gmail_read.handler({ messageId: "msg_filter" });
 
       // Only the first part should be in attachments
       expect(result.attachments).toHaveLength(1);
-      expect(result.attachments[0].filename).toBe('valid.pdf');
+      expect(result.attachments[0].filename).toBe("valid.pdf");
     });
   });
 
-  describe('gmail_search - TC-G05: Edge Cases', () => {
-    it('should handle empty search results', async () => {
+  describe("gmail_search - TC-G05: Edge Cases", () => {
+    it("should handle empty search results", async () => {
       mockGmailApi.users.messages.list.mockResolvedValue({
         data: {},
       });
 
       const result = await gmailTools.gmail_search.handler({
-        query: 'nonexistent_query',
+        query: "nonexistent_query",
         maxResults: 10,
       });
 
@@ -401,7 +401,7 @@ describe('Gmail Tools - Core Functionality (P1)', () => {
       expect(result.messages).toEqual([]);
     });
 
-    it('should respect maxResults parameter', async () => {
+    it("should respect maxResults parameter", async () => {
       const mockMessages = Array.from({ length: 20 }, (_, i) => ({ id: `msg${i}` }));
 
       mockGmailApi.users.messages.list.mockResolvedValue({
@@ -409,18 +409,18 @@ describe('Gmail Tools - Core Functionality (P1)', () => {
       });
 
       await gmailTools.gmail_search.handler({
-        query: 'test',
+        query: "test",
         maxResults: 5,
       });
 
       expect(mockGmailApi.users.messages.list).toHaveBeenCalledWith({
-        userId: 'me',
-        q: 'test',
+        userId: "me",
+        q: "test",
         maxResults: 5,
       });
     });
 
-    it('should limit detail fetch to first 10 messages', async () => {
+    it("should limit detail fetch to first 10 messages", async () => {
       const mockMessages = Array.from({ length: 20 }, (_, i) => ({ id: `msg${i}` }));
 
       mockGmailApi.users.messages.list.mockResolvedValue({
@@ -429,14 +429,14 @@ describe('Gmail Tools - Core Functionality (P1)', () => {
 
       mockGmailApi.users.messages.get.mockResolvedValue({
         data: {
-          id: 'msg',
-          snippet: 'test',
+          id: "msg",
+          snippet: "test",
           payload: { headers: [] },
         },
       });
 
       await gmailTools.gmail_search.handler({
-        query: 'test',
+        query: "test",
         maxResults: 20,
       });
 
@@ -445,9 +445,9 @@ describe('Gmail Tools - Core Functionality (P1)', () => {
     });
   });
 
-  describe('gmail_attachment_get - TC-A01: Full Attachment Data', () => {
-    it('should return full attachment data without truncation', async () => {
-      const largeData = 'X'.repeat(5000);
+  describe("gmail_attachment_get - TC-A01: Full Attachment Data", () => {
+    it("should return full attachment data without truncation", async () => {
+      const largeData = "X".repeat(5000);
 
       mockGmailApi.users.messages.attachments.get.mockResolvedValue({
         data: {
@@ -457,8 +457,8 @@ describe('Gmail Tools - Core Functionality (P1)', () => {
       });
 
       const result = await gmailTools.gmail_attachment_get.handler({
-        messageId: 'msg123',
-        attachmentId: 'att123',
+        messageId: "msg123",
+        attachmentId: "att123",
       });
 
       // FR-S4-08: Full data returned, no truncation
@@ -469,17 +469,17 @@ describe('Gmail Tools - Core Functionality (P1)', () => {
   });
 });
 
-describe('Gmail Tools - Label Operations (P1)', () => {
+describe("Gmail Tools - Label Operations (P1)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should list all labels', async () => {
+  it("should list all labels", async () => {
     mockGmailApi.users.labels.list.mockResolvedValue({
       data: {
         labels: [
-          { id: 'INBOX', name: 'INBOX', type: 'system' },
-          { id: 'Label_1', name: 'Work', type: 'user' },
+          { id: "INBOX", name: "INBOX", type: "system" },
+          { id: "Label_1", name: "Work", type: "user" },
         ],
       },
     });
@@ -487,55 +487,55 @@ describe('Gmail Tools - Label Operations (P1)', () => {
     const result = await gmailTools.gmail_labels_list.handler();
 
     expect(result.labels).toHaveLength(2);
-    expect(result.labels[0]).toEqual({ id: 'INBOX', name: 'INBOX', type: 'system' });
+    expect(result.labels[0]).toEqual({ id: "INBOX", name: "INBOX", type: "system" });
   });
 
-  it('should add labels to message', async () => {
+  it("should add labels to message", async () => {
     mockGmailApi.users.messages.modify.mockResolvedValue({ data: {} });
 
     const result = await gmailTools.gmail_labels_add.handler({
-      messageId: 'msg123',
-      labelIds: ['IMPORTANT', 'Label_1'],
+      messageId: "msg123",
+      labelIds: ["IMPORTANT", "Label_1"],
     });
 
     expect(result.success).toBe(true);
     expect(mockGmailApi.users.messages.modify).toHaveBeenCalledWith({
-      userId: 'me',
-      id: 'msg123',
+      userId: "me",
+      id: "msg123",
       requestBody: {
-        addLabelIds: ['IMPORTANT', 'Label_1'],
+        addLabelIds: ["IMPORTANT", "Label_1"],
       },
     });
   });
 
-  it('should remove labels from message', async () => {
+  it("should remove labels from message", async () => {
     mockGmailApi.users.messages.modify.mockResolvedValue({ data: {} });
 
     const result = await gmailTools.gmail_labels_remove.handler({
-      messageId: 'msg123',
-      labelIds: ['SPAM'],
+      messageId: "msg123",
+      labelIds: ["SPAM"],
     });
 
     expect(result.success).toBe(true);
     expect(mockGmailApi.users.messages.modify).toHaveBeenCalledWith({
-      userId: 'me',
-      id: 'msg123',
+      userId: "me",
+      id: "msg123",
       requestBody: {
-        removeLabelIds: ['SPAM'],
+        removeLabelIds: ["SPAM"],
       },
     });
   });
 });
 
-describe('Gmail Tools - Draft Operations (P1)', () => {
+describe("Gmail Tools - Draft Operations (P1)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should list drafts', async () => {
+  it("should list drafts", async () => {
     mockGmailApi.users.drafts.list.mockResolvedValue({
       data: {
-        drafts: [{ id: 'draft1' }, { id: 'draft2' }],
+        drafts: [{ id: "draft1" }, { id: "draft2" }],
       },
     });
 
@@ -544,11 +544,11 @@ describe('Gmail Tools - Draft Operations (P1)', () => {
         message: {
           payload: {
             headers: [
-              { name: 'To', value: 'user@example.com' },
-              { name: 'Subject', value: 'Draft Subject' },
+              { name: "To", value: "user@example.com" },
+              { name: "Subject", value: "Draft Subject" },
             ],
           },
-          snippet: 'Draft preview...',
+          snippet: "Draft preview...",
         },
       },
     });
@@ -557,10 +557,10 @@ describe('Gmail Tools - Draft Operations (P1)', () => {
 
     expect(result.total).toBe(2);
     expect(result.drafts).toHaveLength(2);
-    expect(result.drafts[0].subject).toBe('Draft Subject');
+    expect(result.drafts[0].subject).toBe("Draft Subject");
   });
 
-  it('should handle empty draft list', async () => {
+  it("should handle empty draft list", async () => {
     mockGmailApi.users.drafts.list.mockResolvedValue({
       data: {},
     });
@@ -571,96 +571,96 @@ describe('Gmail Tools - Draft Operations (P1)', () => {
     expect(result.drafts).toEqual([]);
   });
 
-  it('should create a draft', async () => {
+  it("should create a draft", async () => {
     mockGmailApi.users.drafts.create.mockResolvedValue({
-      data: { id: 'draft123' },
+      data: { id: "draft123" },
     });
 
     const result = await gmailTools.gmail_draft_create.handler({
-      to: 'user@example.com',
-      subject: 'Draft Test',
-      body: 'Draft body',
+      to: "user@example.com",
+      subject: "Draft Test",
+      body: "Draft body",
     });
 
     expect(result.success).toBe(true);
-    expect(result.draftId).toBe('draft123');
+    expect(result.draftId).toBe("draft123");
   });
 
-  it('should send a draft', async () => {
+  it("should send a draft", async () => {
     mockGmailApi.users.drafts.send.mockResolvedValue({
-      data: { id: 'sent123' },
+      data: { id: "sent123" },
     });
 
-    const result = await gmailTools.gmail_draft_send.handler({ draftId: 'draft1' });
+    const result = await gmailTools.gmail_draft_send.handler({ draftId: "draft1" });
 
     expect(result.success).toBe(true);
-    expect(result.messageId).toBe('sent123');
+    expect(result.messageId).toBe("sent123");
   });
 
-  it('should delete a draft', async () => {
+  it("should delete a draft", async () => {
     mockGmailApi.users.drafts.delete.mockResolvedValue({ data: {} });
 
-    const result = await gmailTools.gmail_draft_delete.handler({ draftId: 'draft1' });
+    const result = await gmailTools.gmail_draft_delete.handler({ draftId: "draft1" });
 
     expect(result.success).toBe(true);
   });
 });
 
-describe('Gmail Tools - Trash & Read Status (P1)', () => {
+describe("Gmail Tools - Trash & Read Status (P1)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should move email to trash', async () => {
+  it("should move email to trash", async () => {
     mockGmailApi.users.messages.trash.mockResolvedValue({ data: {} });
 
-    const result = await gmailTools.gmail_trash.handler({ messageId: 'msg123' });
+    const result = await gmailTools.gmail_trash.handler({ messageId: "msg123" });
 
     expect(result.success).toBe(true);
     expect(mockGmailApi.users.messages.trash).toHaveBeenCalledWith({
-      userId: 'me',
-      id: 'msg123',
+      userId: "me",
+      id: "msg123",
     });
   });
 
-  it('should restore email from trash', async () => {
+  it("should restore email from trash", async () => {
     mockGmailApi.users.messages.untrash.mockResolvedValue({ data: {} });
 
-    const result = await gmailTools.gmail_untrash.handler({ messageId: 'msg123' });
+    const result = await gmailTools.gmail_untrash.handler({ messageId: "msg123" });
 
     expect(result.success).toBe(true);
     expect(mockGmailApi.users.messages.untrash).toHaveBeenCalledWith({
-      userId: 'me',
-      id: 'msg123',
+      userId: "me",
+      id: "msg123",
     });
   });
 
-  it('should mark email as read', async () => {
+  it("should mark email as read", async () => {
     mockGmailApi.users.messages.modify.mockResolvedValue({ data: {} });
 
-    const result = await gmailTools.gmail_mark_read.handler({ messageId: 'msg123' });
+    const result = await gmailTools.gmail_mark_read.handler({ messageId: "msg123" });
 
     expect(result.success).toBe(true);
     expect(mockGmailApi.users.messages.modify).toHaveBeenCalledWith({
-      userId: 'me',
-      id: 'msg123',
+      userId: "me",
+      id: "msg123",
       requestBody: {
-        removeLabelIds: ['UNREAD'],
+        removeLabelIds: ["UNREAD"],
       },
     });
   });
 
-  it('should mark email as unread', async () => {
+  it("should mark email as unread", async () => {
     mockGmailApi.users.messages.modify.mockResolvedValue({ data: {} });
 
-    const result = await gmailTools.gmail_mark_unread.handler({ messageId: 'msg123' });
+    const result = await gmailTools.gmail_mark_unread.handler({ messageId: "msg123" });
 
     expect(result.success).toBe(true);
     expect(mockGmailApi.users.messages.modify).toHaveBeenCalledWith({
-      userId: 'me',
-      id: 'msg123',
+      userId: "me",
+      id: "msg123",
       requestBody: {
-        addLabelIds: ['UNREAD'],
+        addLabelIds: ["UNREAD"],
       },
     });
   });

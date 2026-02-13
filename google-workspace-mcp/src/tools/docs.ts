@@ -14,7 +14,15 @@ export const docsTools = {
       content: z.string().optional().describe("Initial content"),
       folderId: z.string().optional().describe("Destination folder ID"),
     },
-    handler: async ({ title, content, folderId }: { title: string; content?: string; folderId?: string }) => {
+    handler: async ({
+      title,
+      content,
+      folderId,
+    }: {
+      title: string;
+      content?: string;
+      folderId?: string;
+    }) => {
       const { docs, drive } = await getGoogleServices();
 
       const response = await withRetry(() =>
@@ -195,7 +203,12 @@ export const docsTools = {
       replaceText: z.string().describe("Replacement text"),
       matchCase: z.boolean().optional().default(false).describe("Case sensitive"),
     },
-    handler: async ({ documentId, searchText, replaceText, matchCase }: {
+    handler: async ({
+      documentId,
+      searchText,
+      replaceText,
+      matchCase,
+    }: {
       documentId: string;
       searchText: string;
       replaceText: string;
@@ -239,7 +252,15 @@ export const docsTools = {
       text: z.string().describe("Heading text"),
       level: z.number().min(1).max(6).default(1).describe("Heading level (1-6)"),
     },
-    handler: async ({ documentId, text, level }: { documentId: string; text: string; level: number }) => {
+    handler: async ({
+      documentId,
+      text,
+      level,
+    }: {
+      documentId: string;
+      text: string;
+      level: number;
+    }) => {
       const { docs } = await getGoogleServices();
 
       const doc = await withRetry(() => docs.documents.get({ documentId }));
@@ -251,31 +272,33 @@ export const docsTools = {
       // FR-S3-07: Type assertion to string instead of any
       const headingType = `HEADING_${level}` as string;
 
-      await withRetry(() => docs.documents.batchUpdate({
-        documentId,
-        requestBody: {
-          requests: [
-            {
-              insertText: {
-                location: { index: insertIndex },
-                text: "\n" + text + "\n",
-              },
-            },
-            {
-              updateParagraphStyle: {
-                range: {
-                  startIndex: insertIndex + 1,
-                  endIndex: insertIndex + 1 + text.length,
+      await withRetry(() =>
+        docs.documents.batchUpdate({
+          documentId,
+          requestBody: {
+            requests: [
+              {
+                insertText: {
+                  location: { index: insertIndex },
+                  text: "\n" + text + "\n",
                 },
-                paragraphStyle: {
-                  namedStyleType: headingType,
-                },
-                fields: "namedStyleType",
               },
-            },
-          ],
-        },
-      }));
+              {
+                updateParagraphStyle: {
+                  range: {
+                    startIndex: insertIndex + 1,
+                    endIndex: insertIndex + 1 + text.length,
+                  },
+                  paragraphStyle: {
+                    namedStyleType: headingType,
+                  },
+                  fields: "namedStyleType",
+                },
+              },
+            ],
+          },
+        })
+      );
 
       return {
         success: true,
@@ -291,7 +314,15 @@ export const docsTools = {
       rows: z.number().min(1).max(20).describe("Number of rows"),
       columns: z.number().min(1).max(10).describe("Number of columns"),
     },
-    handler: async ({ documentId, rows, columns }: { documentId: string; rows: number; columns: number }) => {
+    handler: async ({
+      documentId,
+      rows,
+      columns,
+    }: {
+      documentId: string;
+      rows: number;
+      columns: number;
+    }) => {
       const { docs } = await getGoogleServices();
 
       const doc = await withRetry(() => docs.documents.get({ documentId }));
@@ -299,20 +330,22 @@ export const docsTools = {
       const lastElement = body[body.length - 1];
       const endIndex = lastElement?.endIndex || 1;
 
-      await withRetry(() => docs.documents.batchUpdate({
-        documentId,
-        requestBody: {
-          requests: [
-            {
-              insertTable: {
-                location: { index: Math.max(1, endIndex - 1) },
-                rows,
-                columns,
+      await withRetry(() =>
+        docs.documents.batchUpdate({
+          documentId,
+          requestBody: {
+            requests: [
+              {
+                insertTable: {
+                  location: { index: Math.max(1, endIndex - 1) },
+                  rows,
+                  columns,
+                },
               },
-            },
-          ],
-        },
-      }));
+            ],
+          },
+        })
+      );
 
       return {
         success: true,

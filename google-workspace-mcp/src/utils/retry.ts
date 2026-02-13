@@ -14,20 +14,12 @@ export interface RetryOptions {
   retryableErrors?: number[]; // Default: [429, 500, 502, 503, 504]
 }
 
-const NETWORK_ERRORS = [
-  "ECONNRESET",
-  "ETIMEDOUT",
-  "ECONNREFUSED",
-  "EPIPE",
-  "EAI_AGAIN",
-];
+const NETWORK_ERRORS = ["ECONNRESET", "ETIMEDOUT", "ECONNREFUSED", "EPIPE", "EAI_AGAIN"];
 
-function isRetryableError(
-  error: unknown,
-  retryableStatuses: number[]
-): boolean {
+function isRetryableError(error: unknown, retryableStatuses: number[]): boolean {
   // HTTP status code based retry
-  const status = (error as Record<string, unknown> & { response?: { status?: number } })?.response?.status;
+  const status = (error as Record<string, unknown> & { response?: { status?: number } })?.response
+    ?.status;
   if (status && retryableStatuses.includes(status)) return true;
 
   // Network error based retry
@@ -37,26 +29,18 @@ function isRetryableError(
   return false;
 }
 
-export async function withRetry<T>(
-  fn: () => Promise<T>,
-  options: RetryOptions = {}
-): Promise<T> {
+export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions = {}): Promise<T> {
   const maxAttempts = options.maxAttempts ?? 3;
   const initialDelay = options.initialDelay ?? 1000;
   const backoffFactor = options.backoffFactor ?? 2;
-  const retryableStatuses = options.retryableErrors ?? [
-    429, 500, 502, 503, 504,
-  ];
+  const retryableStatuses = options.retryableErrors ?? [429, 500, 502, 503, 504];
   let delay = initialDelay;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       return await fn();
     } catch (error: unknown) {
-      if (
-        !isRetryableError(error, retryableStatuses) ||
-        attempt === maxAttempts
-      ) {
+      if (!isRetryableError(error, retryableStatuses) || attempt === maxAttempts) {
         throw error;
       }
 

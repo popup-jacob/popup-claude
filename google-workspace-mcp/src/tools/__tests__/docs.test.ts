@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { docsTools } from '../docs.js';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { docsTools } from "../docs.js";
 
 // Mock getGoogleServices
 const mockDocsApi = {
@@ -22,51 +22,51 @@ const mockDriveApi = {
   },
 };
 
-vi.mock('../../auth/oauth', () => ({
+vi.mock("../../auth/oauth", () => ({
   getGoogleServices: vi.fn(async () => ({
     docs: mockDocsApi,
     drive: mockDriveApi,
   })),
 }));
 
-describe('Docs Tools - Core Functionality', () => {
+describe("Docs Tools - Core Functionality", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  describe('docs_create - TC-DC01: Document Creation', () => {
-    it('should create a new document with title only', async () => {
+  describe("docs_create - TC-DC01: Document Creation", () => {
+    it("should create a new document with title only", async () => {
       mockDocsApi.documents.create.mockResolvedValue({
         data: {
-          documentId: 'doc123',
-          title: 'New Document',
+          documentId: "doc123",
+          title: "New Document",
         },
       });
 
       mockDriveApi.files.get.mockResolvedValue({
         data: {
-          webViewLink: 'https://docs.google.com/document/d/doc123',
+          webViewLink: "https://docs.google.com/document/d/doc123",
         },
       });
 
       const result = await docsTools.docs_create.handler({
-        title: 'New Document',
+        title: "New Document",
       });
 
       expect(result.success).toBe(true);
-      expect(result.documentId).toBe('doc123');
+      expect(result.documentId).toBe("doc123");
       expect(mockDocsApi.documents.create).toHaveBeenCalledWith({
         requestBody: {
-          title: 'New Document',
+          title: "New Document",
         },
       });
     });
 
-    it('should create document with initial content', async () => {
+    it("should create document with initial content", async () => {
       mockDocsApi.documents.create.mockResolvedValue({
         data: {
-          documentId: 'doc456',
-          title: 'Document with Content',
+          documentId: "doc456",
+          title: "Document with Content",
         },
       });
 
@@ -74,24 +74,24 @@ describe('Docs Tools - Core Functionality', () => {
 
       mockDriveApi.files.get.mockResolvedValue({
         data: {
-          webViewLink: 'https://docs.google.com/document/d/doc456',
+          webViewLink: "https://docs.google.com/document/d/doc456",
         },
       });
 
       const result = await docsTools.docs_create.handler({
-        title: 'Document with Content',
-        content: 'Initial paragraph content',
+        title: "Document with Content",
+        content: "Initial paragraph content",
       });
 
       expect(result.success).toBe(true);
       expect(mockDocsApi.documents.create).toHaveBeenCalled();
       expect(mockDocsApi.documents.batchUpdate).toHaveBeenCalledWith({
-        documentId: 'doc456',
+        documentId: "doc456",
         requestBody: {
           requests: [
             {
               insertText: {
-                text: 'Initial paragraph content',
+                text: "Initial paragraph content",
                 location: { index: 1 },
               },
             },
@@ -100,58 +100,54 @@ describe('Docs Tools - Core Functionality', () => {
       });
     });
 
-    it('should move document to folder if folderId is provided', async () => {
+    it("should move document to folder if folderId is provided", async () => {
       mockDocsApi.documents.create.mockResolvedValue({
         data: {
-          documentId: 'doc789',
-          title: 'Document in Folder',
+          documentId: "doc789",
+          title: "Document in Folder",
         },
       });
 
       mockDriveApi.files.get.mockResolvedValue({
         data: {
-          parents: ['oldFolder'],
-          webViewLink: 'https://docs.google.com/document/d/doc789',
+          parents: ["oldFolder"],
+          webViewLink: "https://docs.google.com/document/d/doc789",
         },
       });
 
       mockDriveApi.files.update.mockResolvedValue({ data: {} });
 
       const result = await docsTools.docs_create.handler({
-        title: 'Document in Folder',
-        folderId: 'folder123',
+        title: "Document in Folder",
+        folderId: "folder123",
       });
 
       expect(result.success).toBe(true);
       expect(mockDriveApi.files.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          fileId: 'doc789',
-          addParents: 'folder123',
+          fileId: "doc789",
+          addParents: "folder123",
         })
       );
     });
   });
 
-  describe('docs_read - TC-DC02: Document Reading', () => {
-    it('should read document content and return text', async () => {
+  describe("docs_read - TC-DC02: Document Reading", () => {
+    it("should read document content and return text", async () => {
       mockDocsApi.documents.get.mockResolvedValue({
         data: {
-          documentId: 'doc123',
-          title: 'Test Document',
+          documentId: "doc123",
+          title: "Test Document",
           body: {
             content: [
               {
                 paragraph: {
-                  elements: [
-                    { textRun: { content: 'First paragraph\n' } },
-                  ],
+                  elements: [{ textRun: { content: "First paragraph\n" } }],
                 },
               },
               {
                 paragraph: {
-                  elements: [
-                    { textRun: { content: 'Second paragraph\n' } },
-                  ],
+                  elements: [{ textRun: { content: "Second paragraph\n" } }],
                 },
               },
             ],
@@ -160,20 +156,20 @@ describe('Docs Tools - Core Functionality', () => {
       });
 
       const result = await docsTools.docs_read.handler({
-        documentId: 'doc123',
+        documentId: "doc123",
       });
 
-      expect(result.documentId).toBe('doc123');
-      expect(result.title).toBe('Test Document');
-      expect(result.content).toContain('First paragraph');
-      expect(result.content).toContain('Second paragraph');
+      expect(result.documentId).toBe("doc123");
+      expect(result.title).toBe("Test Document");
+      expect(result.content).toContain("First paragraph");
+      expect(result.content).toContain("Second paragraph");
     });
 
-    it('should handle empty document', async () => {
+    it("should handle empty document", async () => {
       mockDocsApi.documents.get.mockResolvedValue({
         data: {
-          documentId: 'doc_empty',
-          title: 'Empty Document',
+          documentId: "doc_empty",
+          title: "Empty Document",
           body: {
             content: [],
           },
@@ -181,23 +177,20 @@ describe('Docs Tools - Core Functionality', () => {
       });
 
       const result = await docsTools.docs_read.handler({
-        documentId: 'doc_empty',
+        documentId: "doc_empty",
       });
 
-      expect(result.documentId).toBe('doc_empty');
-      expect(result.content).toBe('');
+      expect(result.documentId).toBe("doc_empty");
+      expect(result.content).toBe("");
     });
   });
 
-  describe('docs_append - TC-DC03: Content Appending', () => {
-    it('should append content to end of document', async () => {
+  describe("docs_append - TC-DC03: Content Appending", () => {
+    it("should append content to end of document", async () => {
       mockDocsApi.documents.get.mockResolvedValue({
         data: {
           body: {
-            content: [
-              { endIndex: 10 },
-              { endIndex: 50 },
-            ],
+            content: [{ endIndex: 10 }, { endIndex: 50 }],
           },
         },
       });
@@ -205,8 +198,8 @@ describe('Docs Tools - Core Functionality', () => {
       mockDocsApi.documents.batchUpdate.mockResolvedValue({ data: {} });
 
       const result = await docsTools.docs_append.handler({
-        documentId: 'doc123',
-        content: 'Appended content',
+        documentId: "doc123",
+        content: "Appended content",
       });
 
       expect(result.success).toBe(true);
@@ -214,23 +207,23 @@ describe('Docs Tools - Core Functionality', () => {
     });
   });
 
-  describe('docs_prepend - TC-DC04: Content Prepending', () => {
-    it('should prepend content to beginning of document', async () => {
+  describe("docs_prepend - TC-DC04: Content Prepending", () => {
+    it("should prepend content to beginning of document", async () => {
       mockDocsApi.documents.batchUpdate.mockResolvedValue({ data: {} });
 
       const result = await docsTools.docs_prepend.handler({
-        documentId: 'doc123',
-        content: 'Prepended text',
+        documentId: "doc123",
+        content: "Prepended text",
       });
 
       expect(result.success).toBe(true);
       expect(mockDocsApi.documents.batchUpdate).toHaveBeenCalledWith({
-        documentId: 'doc123',
+        documentId: "doc123",
         requestBody: {
           requests: [
             {
               insertText: {
-                text: 'Prepended text\n',
+                text: "Prepended text\n",
                 location: { index: 1 },
               },
             },
@@ -240,8 +233,8 @@ describe('Docs Tools - Core Functionality', () => {
     });
   });
 
-  describe('docs_replace_text - TC-DC05: Text Replacement', () => {
-    it('should find and replace text', async () => {
+  describe("docs_replace_text - TC-DC05: Text Replacement", () => {
+    it("should find and replace text", async () => {
       mockDocsApi.documents.batchUpdate.mockResolvedValue({
         data: {
           replies: [
@@ -255,25 +248,25 @@ describe('Docs Tools - Core Functionality', () => {
       });
 
       const result = await docsTools.docs_replace_text.handler({
-        documentId: 'doc123',
-        searchText: 'old',
-        replaceText: 'new',
+        documentId: "doc123",
+        searchText: "old",
+        replaceText: "new",
         matchCase: false,
       });
 
       expect(result.success).toBe(true);
       expect(result.occurrencesChanged).toBe(3);
       expect(mockDocsApi.documents.batchUpdate).toHaveBeenCalledWith({
-        documentId: 'doc123',
+        documentId: "doc123",
         requestBody: {
           requests: [
             {
               replaceAllText: {
                 containsText: {
-                  text: 'old',
+                  text: "old",
                   matchCase: false,
                 },
-                replaceText: 'new',
+                replaceText: "new",
               },
             },
           ],

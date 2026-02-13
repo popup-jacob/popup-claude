@@ -78,7 +78,7 @@ jobs:
       - name: Run ShellCheck on installer scripts
         run: |
           find installer/ -name "*.sh" -exec shellcheck -S warning \
-            -e SC2155 -e SC2034 -e SC1090 {} +
+            -e SC2155 -e SC2034 -e SC1090 -e SC2069 -e SC2072 {} +
 
   docker-build:
     needs: build

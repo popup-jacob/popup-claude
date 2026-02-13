@@ -17,13 +17,11 @@ export const messages = {
     notFound: "Not found",
   },
   calendar: {
-    eventCreated: (title: string) =>
-      `Event "${title}" created successfully.`,
+    eventCreated: (title: string) => `Event "${title}" created successfully.`,
     eventUpdated: "Event updated successfully.",
     eventDeleted: "Event deleted successfully.",
     eventMoved: "Event moved successfully.",
-    calendarCreated: (name: string) =>
-      `Calendar "${name}" created successfully.`,
+    calendarCreated: (name: string) => `Calendar "${name}" created successfully.`,
     calendarDeleted: "Calendar deleted successfully.",
     quickEventCreated: "Quick event created successfully.",
   },
@@ -41,32 +39,26 @@ export const messages = {
     attachmentFetched: "Attachment data retrieved (base64 encoded).",
   },
   drive: {
-    folderCreated: (name: string) =>
-      `Folder "${name}" created successfully.`,
+    folderCreated: (name: string) => `Folder "${name}" created successfully.`,
     fileCopied: "File copied successfully.",
     fileMoved: "File moved successfully.",
-    fileRenamed: (name: string) =>
-      `File renamed to "${name}" successfully.`,
+    fileRenamed: (name: string) => `File renamed to "${name}" successfully.`,
     fileDeleted: "File moved to trash.",
     fileRestored: "File restored from trash.",
-    shared: (email: string, role: string) =>
-      `Shared with ${email} as ${role}.`,
+    shared: (email: string, role: string) => `Shared with ${email} as ${role}.`,
     linkShared: "Link sharing enabled.",
     unshared: (email: string) => `Sharing removed for ${email}.`,
-    permissionNotFound: (email: string) =>
-      `No sharing permission found for ${email}.`,
+    permissionNotFound: (email: string) => `No sharing permission found for ${email}.`,
   },
   docs: {
-    docCreated: (title: string) =>
-      `Document "${title}" created successfully.`,
+    docCreated: (title: string) => `Document "${title}" created successfully.`,
     textInserted: "Text inserted successfully.",
     textAppended: "Text appended successfully.",
     contentReplaced: "Content replaced successfully.",
     headerApplied: "Heading style applied successfully.",
   },
   sheets: {
-    spreadsheetCreated: (title: string) =>
-      `Spreadsheet "${title}" created successfully.`,
+    spreadsheetCreated: (title: string) => `Spreadsheet "${title}" created successfully.`,
     valuesRead: "Values retrieved successfully.",
     valuesWritten: "Values written successfully.",
     valuesAppended: "Values appended successfully.",
@@ -77,8 +69,7 @@ export const messages = {
     pivotCreated: "Pivot table created successfully.",
   },
   slides: {
-    presentationCreated: (title: string) =>
-      `Presentation "${title}" created successfully.`,
+    presentationCreated: (title: string) => `Presentation "${title}" created successfully.`,
     slideAdded: "Slide added successfully.",
     textAdded: "Text added successfully.",
     imageAdded: "Image added successfully.",
@@ -87,13 +78,10 @@ export const messages = {
     speakerNotesSet: "Speaker notes updated successfully.",
   },
   errors: {
-    authFailed:
-      "Authentication failed. Please check credentials.",
-    rateLimitExceeded:
-      "Rate limit exceeded. Please try again later.",
+    authFailed: "Authentication failed. Please check credentials.",
+    rateLimitExceeded: "Rate limit exceeded. Please try again later.",
     apiError: (message: string) => `API Error: ${message}`,
-    networkError:
-      "Network error. Please check your connection.",
+    networkError: "Network error. Please check your connection.",
     invalidRange: "Invalid range format.",
     invalidEmail: "Invalid email address.",
     invalidDate: "Invalid date format.",
@@ -105,11 +93,6 @@ export const messages = {
  * Helper to resolve message templates.
  * Handles both static strings and template functions.
  */
-export function msg(
-  template: string | ((...args: string[]) => string),
-  ...args: string[]
-): string {
-  return typeof template === "function"
-    ? template(...args)
-    : template;
+export function msg(template: string | ((...args: string[]) => string), ...args: string[]): string {
+  return typeof template === "function" ? template(...args) : template;
 }

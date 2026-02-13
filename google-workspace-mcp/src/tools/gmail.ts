@@ -76,14 +76,10 @@ export const gmailTools = {
       const headers = response.data.payload?.headers || [];
 
       // FR-S4-07: Use recursive MIME parser from mime.ts
-      const body = response.data.payload
-        ? extractTextBody(response.data.payload)
-        : "";
+      const body = response.data.payload ? extractTextBody(response.data.payload) : "";
 
       // FR-S4-07: Use recursive attachment extractor from mime.ts
-      const attachments = response.data.payload
-        ? extractAttachments(response.data.payload)
-        : [];
+      const attachments = response.data.payload ? extractAttachments(response.data.payload) : [];
 
       return {
         id: messageId,
@@ -108,7 +104,19 @@ export const gmailTools = {
       cc: z.string().optional().describe("CC recipients"),
       bcc: z.string().optional().describe("BCC recipients"),
     },
-    handler: async ({ to, subject, body, cc, bcc }: { to: string; subject: string; body: string; cc?: string; bcc?: string }) => {
+    handler: async ({
+      to,
+      subject,
+      body,
+      cc,
+      bcc,
+    }: {
+      to: string;
+      subject: string;
+      body: string;
+      cc?: string;
+      bcc?: string;
+    }) => {
       const { gmail } = await getGoogleServices();
 
       // FR-S1-10: Sanitize email headers to prevent CRLF injection
@@ -160,7 +168,17 @@ export const gmailTools = {
       body: z.string().describe("Body content"),
       cc: z.string().optional().describe("CC recipients"),
     },
-    handler: async ({ to, subject, body, cc }: { to: string; subject: string; body: string; cc?: string }) => {
+    handler: async ({
+      to,
+      subject,
+      body,
+      cc,
+    }: {
+      to: string;
+      subject: string;
+      body: string;
+      cc?: string;
+    }) => {
       const { gmail } = await getGoogleServices();
 
       // FR-S1-10: Sanitize email headers

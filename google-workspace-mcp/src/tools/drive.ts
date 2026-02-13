@@ -18,7 +18,15 @@ export const driveTools = {
       mimeType: z.string().optional().describe("File type filter"),
       maxResults: z.number().optional().default(10).describe("Maximum number of results"),
     },
-    handler: async ({ query, mimeType, maxResults }: { query: string; mimeType?: string; maxResults: number }) => {
+    handler: async ({
+      query,
+      mimeType,
+      maxResults,
+    }: {
+      query: string;
+      mimeType?: string;
+      maxResults: number;
+    }) => {
       const { drive } = await getGoogleServices();
 
       // FR-S1-02: Escape user input to prevent Drive query injection
@@ -61,7 +69,15 @@ export const driveTools = {
       maxResults: z.number().optional().default(20).describe("Maximum number of results"),
       orderBy: z.string().optional().default("modifiedTime desc").describe("Sort order"),
     },
-    handler: async ({ folderId, maxResults, orderBy }: { folderId: string; maxResults: number; orderBy: string }) => {
+    handler: async ({
+      folderId,
+      maxResults,
+      orderBy,
+    }: {
+      folderId: string;
+      maxResults: number;
+      orderBy: string;
+    }) => {
       // FR-S1-02: Validate folder ID format
       validateDriveId(folderId, "folderId");
       const { drive } = await getGoogleServices();
@@ -106,7 +122,8 @@ export const driveTools = {
       const response = await withRetry(() =>
         drive.files.get({
           fileId,
-          fields: "id, name, mimeType, modifiedTime, createdTime, webViewLink, size, owners, parents, shared, permissions",
+          fields:
+            "id, name, mimeType, modifiedTime, createdTime, webViewLink, size, owners, parents, shared, permissions",
           supportsAllDrives: true,
         })
       );
@@ -165,7 +182,15 @@ export const driveTools = {
       newName: z.string().optional().describe("New file name"),
       parentId: z.string().optional().describe("Destination folder ID"),
     },
-    handler: async ({ fileId, newName, parentId }: { fileId: string; newName?: string; parentId?: string }) => {
+    handler: async ({
+      fileId,
+      newName,
+      parentId,
+    }: {
+      fileId: string;
+      newName?: string;
+      parentId?: string;
+    }) => {
       validateDriveId(fileId, "fileId");
       if (parentId) validateDriveId(parentId, "parentId");
       const { drive } = await getGoogleServices();
@@ -325,7 +350,12 @@ export const driveTools = {
       role: z.enum(["reader", "writer", "commenter"]).default("reader").describe("Permission role"),
       sendNotification: z.boolean().optional().default(true).describe("Send notification email"),
     },
-    handler: async ({ fileId, email, role, sendNotification }: {
+    handler: async ({
+      fileId,
+      email,
+      role,
+      sendNotification,
+    }: {
       fileId: string;
       email: string;
       role: string;
@@ -353,7 +383,11 @@ export const driveTools = {
         })
       );
 
-      const roleText: Record<string, string> = { reader: "viewer", writer: "editor", commenter: "commenter" };
+      const roleText: Record<string, string> = {
+        reader: "viewer",
+        writer: "editor",
+        commenter: "commenter",
+      };
 
       return {
         success: true,
@@ -366,7 +400,10 @@ export const driveTools = {
     description: "Enable link sharing for a file",
     schema: {
       fileId: z.string().describe("File ID"),
-      type: z.enum(["anyone", "domain"]).default("anyone").describe("Share scope (anyone: public, domain: organization)"),
+      type: z
+        .enum(["anyone", "domain"])
+        .default("anyone")
+        .describe("Share scope (anyone: public, domain: organization)"),
       role: z.enum(["reader", "writer", "commenter"]).default("reader").describe("Permission role"),
     },
     handler: async ({ fileId, type, role }: { fileId: string; type: string; role: string }) => {
@@ -424,9 +461,7 @@ export const driveTools = {
         })
       );
 
-      const permission = permissions.data.permissions?.find(
-        (p) => p.emailAddress === email
-      );
+      const permission = permissions.data.permissions?.find((p) => p.emailAddress === email);
 
       if (!permission) {
         return {

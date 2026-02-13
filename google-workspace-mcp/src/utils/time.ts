@@ -12,10 +12,7 @@
  * Uses TIMEZONE environment variable if set, otherwise auto-detects from system.
  */
 export function getTimezone(): string {
-  return (
-    process.env.TIMEZONE ||
-    Intl.DateTimeFormat().resolvedOptions().timeZone
-  );
+  return process.env.TIMEZONE || Intl.DateTimeFormat().resolvedOptions().timeZone;
 }
 
 /**
@@ -28,8 +25,7 @@ export function getUtcOffsetString(): string {
     timeZoneName: "longOffset",
   });
   const parts = formatter.formatToParts(new Date());
-  const offset =
-    parts.find((p) => p.type === "timeZoneName")?.value || "+00:00";
+  const offset = parts.find((p) => p.type === "timeZoneName")?.value || "+00:00";
   const match = offset.match(/GMT([+-]\d{2}:\d{2})/);
   return match ? match[1] : "+00:00";
 }
@@ -66,10 +62,7 @@ export function addDays(date: string | Date, days: number): string {
 /**
  * Format an ISO date string to a human-readable locale string.
  */
-export function formatDate(
-  isoString: string,
-  locale: string = "en-US"
-): string {
+export function formatDate(isoString: string, locale: string = "en-US"): string {
   return new Date(isoString).toLocaleString(locale, {
     year: "numeric",
     month: "2-digit",

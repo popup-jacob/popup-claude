@@ -33,13 +33,23 @@ export const calendarTools = {
   calendar_list_events: {
     description: "List calendar events",
     schema: {
-      calendarId: z.string().optional().default("primary").describe("Calendar ID (default: primary)"),
+      calendarId: z
+        .string()
+        .optional()
+        .default("primary")
+        .describe("Calendar ID (default: primary)"),
       timeMin: z.string().optional().describe("Start time (ISO format)"),
       timeMax: z.string().optional().describe("End time (ISO format)"),
       maxResults: z.number().optional().default(10).describe("Maximum number of results"),
       query: z.string().optional().describe("Search query"),
     },
-    handler: async ({ calendarId, timeMin, timeMax, maxResults, query }: {
+    handler: async ({
+      calendarId,
+      timeMin,
+      timeMax,
+      maxResults,
+      query,
+    }: {
       calendarId: string;
       timeMin?: string;
       timeMax?: string;
@@ -50,7 +60,8 @@ export const calendarTools = {
 
       const now = new Date();
       const defaultTimeMin = timeMin || now.toISOString();
-      const defaultTimeMax = timeMax || new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      const defaultTimeMax =
+        timeMax || new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
       const response = await withRetry(() =>
         calendar.events.list({
@@ -139,7 +150,11 @@ export const calendarTools = {
       location: z.string().optional().describe("Location"),
       attendees: z.array(z.string()).optional().describe("Attendee email list"),
       calendarId: z.string().optional().default("primary").describe("Calendar ID"),
-      sendNotifications: z.boolean().optional().default(true).describe("Send notification to attendees"),
+      sendNotifications: z
+        .boolean()
+        .optional()
+        .default(true)
+        .describe("Send notification to attendees"),
     },
     handler: async ({
       title,
@@ -193,7 +208,8 @@ export const calendarTools = {
         eventId: response.data.id,
         link: response.data.htmlLink,
         message: msg(messages.calendar.eventCreated, title),
-        attendeesNotified: attendees && sendNotifications ? `Invitation sent to ${attendees.join(", ")}.` : null,
+        attendeesNotified:
+          attendees && sendNotifications ? `Invitation sent to ${attendees.join(", ")}.` : null,
       };
     },
   },
@@ -297,12 +313,8 @@ export const calendarTools = {
         summary: title || existing.data.summary,
         description: description ?? existing.data.description,
         location: location ?? existing.data.location,
-        start: startTime
-          ? { dateTime: parseTime(startTime), timeZone: tz }
-          : existing.data.start,
-        end: endTime
-          ? { dateTime: parseTime(endTime), timeZone: tz }
-          : existing.data.end,
+        start: startTime ? { dateTime: parseTime(startTime), timeZone: tz } : existing.data.start,
+        end: endTime ? { dateTime: parseTime(endTime), timeZone: tz } : existing.data.end,
       };
 
       if (attendees) {
@@ -332,9 +344,17 @@ export const calendarTools = {
     schema: {
       eventId: z.string().describe("Event ID"),
       calendarId: z.string().optional().default("primary").describe("Calendar ID"),
-      sendNotifications: z.boolean().optional().default(true).describe("Send notification to attendees"),
+      sendNotifications: z
+        .boolean()
+        .optional()
+        .default(true)
+        .describe("Send notification to attendees"),
     },
-    handler: async ({ eventId, calendarId, sendNotifications }: {
+    handler: async ({
+      eventId,
+      calendarId,
+      sendNotifications,
+    }: {
       eventId: string;
       calendarId: string;
       sendNotifications: boolean;
@@ -391,7 +411,11 @@ export const calendarTools = {
       timeMax: z.string().describe("Search end time (ISO format)"),
       attendees: z.array(z.string()).optional().describe("Attendee emails to check availability"),
     },
-    handler: async ({ timeMin, timeMax, attendees }: {
+    handler: async ({
+      timeMin,
+      timeMax,
+      attendees,
+    }: {
       timeMin: string;
       timeMax: string;
       attendees?: string[];
@@ -426,9 +450,15 @@ export const calendarTools = {
     schema: {
       eventId: z.string().describe("Event ID"),
       calendarId: z.string().optional().default("primary").describe("Calendar ID"),
-      response: z.enum(["accepted", "declined", "tentative"]).describe("Response (accepted, declined, tentative)"),
+      response: z
+        .enum(["accepted", "declined", "tentative"])
+        .describe("Response (accepted, declined, tentative)"),
     },
-    handler: async ({ eventId, calendarId, response }: {
+    handler: async ({
+      eventId,
+      calendarId,
+      response,
+    }: {
       eventId: string;
       calendarId: string;
       response: string;

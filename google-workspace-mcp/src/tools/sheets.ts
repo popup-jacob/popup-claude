@@ -14,7 +14,15 @@ export const sheetsTools = {
       sheetNames: z.array(z.string()).optional().describe("Sheet name list"),
       folderId: z.string().optional().describe("Destination folder ID"),
     },
-    handler: async ({ title, sheetNames, folderId }: { title: string; sheetNames?: string[]; folderId?: string }) => {
+    handler: async ({
+      title,
+      sheetNames,
+      folderId,
+    }: {
+      title: string;
+      sheetNames?: string[];
+      folderId?: string;
+    }) => {
       const { sheets, drive } = await getGoogleServices();
 
       // FR-S3-07: Typed request body instead of any
@@ -32,11 +40,21 @@ export const sheetsTools = {
       const spreadsheetId = response.data.spreadsheetId!;
 
       if (folderId) {
-        const file = await withRetry(() => drive.files.get({ fileId: spreadsheetId, fields: "parents" }));
-        await withRetry(() => drive.files.update({ fileId: spreadsheetId, addParents: folderId, removeParents: file.data.parents?.join(",") }));
+        const file = await withRetry(() =>
+          drive.files.get({ fileId: spreadsheetId, fields: "parents" })
+        );
+        await withRetry(() =>
+          drive.files.update({
+            fileId: spreadsheetId,
+            addParents: folderId,
+            removeParents: file.data.parents?.join(","),
+          })
+        );
       }
 
-      const file = await withRetry(() => drive.files.get({ fileId: spreadsheetId, fields: "webViewLink" }));
+      const file = await withRetry(() =>
+        drive.files.get({ fileId: spreadsheetId, fields: "webViewLink" })
+      );
 
       return {
         success: true,
@@ -83,7 +101,9 @@ export const sheetsTools = {
     handler: async ({ spreadsheetId, range }: { spreadsheetId: string; range: string }) => {
       const { sheets } = await getGoogleServices();
 
-      const response = await withRetry(() => sheets.spreadsheets.values.get({ spreadsheetId, range }));
+      const response = await withRetry(() =>
+        sheets.spreadsheets.values.get({ spreadsheetId, range })
+      );
 
       return {
         spreadsheetId,
@@ -104,7 +124,9 @@ export const sheetsTools = {
     handler: async ({ spreadsheetId, ranges }: { spreadsheetId: string; ranges: string[] }) => {
       const { sheets } = await getGoogleServices();
 
-      const response = await withRetry(() => sheets.spreadsheets.values.batchGet({ spreadsheetId, ranges }));
+      const response = await withRetry(() =>
+        sheets.spreadsheets.values.batchGet({ spreadsheetId, ranges })
+      );
 
       return {
         spreadsheetId,
@@ -123,7 +145,11 @@ export const sheetsTools = {
       range: z.string().describe("Start range (e.g. 'Sheet1!A1')"),
       values: z.array(z.array(z.any())).describe("2D array data"),
     },
-    handler: async ({ spreadsheetId, range, values }: {
+    handler: async ({
+      spreadsheetId,
+      range,
+      values,
+    }: {
       spreadsheetId: string;
       range: string;
       values: unknown[][];
@@ -157,7 +183,11 @@ export const sheetsTools = {
       range: z.string().describe("Sheet range (e.g. 'Sheet1')"),
       values: z.array(z.array(z.any())).describe("Row data to append"),
     },
-    handler: async ({ spreadsheetId, range, values }: {
+    handler: async ({
+      spreadsheetId,
+      range,
+      values,
+    }: {
       spreadsheetId: string;
       range: string;
       values: unknown[][];
@@ -210,18 +240,20 @@ export const sheetsTools = {
     handler: async ({ spreadsheetId, title }: { spreadsheetId: string; title: string }) => {
       const { sheets } = await getGoogleServices();
 
-      const response = await withRetry(() => sheets.spreadsheets.batchUpdate({
-        spreadsheetId,
-        requestBody: {
-          requests: [
-            {
-              addSheet: {
-                properties: { title },
+      const response = await withRetry(() =>
+        sheets.spreadsheets.batchUpdate({
+          spreadsheetId,
+          requestBody: {
+            requests: [
+              {
+                addSheet: {
+                  properties: { title },
+                },
               },
-            },
-          ],
-        },
-      }));
+            ],
+          },
+        })
+      );
 
       const newSheet = response.data.replies?.[0]?.addSheet;
 
@@ -243,16 +275,18 @@ export const sheetsTools = {
     handler: async ({ spreadsheetId, sheetId }: { spreadsheetId: string; sheetId: number }) => {
       const { sheets } = await getGoogleServices();
 
-      await withRetry(() => sheets.spreadsheets.batchUpdate({
-        spreadsheetId,
-        requestBody: {
-          requests: [
-            {
-              deleteSheet: { sheetId },
-            },
-          ],
-        },
-      }));
+      await withRetry(() =>
+        sheets.spreadsheets.batchUpdate({
+          spreadsheetId,
+          requestBody: {
+            requests: [
+              {
+                deleteSheet: { sheetId },
+              },
+            ],
+          },
+        })
+      );
 
       return {
         success: true,
@@ -268,29 +302,35 @@ export const sheetsTools = {
       sheetId: z.number().describe("Sheet ID"),
       newTitle: z.string().describe("New sheet name"),
     },
-    handler: async ({ spreadsheetId, sheetId, newTitle }: {
+    handler: async ({
+      spreadsheetId,
+      sheetId,
+      newTitle,
+    }: {
       spreadsheetId: string;
       sheetId: number;
       newTitle: string;
     }) => {
       const { sheets } = await getGoogleServices();
 
-      await withRetry(() => sheets.spreadsheets.batchUpdate({
-        spreadsheetId,
-        requestBody: {
-          requests: [
-            {
-              updateSheetProperties: {
-                properties: {
-                  sheetId,
-                  title: newTitle,
+      await withRetry(() =>
+        sheets.spreadsheets.batchUpdate({
+          spreadsheetId,
+          requestBody: {
+            requests: [
+              {
+                updateSheetProperties: {
+                  properties: {
+                    sheetId,
+                    title: newTitle,
+                  },
+                  fields: "title",
                 },
-                fields: "title",
               },
-            },
-          ],
-        },
-      }));
+            ],
+          },
+        })
+      );
 
       return {
         success: true,
@@ -311,7 +351,16 @@ export const sheetsTools = {
       bold: z.boolean().optional().describe("Bold"),
       backgroundColor: z.string().optional().describe("Background color (hex, e.g. '#FF0000')"),
     },
-    handler: async ({ spreadsheetId, sheetId, startRow, endRow, startColumn, endColumn, bold, backgroundColor }: {
+    handler: async ({
+      spreadsheetId,
+      sheetId,
+      startRow,
+      endRow,
+      startColumn,
+      endColumn,
+      bold,
+      backgroundColor,
+    }: {
       spreadsheetId: string;
       sheetId: number;
       startRow: number;
@@ -341,28 +390,30 @@ export const sheetsTools = {
         fields.push("userEnteredFormat.backgroundColor");
       }
 
-      await withRetry(() => sheets.spreadsheets.batchUpdate({
-        spreadsheetId,
-        requestBody: {
-          requests: [
-            {
-              repeatCell: {
-                range: {
-                  sheetId,
-                  startRowIndex: startRow,
-                  endRowIndex: endRow,
-                  startColumnIndex: startColumn,
-                  endColumnIndex: endColumn,
+      await withRetry(() =>
+        sheets.spreadsheets.batchUpdate({
+          spreadsheetId,
+          requestBody: {
+            requests: [
+              {
+                repeatCell: {
+                  range: {
+                    sheetId,
+                    startRowIndex: startRow,
+                    endRowIndex: endRow,
+                    startColumnIndex: startColumn,
+                    endColumnIndex: endColumn,
+                  },
+                  cell: {
+                    userEnteredFormat: cellFormat,
+                  },
+                  fields: fields.join(","),
                 },
-                cell: {
-                  userEnteredFormat: cellFormat,
-                },
-                fields: fields.join(","),
               },
-            },
-          ],
-        },
-      }));
+            ],
+          },
+        })
+      );
 
       return {
         success: true,
@@ -379,7 +430,12 @@ export const sheetsTools = {
       startColumn: z.number().optional().default(0).describe("Start column"),
       endColumn: z.number().optional().default(26).describe("End column"),
     },
-    handler: async ({ spreadsheetId, sheetId, startColumn, endColumn }: {
+    handler: async ({
+      spreadsheetId,
+      sheetId,
+      startColumn,
+      endColumn,
+    }: {
       spreadsheetId: string;
       sheetId: number;
       startColumn: number;
@@ -387,23 +443,25 @@ export const sheetsTools = {
     }) => {
       const { sheets } = await getGoogleServices();
 
-      await withRetry(() => sheets.spreadsheets.batchUpdate({
-        spreadsheetId,
-        requestBody: {
-          requests: [
-            {
-              autoResizeDimensions: {
-                dimensions: {
-                  sheetId,
-                  dimension: "COLUMNS",
-                  startIndex: startColumn,
-                  endIndex: endColumn,
+      await withRetry(() =>
+        sheets.spreadsheets.batchUpdate({
+          spreadsheetId,
+          requestBody: {
+            requests: [
+              {
+                autoResizeDimensions: {
+                  dimensions: {
+                    sheetId,
+                    dimension: "COLUMNS",
+                    startIndex: startColumn,
+                    endIndex: endColumn,
+                  },
                 },
               },
-            },
-          ],
-        },
-      }));
+            ],
+          },
+        })
+      );
 
       return {
         success: true,

@@ -43,7 +43,9 @@ describe("sanitize utilities", () => {
 
   describe("validateDriveId", () => {
     it("should accept valid Drive IDs", () => {
-      expect(() => validateDriveId("1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms", "fileId")).not.toThrow();
+      expect(() =>
+        validateDriveId("1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms", "fileId")
+      ).not.toThrow();
     });
 
     it("should accept 'root' as a special value", () => {
@@ -51,7 +53,9 @@ describe("sanitize utilities", () => {
     });
 
     it("should reject IDs with single quotes", () => {
-      expect(() => validateDriveId("root' in parents or '1", "folderId")).toThrow("Invalid folderId");
+      expect(() => validateDriveId("root' in parents or '1", "folderId")).toThrow(
+        "Invalid folderId"
+      );
     });
 
     it("should reject IDs with spaces", () => {

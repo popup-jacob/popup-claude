@@ -25,35 +25,30 @@ const allTools = {
 
 // 도구 등록
 for (const [name, tool] of Object.entries(allTools)) {
-  server.tool(
-    name,
-    tool.description,
-    tool.schema,
-    async (params: Record<string, unknown>) => {
-      try {
-        const result = await tool.handler(params as never);
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify(result, null, 2),
-            },
-          ],
-        };
-      } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: `Error: ${message}`,
-            },
-          ],
-          isError: true,
-        };
-      }
+  server.tool(name, tool.description, tool.schema, async (params: Record<string, unknown>) => {
+    try {
+      const result = await tool.handler(params as never);
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `Error: ${message}`,
+          },
+        ],
+        isError: true,
+      };
     }
-  );
+  });
 }
 
 // 서버 시작

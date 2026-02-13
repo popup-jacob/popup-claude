@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { slidesTools } from '../slides.js';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { slidesTools } from "../slides.js";
 
 // Mock getGoogleServices
 const mockSlidesApi = {
@@ -17,91 +17,91 @@ const mockDriveApi = {
   },
 };
 
-vi.mock('../../auth/oauth', () => ({
+vi.mock("../../auth/oauth", () => ({
   getGoogleServices: vi.fn(async () => ({
     slides: mockSlidesApi,
     drive: mockDriveApi,
   })),
 }));
 
-describe('Slides Tools - Core Functionality', () => {
+describe("Slides Tools - Core Functionality", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  describe('slides_create - TC-SL01: Presentation Creation', () => {
-    it('should create a new presentation with title only', async () => {
+  describe("slides_create - TC-SL01: Presentation Creation", () => {
+    it("should create a new presentation with title only", async () => {
       mockSlidesApi.presentations.create.mockResolvedValue({
         data: {
-          presentationId: 'pres123',
-          title: 'New Presentation',
+          presentationId: "pres123",
+          title: "New Presentation",
         },
       });
 
       mockDriveApi.files.get.mockResolvedValue({
         data: {
-          webViewLink: 'https://docs.google.com/presentation/d/pres123',
+          webViewLink: "https://docs.google.com/presentation/d/pres123",
         },
       });
 
       const result = await slidesTools.slides_create.handler({
-        title: 'New Presentation',
+        title: "New Presentation",
       });
 
       expect(result.success).toBe(true);
-      expect(result.presentationId).toBe('pres123');
+      expect(result.presentationId).toBe("pres123");
       expect(mockSlidesApi.presentations.create).toHaveBeenCalledWith({
         requestBody: {
-          title: 'New Presentation',
+          title: "New Presentation",
         },
       });
     });
 
-    it('should move presentation to folder if folderId is provided', async () => {
+    it("should move presentation to folder if folderId is provided", async () => {
       mockSlidesApi.presentations.create.mockResolvedValue({
         data: {
-          presentationId: 'pres456',
-          title: 'Presentation in Folder',
+          presentationId: "pres456",
+          title: "Presentation in Folder",
         },
       });
 
       mockDriveApi.files.get.mockResolvedValue({
         data: {
-          parents: ['oldFolder'],
-          webViewLink: 'https://docs.google.com/presentation/d/pres456',
+          parents: ["oldFolder"],
+          webViewLink: "https://docs.google.com/presentation/d/pres456",
         },
       });
 
       mockDriveApi.files.update.mockResolvedValue({ data: {} });
 
       const result = await slidesTools.slides_create.handler({
-        title: 'Presentation in Folder',
-        folderId: 'folder123',
+        title: "Presentation in Folder",
+        folderId: "folder123",
       });
 
       expect(result.success).toBe(true);
       expect(mockDriveApi.files.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          fileId: 'pres456',
-          addParents: 'folder123',
+          fileId: "pres456",
+          addParents: "folder123",
         })
       );
     });
   });
 
-  describe('slides_get_info - TC-SL02: Getting Presentation Info', () => {
-    it('should return presentation metadata', async () => {
+  describe("slides_get_info - TC-SL02: Getting Presentation Info", () => {
+    it("should return presentation metadata", async () => {
       mockSlidesApi.presentations.get.mockResolvedValue({
         data: {
-          presentationId: 'pres123',
-          title: 'My Presentation',
+          presentationId: "pres123",
+          title: "My Presentation",
           slides: [
             {
-              objectId: 'slide1',
+              objectId: "slide1",
               slideProperties: {},
             },
             {
-              objectId: 'slide2',
+              objectId: "slide2",
               slideProperties: {},
             },
           ],
@@ -109,39 +109,39 @@ describe('Slides Tools - Core Functionality', () => {
       });
 
       const result = await slidesTools.slides_get_info.handler({
-        presentationId: 'pres123',
+        presentationId: "pres123",
       });
 
-      expect(result.presentationId).toBe('pres123');
-      expect(result.title).toBe('My Presentation');
+      expect(result.presentationId).toBe("pres123");
+      expect(result.title).toBe("My Presentation");
       expect(result.slideCount).toBe(2);
     });
 
-    it('should handle presentation with no slides', async () => {
+    it("should handle presentation with no slides", async () => {
       mockSlidesApi.presentations.get.mockResolvedValue({
         data: {
-          presentationId: 'pres_empty',
-          title: 'Empty Presentation',
+          presentationId: "pres_empty",
+          title: "Empty Presentation",
           slides: [],
         },
       });
 
       const result = await slidesTools.slides_get_info.handler({
-        presentationId: 'pres_empty',
+        presentationId: "pres_empty",
       });
 
       expect(result.slideCount).toBe(0);
     });
   });
 
-  describe('slides_add_slide - TC-SL03: Adding Slides', () => {
-    it('should add a new slide with default layout', async () => {
+  describe("slides_add_slide - TC-SL03: Adding Slides", () => {
+    it("should add a new slide with default layout", async () => {
       mockSlidesApi.presentations.batchUpdate.mockResolvedValue({
         data: {
           replies: [
             {
               createSlide: {
-                objectId: 'slide_new',
+                objectId: "slide_new",
               },
             },
           ],
@@ -149,19 +149,19 @@ describe('Slides Tools - Core Functionality', () => {
       });
 
       const result = await slidesTools.slides_add_slide.handler({
-        presentationId: 'pres123',
-        layout: 'TITLE_AND_BODY',
+        presentationId: "pres123",
+        layout: "TITLE_AND_BODY",
       });
 
       expect(result.success).toBe(true);
       expect(mockSlidesApi.presentations.batchUpdate).toHaveBeenCalledWith({
-        presentationId: 'pres123',
+        presentationId: "pres123",
         requestBody: {
           requests: [
             {
               createSlide: expect.objectContaining({
                 slideLayoutReference: {
-                  predefinedLayout: 'TITLE_AND_BODY',
+                  predefinedLayout: "TITLE_AND_BODY",
                 },
               }),
             },
@@ -170,13 +170,13 @@ describe('Slides Tools - Core Functionality', () => {
       });
     });
 
-    it('should add slide with title and body', async () => {
+    it("should add slide with title and body", async () => {
       mockSlidesApi.presentations.batchUpdate.mockResolvedValue({
         data: {
           replies: [
             {
               createSlide: {
-                objectId: 'slide_with_content',
+                objectId: "slide_with_content",
               },
             },
           ],
@@ -187,21 +187,21 @@ describe('Slides Tools - Core Functionality', () => {
         data: {
           slides: [
             {
-              objectId: 'slide_with_content',
+              objectId: "slide_with_content",
               pageElements: [
                 {
-                  objectId: 'title_elem',
+                  objectId: "title_elem",
                   shape: {
                     placeholder: {
-                      type: 'TITLE',
+                      type: "TITLE",
                     },
                   },
                 },
                 {
-                  objectId: 'body_elem',
+                  objectId: "body_elem",
                   shape: {
                     placeholder: {
-                      type: 'BODY',
+                      type: "BODY",
                     },
                   },
                 },
@@ -212,10 +212,10 @@ describe('Slides Tools - Core Functionality', () => {
       });
 
       const result = await slidesTools.slides_add_slide.handler({
-        presentationId: 'pres123',
-        title: 'Slide Title',
-        body: 'Slide body content',
-        layout: 'TITLE_AND_BODY',
+        presentationId: "pres123",
+        title: "Slide Title",
+        body: "Slide body content",
+        layout: "TITLE_AND_BODY",
       });
 
       expect(result.success).toBe(true);
@@ -224,14 +224,14 @@ describe('Slides Tools - Core Functionality', () => {
     });
   });
 
-  describe('slides_add_text - TC-SL04: Adding Text to Slides', () => {
-    it('should add text box to a slide with default dimensions', async () => {
+  describe("slides_add_text - TC-SL04: Adding Text to Slides", () => {
+    it("should add text box to a slide with default dimensions", async () => {
       mockSlidesApi.presentations.batchUpdate.mockResolvedValue({
         data: {
           replies: [
             {
               createShape: {
-                objectId: 'textbox123',
+                objectId: "textbox123",
               },
             },
           ],
@@ -239,9 +239,9 @@ describe('Slides Tools - Core Functionality', () => {
       });
 
       const result = await slidesTools.slides_add_text.handler({
-        presentationId: 'pres123',
-        slideId: 'slide1',
-        text: 'Hello World',
+        presentationId: "pres123",
+        slideId: "slide1",
+        text: "Hello World",
         x: 100,
         y: 100,
         width: 300,
@@ -253,25 +253,25 @@ describe('Slides Tools - Core Functionality', () => {
     });
   });
 
-  describe('slides_delete_slide - TC-SL05: Deleting Slides', () => {
-    it('should delete a slide by objectId', async () => {
+  describe("slides_delete_slide - TC-SL05: Deleting Slides", () => {
+    it("should delete a slide by objectId", async () => {
       mockSlidesApi.presentations.batchUpdate.mockResolvedValue({
         data: {},
       });
 
       const result = await slidesTools.slides_delete_slide.handler({
-        presentationId: 'pres123',
-        slideId: 'slide2',
+        presentationId: "pres123",
+        slideId: "slide2",
       });
 
       expect(result.success).toBe(true);
       expect(mockSlidesApi.presentations.batchUpdate).toHaveBeenCalledWith({
-        presentationId: 'pres123',
+        presentationId: "pres123",
         requestBody: {
           requests: [
             {
               deleteObject: {
-                objectId: 'slide2',
+                objectId: "slide2",
               },
             },
           ],
@@ -280,15 +280,15 @@ describe('Slides Tools - Core Functionality', () => {
     });
   });
 
-  describe('slides_read - TC-SL06: Reading Slide Content', () => {
-    it('should extract text from slides', async () => {
+  describe("slides_read - TC-SL06: Reading Slide Content", () => {
+    it("should extract text from slides", async () => {
       mockSlidesApi.presentations.get.mockResolvedValue({
         data: {
-          presentationId: 'pres123',
-          title: 'Test Presentation',
+          presentationId: "pres123",
+          title: "Test Presentation",
           slides: [
             {
-              objectId: 'slide1',
+              objectId: "slide1",
               pageElements: [
                 {
                   shape: {
@@ -296,7 +296,7 @@ describe('Slides Tools - Core Functionality', () => {
                       textElements: [
                         {
                           textRun: {
-                            content: 'Title Text\n',
+                            content: "Title Text\n",
                           },
                         },
                       ],
@@ -306,7 +306,7 @@ describe('Slides Tools - Core Functionality', () => {
               ],
             },
             {
-              objectId: 'slide2',
+              objectId: "slide2",
               pageElements: [
                 {
                   shape: {
@@ -314,7 +314,7 @@ describe('Slides Tools - Core Functionality', () => {
                       textElements: [
                         {
                           textRun: {
-                            content: 'Body Text\n',
+                            content: "Body Text\n",
                           },
                         },
                       ],
@@ -328,28 +328,28 @@ describe('Slides Tools - Core Functionality', () => {
       });
 
       const result = await slidesTools.slides_read.handler({
-        presentationId: 'pres123',
+        presentationId: "pres123",
       });
 
-      expect(result.presentationId).toBe('pres123');
-      expect(result.title).toBe('Test Presentation');
+      expect(result.presentationId).toBe("pres123");
+      expect(result.title).toBe("Test Presentation");
       expect(result.slides).toHaveLength(2);
-      expect(result.slides![0].text).toContain('Title Text');
-      expect(result.slides![1].text).toContain('Body Text');
+      expect(result.slides![0].text).toContain("Title Text");
+      expect(result.slides![1].text).toContain("Body Text");
     });
 
-    it('should handle slides with no text elements', async () => {
+    it("should handle slides with no text elements", async () => {
       mockSlidesApi.presentations.get.mockResolvedValue({
         data: {
-          presentationId: 'pres_no_text',
-          title: 'Image Only Presentation',
+          presentationId: "pres_no_text",
+          title: "Image Only Presentation",
           slides: [
             {
-              objectId: 'slide_img',
+              objectId: "slide_img",
               pageElements: [
                 {
                   image: {
-                    contentUrl: 'https://example.com/image.png',
+                    contentUrl: "https://example.com/image.png",
                   },
                 },
               ],
@@ -359,22 +359,22 @@ describe('Slides Tools - Core Functionality', () => {
       });
 
       const result = await slidesTools.slides_read.handler({
-        presentationId: 'pres_no_text',
+        presentationId: "pres_no_text",
       });
 
       expect(result.slides).toHaveLength(1);
-      expect(result.slides![0].text).toBe('');
+      expect(result.slides![0].text).toBe("");
     });
   });
 
-  describe('slides_duplicate_slide - TC-SL07: Duplicating Slides', () => {
-    it('should duplicate a slide', async () => {
+  describe("slides_duplicate_slide - TC-SL07: Duplicating Slides", () => {
+    it("should duplicate a slide", async () => {
       mockSlidesApi.presentations.batchUpdate.mockResolvedValue({
         data: {
           replies: [
             {
               duplicateObject: {
-                objectId: 'slide_duplicate',
+                objectId: "slide_duplicate",
               },
             },
           ],
@@ -382,19 +382,19 @@ describe('Slides Tools - Core Functionality', () => {
       });
 
       const result = await slidesTools.slides_duplicate_slide.handler({
-        presentationId: 'pres123',
-        slideId: 'slide1',
+        presentationId: "pres123",
+        slideId: "slide1",
       });
 
       expect(result.success).toBe(true);
       expect(mockSlidesApi.presentations.batchUpdate).toHaveBeenCalledWith(
         expect.objectContaining({
-          presentationId: 'pres123',
+          presentationId: "pres123",
           requestBody: expect.objectContaining({
             requests: expect.arrayContaining([
               expect.objectContaining({
                 duplicateObject: expect.objectContaining({
-                  objectId: 'slide1',
+                  objectId: "slide1",
                 }),
               }),
             ]),

@@ -32,10 +32,7 @@ describe("withRetry", () => {
   });
 
   it("should retry on network errors", async () => {
-    const fn = vi
-      .fn()
-      .mockRejectedValueOnce({ code: "ECONNRESET" })
-      .mockResolvedValue("recovered");
+    const fn = vi.fn().mockRejectedValueOnce({ code: "ECONNRESET" }).mockResolvedValue("recovered");
 
     const result = await withRetry(fn, { initialDelay: 10 });
     expect(result).toBe("recovered");
@@ -43,24 +40,18 @@ describe("withRetry", () => {
   });
 
   it("should throw on non-retryable error", async () => {
-    const fn = vi
-      .fn()
-      .mockRejectedValue(new Error("Not Found"));
+    const fn = vi.fn().mockRejectedValue(new Error("Not Found"));
 
-    await expect(
-      withRetry(fn, { initialDelay: 10 })
-    ).rejects.toThrow("Not Found");
+    await expect(withRetry(fn, { initialDelay: 10 })).rejects.toThrow("Not Found");
     expect(fn).toHaveBeenCalledTimes(1);
   });
 
   it("should throw after max attempts", async () => {
-    const fn = vi
-      .fn()
-      .mockRejectedValue({ response: { status: 429 } });
+    const fn = vi.fn().mockRejectedValue({ response: { status: 429 } });
 
-    await expect(
-      withRetry(fn, { maxAttempts: 3, initialDelay: 10 })
-    ).rejects.toEqual({ response: { status: 429 } });
+    await expect(withRetry(fn, { maxAttempts: 3, initialDelay: 10 })).rejects.toEqual({
+      response: { status: 429 },
+    });
     expect(fn).toHaveBeenCalledTimes(3);
   });
 

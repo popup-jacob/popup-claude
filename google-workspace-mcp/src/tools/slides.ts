@@ -133,10 +133,18 @@ export const slidesTools = {
       presentationId: z.string().describe("Presentation ID"),
       title: z.string().optional().describe("Slide title"),
       body: z.string().optional().describe("Slide body"),
-      layout: z.enum(["BLANK", "TITLE", "TITLE_AND_BODY", "TITLE_ONLY", "ONE_COLUMN_TEXT", "MAIN_POINT"])
-        .optional().default("TITLE_AND_BODY").describe("Layout type"),
+      layout: z
+        .enum(["BLANK", "TITLE", "TITLE_AND_BODY", "TITLE_ONLY", "ONE_COLUMN_TEXT", "MAIN_POINT"])
+        .optional()
+        .default("TITLE_AND_BODY")
+        .describe("Layout type"),
     },
-    handler: async ({ presentationId, title, body, layout }: {
+    handler: async ({
+      presentationId,
+      title,
+      body,
+      layout,
+    }: {
       presentationId: string;
       title?: string;
       body?: string;
@@ -167,9 +175,7 @@ export const slidesTools = {
 
       // Add title and body text
       if (title || body) {
-        const presentation = await withRetry(() =>
-          slides.presentations.get({ presentationId })
-        );
+        const presentation = await withRetry(() => slides.presentations.get({ presentationId }));
         const newSlide = presentation.data.slides?.find((s) => s.objectId === slideId);
 
         const textRequests: Record<string, unknown>[] = [];
@@ -289,7 +295,11 @@ export const slidesTools = {
       slideId: z.string().describe("Slide ID to move"),
       insertionIndex: z.number().describe("New position (0-based)"),
     },
-    handler: async ({ presentationId, slideId, insertionIndex }: {
+    handler: async ({
+      presentationId,
+      slideId,
+      insertionIndex,
+    }: {
       presentationId: string;
       slideId: string;
       insertionIndex: number;
@@ -330,7 +340,15 @@ export const slidesTools = {
       width: z.number().optional().default(300).describe("Width (pt)"),
       height: z.number().optional().default(50).describe("Height (pt)"),
     },
-    handler: async ({ presentationId, slideId, text, x, y, width, height }: {
+    handler: async ({
+      presentationId,
+      slideId,
+      text,
+      x,
+      y,
+      width,
+      height,
+    }: {
       presentationId: string;
       slideId: string;
       text: string;
@@ -395,7 +413,12 @@ export const slidesTools = {
       replaceText: z.string().describe("Replacement text"),
       matchCase: z.boolean().optional().default(false).describe("Case sensitive"),
     },
-    handler: async ({ presentationId, searchText, replaceText, matchCase }: {
+    handler: async ({
+      presentationId,
+      searchText,
+      replaceText,
+      matchCase,
+    }: {
       presentationId: string;
       searchText: string;
       replaceText: string;

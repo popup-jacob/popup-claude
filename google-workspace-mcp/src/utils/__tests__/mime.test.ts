@@ -114,9 +114,7 @@ describe("MIME utilities", () => {
         parts: [
           {
             mimeType: "multipart/alternative",
-            parts: [
-              { mimeType: "text/plain", body: { data: "dGVzdA==" } },
-            ],
+            parts: [{ mimeType: "text/plain", body: { data: "dGVzdA==" } }],
           },
           {
             mimeType: "image/png",
@@ -137,10 +135,7 @@ describe("MIME utilities", () => {
       };
       const attachments = extractAttachments(payload);
       expect(attachments).toHaveLength(2);
-      expect(attachments.map((a) => a.filename)).toEqual([
-        "image.png",
-        "photo.jpg",
-      ]);
+      expect(attachments.map((a) => a.filename)).toEqual(["image.png", "photo.jpg"]);
     });
 
     it("should return empty array when no attachments", () => {

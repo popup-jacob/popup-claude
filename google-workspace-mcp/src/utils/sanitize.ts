@@ -84,13 +84,15 @@ export function validateMaxLength(input: string, max: number): string {
  * Gap analysis D-10: Added for file upload/download operations.
  */
 export function sanitizeFilename(filename: string): string {
-  return filename
-    // eslint-disable-next-line no-control-regex
-    .replace(/[<>:"/\\|?*\x00-\x1F]/g, "_")
-    .replace(/\.+/g, ".")
-    .replace(/^\./, "")
-    .trim()
-    .substring(0, 255);
+  return (
+    filename
+      // eslint-disable-next-line no-control-regex
+      .replace(/[<>:"/\\|?*\x00-\x1F]/g, "_")
+      .replace(/\.+/g, ".")
+      .replace(/^\./, "")
+      .trim()
+      .substring(0, 255)
+  );
 }
 
 /**
@@ -101,7 +103,6 @@ export function sanitizeFilename(filename: string): string {
  */
 export function sanitizeRange(range: string): string | null {
   // Matches: Sheet1!A1:B2, A1:B2, A1, Sheet1!A1
-  const rangeRegex =
-    /^([^!]+!)?[A-Z]+\d+(:[A-Z]+\d+)?$/i;
+  const rangeRegex = /^([^!]+!)?[A-Z]+\d+(:[A-Z]+\d+)?$/i;
   return rangeRegex.test(range.trim()) ? range.trim() : null;
 }
