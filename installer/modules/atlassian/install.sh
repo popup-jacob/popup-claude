@@ -9,6 +9,8 @@ SHARED_DIR="${SHARED_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../shared" 2>/dev
 if [ -n "$SHARED_DIR" ] && [ -f "$SHARED_DIR/colors.sh" ]; then
     source "$SHARED_DIR/colors.sh"
     source "$SHARED_DIR/docker-utils.sh"
+    source "$SHARED_DIR/browser-utils.sh"
+    source "$SHARED_DIR/mcp-config.sh"
 else
     # Fallback for remote execution
     RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
@@ -104,13 +106,10 @@ if [ "$USE_DOCKER" = true ]; then
     echo -e "  ${CYAN}https://id.atlassian.com/manage-profile/security/api-tokens${NC}"
     echo ""
 
+    # FR-S3-05a: Use shared browser_open utility
     read -p "Open API token page in browser? (y/n): " openToken < /dev/tty
     if [ "$openToken" = "y" ] || [ "$openToken" = "Y" ]; then
-        if [[ "$OSTYPE" == "darwin"* ]]; then
-            open "https://id.atlassian.com/manage-profile/security/api-tokens"
-        elif command -v xdg-open > /dev/null 2>&1; then
-            xdg-open "https://id.atlassian.com/manage-profile/security/api-tokens"
-        fi
+        browser_open "https://id.atlassian.com/manage-profile/security/api-tokens"
         echo -e "${YELLOW}Create and copy the token.${NC}"
         read -p "Press Enter when ready: " < /dev/tty
     fi
@@ -154,39 +153,11 @@ ENVEOF
 
     # FR-S1-09: Use env vars for Node.js (no shell interpolation of user input)
     # FR-S2-03: Unified MCP config path
+    # FR-S3-05a: Use shared mcp_add_docker_server utility
     echo ""
     echo -e "${YELLOW}[Config] Updating MCP config...${NC}"
 
-    MCP_CONFIG_PATH="$HOME/.claude/mcp.json" \
-    ATLASSIAN_ENV_FILE="$ENV_FILE" \
-    node -e "
-const fs = require('fs');
-const configPath = process.env.MCP_CONFIG_PATH;
-const envFile = process.env.ATLASSIAN_ENV_FILE;
-
-// Ensure directory exists
-const dir = require('path').dirname(configPath);
-if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-
-let config = { mcpServers: {} };
-
-if (fs.existsSync(configPath)) {
-    config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    if (!config.mcpServers) config.mcpServers = {};
-}
-
-config.mcpServers['atlassian'] = {
-    command: 'docker',
-    args: [
-        'run', '-i', '--rm',
-        '--env-file', envFile,
-        'ghcr.io/sooperset/mcp-atlassian:latest'
-    ]
-};
-
-fs.writeFileSync(configPath, JSON.stringify(config, null, 2), { mode: 0o600 });
-"
-    echo -e "  ${GREEN}OK${NC}"
+    mcp_add_docker_server "atlassian" "ghcr.io/sooperset/mcp-atlassian:latest" "--env-file" "$ENV_FILE"
 
 else
     # ========================================

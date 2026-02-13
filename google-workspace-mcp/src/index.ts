@@ -13,7 +13,7 @@ const server = new McpServer({
   version: "0.1.0",
 });
 
-// 모든 도구 등록
+// Register all tools
 const allTools = {
   ...gmailTools,
   ...calendarTools,
@@ -23,7 +23,7 @@ const allTools = {
   ...slidesTools,
 };
 
-// 도구 등록
+// Tool registration
 for (const [name, tool] of Object.entries(allTools)) {
   server.tool(name, tool.description, tool.schema, async (params: Record<string, unknown>) => {
     try {
@@ -51,7 +51,7 @@ for (const [name, tool] of Object.entries(allTools)) {
   });
 }
 
-// 서버 시작
+// Start server
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);

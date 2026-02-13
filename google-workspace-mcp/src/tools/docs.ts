@@ -276,8 +276,8 @@ export const docsTools = {
       const endIndex = lastElement?.endIndex || 1;
       const insertIndex = Math.max(1, endIndex - 1);
 
-      // FR-S3-07: Type assertion to string instead of any
-      const headingType = `HEADING_${level}` as string;
+      // FR-S3-07: Dynamic heading type from level parameter
+      const headingType = `HEADING_${level}`;
 
       await withRetry(() =>
         docs.documents.batchUpdate({

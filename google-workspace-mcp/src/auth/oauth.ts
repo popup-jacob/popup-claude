@@ -142,7 +142,7 @@ function loadClientSecret(): ClientSecretConfig {
   }
 
   const content = fs.readFileSync(CLIENT_SECRET_PATH, "utf-8");
-  return JSON.parse(content);
+  return JSON.parse(content) as ClientSecretConfig;
 }
 
 /**
@@ -172,7 +172,7 @@ function loadToken(): TokenData | null {
   }
 
   const content = fs.readFileSync(TOKEN_PATH, "utf-8");
-  const token: TokenData = JSON.parse(content);
+  const token = JSON.parse(content) as TokenData;
 
   // FR-S4-05: Validate refresh_token exists
   if (!token.refresh_token) {
@@ -237,6 +237,7 @@ async function getTokenFromBrowser(oauth2Client: OAuth2Client): Promise<TokenDat
     // eslint-disable-next-line prefer-const
     let timeoutId: NodeJS.Timeout;
 
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises
     const server = http.createServer(async (req, res) => {
       try {
         const url = new URL(req.url || "", `http://localhost:${OAUTH_PORT}`);
@@ -305,7 +306,7 @@ async function getTokenFromBrowser(oauth2Client: OAuth2Client): Promise<TokenDat
         res.end("<h1>An error occurred.</h1>");
         clearTimeout(timeoutId);
         server.close();
-        reject(error);
+        reject(error instanceof Error ? error : new Error(String(error)));
       }
     });
 
