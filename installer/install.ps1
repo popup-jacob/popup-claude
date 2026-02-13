@@ -237,6 +237,35 @@ Write-Host "  AI-Driven Work Installer v2" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
+# ============================================
+# System Requirements Check
+# ============================================
+$ramGB = [math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB)
+$cpuCores = (Get-CimInstance Win32_Processor).NumberOfCores
+$diskFreeGB = [math]::Round((Get-PSDrive C).Free / 1GB)
+
+$minRAM = 8
+$minCPU = 4
+$minDisk = 40
+
+$specFailed = $false
+$specMessages = @()
+if ($ramGB -lt $minRAM) { $specMessages += "RAM: ${ramGB}GB (minimum: ${minRAM}GB)"; $specFailed = $true }
+if ($cpuCores -lt $minCPU) { $specMessages += "CPU: ${cpuCores} cores (minimum: ${minCPU} cores)"; $specFailed = $true }
+if ($diskFreeGB -lt $minDisk) { $specMessages += "Disk: ${diskFreeGB}GB free (minimum: ${minDisk}GB)"; $specFailed = $true }
+
+if ($specFailed) {
+    Write-Host "System Requirements Check:" -ForegroundColor Red
+    foreach ($msg in $specMessages) {
+        Write-Host "  $msg" -ForegroundColor Red
+    }
+    Write-Host ""
+    Write-Host "Your system does not meet the minimum requirements for installation." -ForegroundColor Red
+    Write-Host ""
+    Read-Host "Press Enter to exit"
+    exit 1
+}
+
 $status = Get-InstallStatus
 
 # Check Docker requirement for selected modules (before status display)

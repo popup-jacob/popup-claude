@@ -386,6 +386,43 @@ echo -e "${CYAN}  AI-Driven Work Installer v2${NC}"
 echo "========================================"
 echo ""
 
+# ============================================
+# System Requirements Check
+# ============================================
+MIN_RAM=8
+MIN_CPU=4
+MIN_DISK=40
+
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    SYS_RAM=$(sysctl -n hw.memsize | awk '{printf "%d", $0/1073741824}')
+    SYS_CPU=$(sysctl -n hw.ncpu)
+    SYS_DISK=$(df -g / | awk 'NR==2{print $4}')
+else
+    SYS_RAM=$(free -g | awk '/Mem:/{print $2}')
+    SYS_CPU=$(nproc)
+    SYS_DISK=$(df -BG / | awk 'NR==2{gsub("G",""); print $4}')
+fi
+
+SPEC_FAILED=false
+if [ "$SYS_RAM" -lt "$MIN_RAM" ] 2>/dev/null; then
+    echo -e "  ${RED}RAM: ${SYS_RAM}GB (minimum: ${MIN_RAM}GB)${NC}"
+    SPEC_FAILED=true
+fi
+if [ "$SYS_CPU" -lt "$MIN_CPU" ] 2>/dev/null; then
+    echo -e "  ${RED}CPU: ${SYS_CPU} cores (minimum: ${MIN_CPU} cores)${NC}"
+    SPEC_FAILED=true
+fi
+if [ "$SYS_DISK" -lt "$MIN_DISK" ] 2>/dev/null; then
+    echo -e "  ${RED}Disk: ${SYS_DISK}GB free (minimum: ${MIN_DISK}GB)${NC}"
+    SPEC_FAILED=true
+fi
+
+if [ "$SPEC_FAILED" = true ]; then
+    echo ""
+    echo -e "${RED}Your system does not meet the minimum requirements for installation.${NC}"
+    exit 1
+fi
+
 get_install_status
 
 # Check Docker requirement for selected modules (before status display)
