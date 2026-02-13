@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { getGoogleServices } from "../auth/oauth.js";
+import { validateDriveId, sanitizeRange } from "../utils/sanitize.js";
 import { withRetry } from "../utils/retry.js";
 import { messages, msg } from "../utils/messages.js";
 
@@ -23,6 +24,7 @@ export const sheetsTools = {
       sheetNames?: string[];
       folderId?: string;
     }) => {
+      if (folderId) validateDriveId(folderId, "folderId");
       const { sheets, drive } = await getGoogleServices();
 
       // FR-S3-07: Typed request body instead of any
@@ -73,6 +75,7 @@ export const sheetsTools = {
       spreadsheetId: z.string().describe("Spreadsheet ID"),
     },
     handler: async ({ spreadsheetId }: { spreadsheetId: string }) => {
+      validateDriveId(spreadsheetId, "spreadsheetId");
       const { sheets } = await getGoogleServices();
 
       const response = await withRetry(() => sheets.spreadsheets.get({ spreadsheetId }));
@@ -99,10 +102,15 @@ export const sheetsTools = {
       range: z.string().describe("Range (e.g. 'Sheet1!A1:D10' or 'A1:D10')"),
     },
     handler: async ({ spreadsheetId, range }: { spreadsheetId: string; range: string }) => {
+      validateDriveId(spreadsheetId, "spreadsheetId");
+      const validRange = sanitizeRange(range);
+      if (!validRange) {
+        throw new Error("Invalid range format. Expected A1 notation (e.g., 'Sheet1!A1:D10').");
+      }
       const { sheets } = await getGoogleServices();
 
       const response = await withRetry(() =>
-        sheets.spreadsheets.values.get({ spreadsheetId, range })
+        sheets.spreadsheets.values.get({ spreadsheetId, range: validRange })
       );
 
       return {
@@ -122,10 +130,18 @@ export const sheetsTools = {
       ranges: z.array(z.string()).describe("Range list"),
     },
     handler: async ({ spreadsheetId, ranges }: { spreadsheetId: string; ranges: string[] }) => {
+      validateDriveId(spreadsheetId, "spreadsheetId");
+      const validRanges = ranges.map((r) => {
+        const valid = sanitizeRange(r);
+        if (!valid) {
+          throw new Error(`Invalid range format: "${r}". Expected A1 notation.`);
+        }
+        return valid;
+      });
       const { sheets } = await getGoogleServices();
 
       const response = await withRetry(() =>
-        sheets.spreadsheets.values.batchGet({ spreadsheetId, ranges })
+        sheets.spreadsheets.values.batchGet({ spreadsheetId, ranges: validRanges })
       );
 
       return {
@@ -154,12 +170,17 @@ export const sheetsTools = {
       range: string;
       values: unknown[][];
     }) => {
+      validateDriveId(spreadsheetId, "spreadsheetId");
+      const validRange = sanitizeRange(range);
+      if (!validRange) {
+        throw new Error("Invalid range format. Expected A1 notation (e.g., 'Sheet1!A1').");
+      }
       const { sheets } = await getGoogleServices();
 
       const response = await withRetry(() =>
         sheets.spreadsheets.values.update({
           spreadsheetId,
-          range,
+          range: validRange,
           valueInputOption: "USER_ENTERED",
           requestBody: { values },
         })
@@ -192,12 +213,17 @@ export const sheetsTools = {
       range: string;
       values: unknown[][];
     }) => {
+      validateDriveId(spreadsheetId, "spreadsheetId");
+      const validRange = sanitizeRange(range);
+      if (!validRange) {
+        throw new Error("Invalid range format. Expected A1 notation (e.g., 'Sheet1').");
+      }
       const { sheets } = await getGoogleServices();
 
       const response = await withRetry(() =>
         sheets.spreadsheets.values.append({
           spreadsheetId,
-          range,
+          range: validRange,
           valueInputOption: "USER_ENTERED",
           insertDataOption: "INSERT_ROWS",
           requestBody: { values },
@@ -220,9 +246,14 @@ export const sheetsTools = {
       range: z.string().describe("Range to clear"),
     },
     handler: async ({ spreadsheetId, range }: { spreadsheetId: string; range: string }) => {
+      validateDriveId(spreadsheetId, "spreadsheetId");
+      const validRange = sanitizeRange(range);
+      if (!validRange) {
+        throw new Error("Invalid range format. Expected A1 notation.");
+      }
       const { sheets } = await getGoogleServices();
 
-      await withRetry(() => sheets.spreadsheets.values.clear({ spreadsheetId, range }));
+      await withRetry(() => sheets.spreadsheets.values.clear({ spreadsheetId, range: validRange }));
 
       return {
         success: true,
@@ -238,6 +269,7 @@ export const sheetsTools = {
       title: z.string().describe("Sheet name"),
     },
     handler: async ({ spreadsheetId, title }: { spreadsheetId: string; title: string }) => {
+      validateDriveId(spreadsheetId, "spreadsheetId");
       const { sheets } = await getGoogleServices();
 
       const response = await withRetry(() =>
@@ -273,6 +305,7 @@ export const sheetsTools = {
       sheetId: z.number().describe("Sheet ID (not sheet name)"),
     },
     handler: async ({ spreadsheetId, sheetId }: { spreadsheetId: string; sheetId: number }) => {
+      validateDriveId(spreadsheetId, "spreadsheetId");
       const { sheets } = await getGoogleServices();
 
       await withRetry(() =>
@@ -311,6 +344,7 @@ export const sheetsTools = {
       sheetId: number;
       newTitle: string;
     }) => {
+      validateDriveId(spreadsheetId, "spreadsheetId");
       const { sheets } = await getGoogleServices();
 
       await withRetry(() =>
@@ -370,6 +404,7 @@ export const sheetsTools = {
       bold?: boolean;
       backgroundColor?: string;
     }) => {
+      validateDriveId(spreadsheetId, "spreadsheetId");
       const { sheets } = await getGoogleServices();
 
       // FR-S3-07: Typed format object instead of any
@@ -441,6 +476,7 @@ export const sheetsTools = {
       startColumn: number;
       endColumn: number;
     }) => {
+      validateDriveId(spreadsheetId, "spreadsheetId");
       const { sheets } = await getGoogleServices();
 
       await withRetry(() =>

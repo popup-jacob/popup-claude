@@ -147,8 +147,16 @@ describe("sanitize utilities", () => {
       expect(sanitizeRange("A1")).toBe("A1");
     });
 
-    it("should reject invalid range", () => {
-      expect(sanitizeRange("invalid")).toBeNull();
+    it("should accept sheet name as valid range", () => {
+      expect(sanitizeRange("Sheet1")).toBe("Sheet1");
+    });
+
+    it("should accept column-only range", () => {
+      expect(sanitizeRange("A:C")).toBe("A:C");
+    });
+
+    it("should reject range with special characters", () => {
+      expect(sanitizeRange("A1; DROP TABLE")).toBeNull();
     });
 
     it("should trim whitespace", () => {

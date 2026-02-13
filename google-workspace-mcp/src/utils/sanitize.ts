@@ -102,7 +102,7 @@ export function sanitizeFilename(filename: string): string {
  * Gap analysis D-10: Added for Sheets range operations.
  */
 export function sanitizeRange(range: string): string | null {
-  // Matches: Sheet1!A1:B2, A1:B2, A1, Sheet1!A1
-  const rangeRegex = /^([^!]+!)?[A-Z]+\d+(:[A-Z]+\d+)?$/i;
+  // Matches: Sheet1!A1:B2, A1:B2, A1, Sheet1!A1, A:C, Sheet1!A:C, Sheet1
+  const rangeRegex = /^(([^!]+)!)?([A-Z]+\d*(:[A-Z]+\d*)?)$/i;
   return rangeRegex.test(range.trim()) ? range.trim() : null;
 }

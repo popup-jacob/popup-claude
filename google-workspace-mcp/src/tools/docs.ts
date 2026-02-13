@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { getGoogleServices } from "../auth/oauth.js";
+import { validateDriveId } from "../utils/sanitize.js";
 import { withRetry } from "../utils/retry.js";
 import { messages, msg } from "../utils/messages.js";
 
@@ -23,6 +24,7 @@ export const docsTools = {
       content?: string;
       folderId?: string;
     }) => {
+      if (folderId) validateDriveId(folderId, "folderId");
       const { docs, drive } = await getGoogleServices();
 
       const response = await withRetry(() =>
@@ -92,6 +94,7 @@ export const docsTools = {
       documentId: z.string().describe("Document ID"),
     },
     handler: async ({ documentId }: { documentId: string }) => {
+      validateDriveId(documentId, "documentId");
       const { docs } = await getGoogleServices();
 
       const response = await withRetry(() =>
@@ -133,6 +136,7 @@ export const docsTools = {
       content: z.string().describe("Content to append"),
     },
     handler: async ({ documentId, content }: { documentId: string; content: string }) => {
+      validateDriveId(documentId, "documentId");
       const { docs } = await getGoogleServices();
 
       const doc = await withRetry(() => docs.documents.get({ documentId }));
@@ -170,6 +174,7 @@ export const docsTools = {
       content: z.string().describe("Content to prepend"),
     },
     handler: async ({ documentId, content }: { documentId: string; content: string }) => {
+      validateDriveId(documentId, "documentId");
       const { docs } = await getGoogleServices();
 
       await withRetry(() =>
@@ -214,6 +219,7 @@ export const docsTools = {
       replaceText: string;
       matchCase: boolean;
     }) => {
+      validateDriveId(documentId, "documentId");
       const { docs } = await getGoogleServices();
 
       const response = await withRetry(() =>
@@ -261,6 +267,7 @@ export const docsTools = {
       text: string;
       level: number;
     }) => {
+      validateDriveId(documentId, "documentId");
       const { docs } = await getGoogleServices();
 
       const doc = await withRetry(() => docs.documents.get({ documentId }));
@@ -323,6 +330,7 @@ export const docsTools = {
       rows: number;
       columns: number;
     }) => {
+      validateDriveId(documentId, "documentId");
       const { docs } = await getGoogleServices();
 
       const doc = await withRetry(() => docs.documents.get({ documentId }));
@@ -360,6 +368,7 @@ export const docsTools = {
       documentId: z.string().describe("Document ID"),
     },
     handler: async ({ documentId }: { documentId: string }) => {
+      validateDriveId(documentId, "documentId");
       const { drive } = await getGoogleServices();
 
       const response = await withRetry(() =>
@@ -392,6 +401,7 @@ export const docsTools = {
       content: z.string().describe("Comment content"),
     },
     handler: async ({ documentId, content }: { documentId: string; content: string }) => {
+      validateDriveId(documentId, "documentId");
       const { drive } = await getGoogleServices();
 
       const response = await withRetry(() =>

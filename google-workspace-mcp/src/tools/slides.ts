@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { getGoogleServices } from "../auth/oauth.js";
+import { validateDriveId } from "../utils/sanitize.js";
 import { withRetry } from "../utils/retry.js";
 import { messages, msg } from "../utils/messages.js";
 
@@ -14,6 +15,7 @@ export const slidesTools = {
       folderId: z.string().optional().describe("Destination folder ID"),
     },
     handler: async ({ title, folderId }: { title: string; folderId?: string }) => {
+      if (folderId) validateDriveId(folderId, "folderId");
       const { slides, drive } = await getGoogleServices();
 
       const response = await withRetry(() =>
@@ -65,6 +67,7 @@ export const slidesTools = {
       presentationId: z.string().describe("Presentation ID"),
     },
     handler: async ({ presentationId }: { presentationId: string }) => {
+      validateDriveId(presentationId, "presentationId");
       const { slides } = await getGoogleServices();
 
       const response = await withRetry(() =>
@@ -92,6 +95,7 @@ export const slidesTools = {
       presentationId: z.string().describe("Presentation ID"),
     },
     handler: async ({ presentationId }: { presentationId: string }) => {
+      validateDriveId(presentationId, "presentationId");
       const { slides } = await getGoogleServices();
 
       const response = await withRetry(() =>
@@ -150,6 +154,7 @@ export const slidesTools = {
       body?: string;
       layout: string;
     }) => {
+      validateDriveId(presentationId, "presentationId");
       const { slides } = await getGoogleServices();
 
       const slideId = `slide_${Date.now()}`;
@@ -227,6 +232,7 @@ export const slidesTools = {
       slideId: z.string().describe("Slide ID"),
     },
     handler: async ({ presentationId, slideId }: { presentationId: string; slideId: string }) => {
+      validateDriveId(presentationId, "presentationId");
       const { slides } = await getGoogleServices();
 
       await withRetry(() =>
@@ -258,6 +264,7 @@ export const slidesTools = {
       slideId: z.string().describe("Slide ID to duplicate"),
     },
     handler: async ({ presentationId, slideId }: { presentationId: string; slideId: string }) => {
+      validateDriveId(presentationId, "presentationId");
       const { slides } = await getGoogleServices();
 
       const newSlideId = `slide_copy_${Date.now()}`;
@@ -304,6 +311,7 @@ export const slidesTools = {
       slideId: string;
       insertionIndex: number;
     }) => {
+      validateDriveId(presentationId, "presentationId");
       const { slides } = await getGoogleServices();
 
       await withRetry(() =>
@@ -357,6 +365,7 @@ export const slidesTools = {
       width: number;
       height: number;
     }) => {
+      validateDriveId(presentationId, "presentationId");
       const { slides } = await getGoogleServices();
 
       const textBoxId = `textbox_${Date.now()}`;
@@ -424,6 +433,7 @@ export const slidesTools = {
       replaceText: string;
       matchCase: boolean;
     }) => {
+      validateDriveId(presentationId, "presentationId");
       const { slides } = await getGoogleServices();
 
       const response = await withRetry(() =>

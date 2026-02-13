@@ -95,45 +95,28 @@ describe("Gmail Tools - Security Tests (P0)", () => {
       //   })
       // ).rejects.toThrow(/Invalid email address/);
 
-      // Temporary: Just verify it doesn't crash
-      mockGmailApi.users.messages.send.mockResolvedValue({
-        data: { id: "msg123" },
-      });
-
-      await gmailTools.gmail_send.handler({
-        to: maliciousTo,
-        subject: "Test",
-        body: "Test",
-      });
-
-      expect(mockGmailApi.users.messages.send).toHaveBeenCalled();
+      // FR-S1-12: validateEmail now rejects CRLF-injected addresses before sanitization
+      await expect(
+        gmailTools.gmail_send.handler({
+          to: maliciousTo,
+          subject: "Test",
+          body: "Test",
+        })
+      ).rejects.toThrow("Invalid 'to' email address format.");
     });
 
     it("should prevent header injection via Cc field", async () => {
       const maliciousCc = "user@example.com\r\nBcc: attacker@evil.com";
 
-      mockGmailApi.users.messages.send.mockResolvedValue({
-        data: { id: "msg123" },
-      });
-
-      await gmailTools.gmail_send.handler({
-        to: "recipient@example.com",
-        cc: maliciousCc,
-        subject: "Test",
-        body: "Test",
-      });
-
-      const sentMessage = mockGmailApi.users.messages.send.mock.calls[0][0];
-      const rawEncoded = sentMessage.requestBody.raw;
-      const decoded = Buffer.from(
-        rawEncoded.replace(/-/g, "+").replace(/_/g, "/"),
-        "base64"
-      ).toString("utf-8");
-
-      // CRLF is stripped, so "Bcc:" cannot appear as a separate header line
-      const lines = decoded.split("\n");
-      const bccHeaderLine = lines.find((line: string) => line.startsWith("Bcc:"));
-      expect(bccHeaderLine).toBeUndefined();
+      // FR-S1-12: validateEmail now rejects CRLF-injected addresses
+      await expect(
+        gmailTools.gmail_send.handler({
+          to: "recipient@example.com",
+          cc: maliciousCc,
+          subject: "Test",
+          body: "Test",
+        })
+      ).rejects.toThrow("Invalid 'cc' email address format.");
     });
   });
 

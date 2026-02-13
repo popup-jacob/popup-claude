@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { getGoogleServices } from "../auth/oauth.js";
-import { sanitizeEmailHeader, validateMaxLength } from "../utils/sanitize.js";
+import { sanitizeEmailHeader, validateEmail, validateMaxLength } from "../utils/sanitize.js";
 import { withRetry } from "../utils/retry.js";
 import { extractTextBody, extractAttachments } from "../utils/mime.js";
 import { messages, msg } from "../utils/messages.js";
@@ -117,6 +117,17 @@ export const gmailTools = {
       cc?: string;
       bcc?: string;
     }) => {
+      // FR-S1-12: Validate email format before sending
+      if (!validateEmail(to)) {
+        throw new Error("Invalid 'to' email address format.");
+      }
+      if (cc && !validateEmail(cc)) {
+        throw new Error("Invalid 'cc' email address format.");
+      }
+      if (bcc && !validateEmail(bcc)) {
+        throw new Error("Invalid 'bcc' email address format.");
+      }
+
       const { gmail } = await getGoogleServices();
 
       // FR-S1-10: Sanitize email headers to prevent CRLF injection
@@ -179,6 +190,14 @@ export const gmailTools = {
       body: string;
       cc?: string;
     }) => {
+      // FR-S1-12: Validate email format before creating draft
+      if (!validateEmail(to)) {
+        throw new Error("Invalid 'to' email address format.");
+      }
+      if (cc && !validateEmail(cc)) {
+        throw new Error("Invalid 'cc' email address format.");
+      }
+
       const { gmail } = await getGoogleServices();
 
       // FR-S1-10: Sanitize email headers
