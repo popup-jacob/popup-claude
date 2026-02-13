@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { getGoogleServices } from "../auth/oauth.js";
-import { escapeDriveQuery, validateDriveId } from "../utils/sanitize.js";
+import { escapeDriveQuery, validateDriveId, validateEmail } from "../utils/sanitize.js";
 import { withRetry } from "../utils/retry.js";
 import { messages, msg } from "../utils/messages.js";
 
@@ -332,6 +332,12 @@ export const driveTools = {
       sendNotification: boolean;
     }) => {
       validateDriveId(fileId, "fileId");
+
+      // FR-S1-12: Defensive email format validation
+      if (!validateEmail(email)) {
+        throw new Error(`Invalid email address format: ${email}`);
+      }
+
       const { drive } = await getGoogleServices();
 
       await withRetry(() =>
@@ -402,6 +408,12 @@ export const driveTools = {
     },
     handler: async ({ fileId, email }: { fileId: string; email: string }) => {
       validateDriveId(fileId, "fileId");
+
+      // FR-S1-12: Defensive email format validation
+      if (!validateEmail(email)) {
+        throw new Error(`Invalid email address format: ${email}`);
+      }
+
       const { drive } = await getGoogleServices();
 
       const permissions = await withRetry(() =>

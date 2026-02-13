@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { getGoogleServices } from "../auth/oauth.js";
-import { sanitizeEmailHeader } from "../utils/sanitize.js";
+import { sanitizeEmailHeader, validateMaxLength } from "../utils/sanitize.js";
 import { withRetry } from "../utils/retry.js";
 import { extractTextBody, extractAttachments } from "../utils/mime.js";
 import { messages, msg } from "../utils/messages.js";
@@ -116,6 +116,9 @@ export const gmailTools = {
       const safeCc = cc ? sanitizeEmailHeader(cc) : undefined;
       const safeBcc = bcc ? sanitizeEmailHeader(bcc) : undefined;
 
+      // FR-S1-12: Defensive body length validation (Gmail API limit ~5MB)
+      const safeBody = validateMaxLength(body, 500000);
+
       // Build RFC 2822 message: headers, blank line, body
       const hdrs = [
         `To: ${safeTo}`,
@@ -124,7 +127,7 @@ export const gmailTools = {
         `Subject: =?UTF-8?B?${Buffer.from(subject).toString("base64")}?=`,
         "Content-Type: text/plain; charset=utf-8",
       ];
-      const messageParts = hdrs.join("\n") + "\n\n" + body;
+      const messageParts = hdrs.join("\n") + "\n\n" + safeBody;
 
       const encodedMessage = Buffer.from(messageParts)
         .toString("base64")
@@ -164,6 +167,9 @@ export const gmailTools = {
       const safeTo = sanitizeEmailHeader(to);
       const safeCc = cc ? sanitizeEmailHeader(cc) : undefined;
 
+      // FR-S1-12: Defensive body length validation
+      const safeBody = validateMaxLength(body, 500000);
+
       // Build RFC 2822 message: headers, blank line, body
       const hdrs = [
         `To: ${safeTo}`,
@@ -171,7 +177,7 @@ export const gmailTools = {
         `Subject: =?UTF-8?B?${Buffer.from(subject).toString("base64")}?=`,
         "Content-Type: text/plain; charset=utf-8",
       ];
-      const messageParts = hdrs.join("\n") + "\n\n" + body;
+      const messageParts = hdrs.join("\n") + "\n\n" + safeBody;
 
       const encodedMessage = Buffer.from(messageParts)
         .toString("base64")
