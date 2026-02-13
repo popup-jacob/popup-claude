@@ -91,9 +91,9 @@ jobs:
         run: docker run --rm test node -e "console.log('OK')"
       - name: Test non-root user
         run: |
-          UID=$(docker run --rm test id -u)
-          echo "Container UID: $UID"
-          [ "$UID" != "0" ] && echo "PASS: Running as non-root" || (echo "FAIL: Running as root" && exit 1)
+          CONTAINER_UID=$(docker run --rm test id -u)
+          echo "Container UID: $CONTAINER_UID"
+          [ "$CONTAINER_UID" != "0" ] && echo "PASS: Running as non-root" || (echo "FAIL: Running as root" && exit 1)
       - name: Test required env vars are checked
         run: |
           # Should fail gracefully without credentials

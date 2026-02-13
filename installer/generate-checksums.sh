@@ -30,11 +30,11 @@ cd "$BASE_DIR"
 # Hash all relevant files
 for file in modules.json modules/*/module.json modules/*/install.sh modules/*/install.ps1; do
     if [ -f "$file" ]; then
-        # Compute SHA-256 (cross-platform)
+        # Compute SHA-256 (cross-platform, normalize line endings to LF)
         if command -v shasum > /dev/null 2>&1; then
-            hash=$(shasum -a 256 "$file" | awk '{print $1}')
+            hash=$(tr -d '\r' < "$file" | shasum -a 256 | awk '{print $1}')
         elif command -v sha256sum > /dev/null 2>&1; then
-            hash=$(sha256sum "$file" | awk '{print $1}')
+            hash=$(tr -d '\r' < "$file" | sha256sum | awk '{print $1}')
         else
             echo "ERROR: No SHA-256 tool found"
             exit 1

@@ -29,8 +29,8 @@ describe("time utilities", () => {
       delete process.env.TIMEZONE;
       const tz = getTimezone();
       expect(tz).toBeTruthy();
-      // Should be a valid IANA timezone
-      expect(tz).toMatch(/^[A-Z][a-z]+\/[A-Z][a-z_]+/);
+      // Should be a valid IANA timezone (e.g. Asia/Seoul) or UTC
+      expect(tz).toMatch(/^([A-Z][a-z]+\/[A-Z][a-z_]+|UTC)/);
     });
   });
 
