@@ -12,4 +12,3 @@ token.json
 vitest.config.ts
 eslint.config.js
 .prettierrc
-tsconfig.json

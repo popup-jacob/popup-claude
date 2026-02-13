@@ -89,7 +89,7 @@ validate_json() {
 }
 
 for module_json in $MODULE_JSONS; do
-  module_name=$(basename $(dirname "$module_json"))
+  module_name=$(basename "$(dirname "$module_json")")
   echo "----------------------------------------"
   echo "Testing: $module_name/module.json"
   echo "----------------------------------------"

@@ -60,7 +60,7 @@ if [ -z "$MODULE_SCRIPTS" ]; then
   echo -e "${YELLOW}No module install scripts found${NC}"
 else
   for script in $MODULE_SCRIPTS; do
-    module_name=$(basename $(dirname "$script"))
+    module_name=$(basename "$(dirname "$script")")
     echo "----------------------------------------"
     echo "Testing: $module_name/install.sh"
     echo "----------------------------------------"

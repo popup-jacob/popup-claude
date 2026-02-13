@@ -85,6 +85,7 @@ export function validateMaxLength(input: string, max: number): string {
  */
 export function sanitizeFilename(filename: string): string {
   return filename
+    // eslint-disable-next-line no-control-regex
     .replace(/[<>:"/\\|?*\x00-\x1F]/g, "_")
     .replace(/\.+/g, ".")
     .replace(/^\./, "")

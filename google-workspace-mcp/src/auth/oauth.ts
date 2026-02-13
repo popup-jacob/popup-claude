@@ -234,6 +234,7 @@ async function getTokenFromBrowser(
   });
 
   return new Promise((resolve, reject) => {
+    // eslint-disable-next-line prefer-const
     let timeoutId: NodeJS.Timeout;
 
     const server = http.createServer(async (req, res) => {
@@ -371,7 +372,7 @@ export async function getAuthenticatedClient(): Promise<OAuth2Client> {
               await oauth2Client.refreshAccessToken();
             saveToken(credentials as TokenData);
             oauth2Client.setCredentials(credentials);
-          } catch (error) {
+          } catch (_error) {
             logSecurityEvent("token_refresh", "failure", "Refresh failed, re-authenticating");
             console.error(
               "Token refresh failed, re-authenticating..."
