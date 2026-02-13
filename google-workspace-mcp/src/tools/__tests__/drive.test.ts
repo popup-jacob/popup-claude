@@ -40,6 +40,7 @@ describe("Drive Tools - Security Tests (P0)", () => {
       await driveTools.drive_search.handler({
         query: "test' or name contains '",
         maxResults: 10,
+        driveType: "all",
       });
 
       const calledArgs = mockDriveApi.files.list.mock.calls[0][0];
@@ -56,6 +57,7 @@ describe("Drive Tools - Security Tests (P0)", () => {
       await driveTools.drive_search.handler({
         query: "test\\escape",
         maxResults: 10,
+        driveType: "all",
       });
 
       expect(mockDriveApi.files.list).toHaveBeenCalled();
@@ -70,6 +72,7 @@ describe("Drive Tools - Security Tests (P0)", () => {
         query: "test",
         mimeType: "application/pdf' or trashed = true or mimeType = '",
         maxResults: 10,
+        driveType: "all",
       });
 
       const calledArgs = mockDriveApi.files.list.mock.calls[0][0];
@@ -147,6 +150,7 @@ describe("Drive Tools - Core Functionality (P1)", () => {
       const result = await driveTools.drive_search.handler({
         query: "Document",
         maxResults: 10,
+        driveType: "all",
       });
 
       expect(result.total).toBe(1);
@@ -159,6 +163,7 @@ describe("Drive Tools - Core Functionality (P1)", () => {
         owner: "user@example.com",
         size: "1024",
         parentId: "folder1",
+        driveId: undefined,
       });
     });
 
@@ -170,6 +175,7 @@ describe("Drive Tools - Core Functionality (P1)", () => {
       const result = await driveTools.drive_search.handler({
         query: "nonexistent",
         maxResults: 10,
+        driveType: "all",
       });
 
       expect(result.total).toBe(0);
@@ -183,12 +189,61 @@ describe("Drive Tools - Core Functionality (P1)", () => {
       await driveTools.drive_search.handler({
         query: "test",
         maxResults: 10,
+        driveType: "all",
       });
 
       const calledArgs = mockDriveApi.files.list.mock.calls[0][0];
       expect(calledArgs.supportsAllDrives).toBe(true);
       expect(calledArgs.includeItemsFromAllDrives).toBe(true);
       expect(calledArgs.corpora).toBe("allDrives");
+    });
+
+    it("should filter to personal drive only with driveType 'my'", async () => {
+      mockDriveApi.files.list.mockResolvedValue({
+        data: { files: [] },
+      });
+
+      await driveTools.drive_search.handler({
+        query: "test",
+        maxResults: 10,
+        driveType: "my",
+      });
+
+      const calledArgs = mockDriveApi.files.list.mock.calls[0][0];
+      expect(calledArgs.corpora).toBe("user");
+    });
+
+    it("should filter to shared drives only with driveType 'shared'", async () => {
+      mockDriveApi.files.list.mockResolvedValue({
+        data: { files: [] },
+      });
+
+      await driveTools.drive_search.handler({
+        query: "test",
+        maxResults: 10,
+        driveType: "shared",
+      });
+
+      const calledArgs = mockDriveApi.files.list.mock.calls[0][0];
+      expect(calledArgs.q).toContain("not 'me' in owners");
+      expect(calledArgs.corpora).toBe("allDrives");
+    });
+
+    it("should search specific shared drive with driveId", async () => {
+      mockDriveApi.files.list.mockResolvedValue({
+        data: { files: [] },
+      });
+
+      await driveTools.drive_search.handler({
+        query: "test",
+        maxResults: 10,
+        driveType: "all",
+        driveId: "0ABcDeFgHiJkLmNoPq",
+      });
+
+      const calledArgs = mockDriveApi.files.list.mock.calls[0][0];
+      expect(calledArgs.corpora).toBe("drive");
+      expect(calledArgs.driveId).toBe("0ABcDeFgHiJkLmNoPq");
     });
   });
 

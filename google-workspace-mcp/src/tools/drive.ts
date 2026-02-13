@@ -17,37 +17,70 @@ export const driveTools = {
       query: z.string().describe("Search query"),
       mimeType: z.string().optional().describe("File type filter"),
       maxResults: z.number().optional().default(10).describe("Maximum number of results"),
+      driveType: z
+        .enum(["all", "my", "shared"])
+        .optional()
+        .default("all")
+        .describe("Drive scope: 'my' (personal), 'shared' (shared drives only), 'all' (both)"),
+      driveId: z.string().optional().describe("Specific shared drive ID to search in"),
     },
     handler: async ({
       query,
       mimeType,
       maxResults,
+      driveType,
+      driveId,
     }: {
       query: string;
       mimeType?: string;
       maxResults: number;
+      driveType: string;
+      driveId?: string;
     }) => {
+      if (driveId) validateDriveId(driveId, "driveId");
       const { drive } = await getGoogleServices();
 
       // FR-S1-02: Escape user input to prevent Drive query injection
-      let q = `name contains '${escapeDriveQuery(query)}' and trashed = false`;
+      let q = query
+        ? `name contains '${escapeDriveQuery(query)}' and trashed = false`
+        : "trashed = false";
       if (mimeType) {
         q += ` and mimeType = '${escapeDriveQuery(mimeType)}'`;
       }
 
-      const response = await withRetry(() =>
-        drive.files.list({
-          q,
-          pageSize: maxResults,
-          fields: "files(id, name, mimeType, modifiedTime, webViewLink, owners, size, parents)",
-          supportsAllDrives: true,
-          includeItemsFromAllDrives: true,
-          corpora: "allDrives",
-        })
-      );
+      // Build request options based on driveType
+      const listParams: Record<string, unknown> = {
+        q,
+        pageSize: maxResults,
+        fields: "files(id, name, mimeType, modifiedTime, webViewLink, owners, size, parents, driveId)",
+        supportsAllDrives: true,
+      };
+
+      if (driveId) {
+        // Search within a specific shared drive
+        listParams.corpora = "drive";
+        listParams.driveId = driveId;
+        listParams.includeItemsFromAllDrives = true;
+      } else if (driveType === "shared") {
+        // Search only in shared drives (exclude personal)
+        listParams.corpora = "allDrives";
+        listParams.includeItemsFromAllDrives = true;
+        q += " and not 'me' in owners";
+        listParams.q = q;
+      } else if (driveType === "my") {
+        // Search only personal drive
+        listParams.corpora = "user";
+      } else {
+        // "all" - search everything
+        listParams.corpora = "allDrives";
+        listParams.includeItemsFromAllDrives = true;
+      }
+
+      const response = await withRetry(() => drive.files.list(listParams));
 
       return {
         total: response.data.files?.length || 0,
+        driveType,
         files: response.data.files?.map((file) => ({
           id: file.id,
           name: file.name,
@@ -57,6 +90,7 @@ export const driveTools = {
           owner: file.owners?.[0]?.emailAddress,
           size: file.size,
           parentId: file.parents?.[0],
+          driveId: file.driveId,
         })),
       };
     },
