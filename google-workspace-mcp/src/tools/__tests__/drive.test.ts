@@ -313,4 +313,255 @@ describe('Drive Tools - Core Functionality (P1)', () => {
       expect(result.usageInDriveTrash).toBe('0.50 GB');
     });
   });
+
+  describe('drive_get_file - TC-D08: File Details', () => {
+    it('should return detailed file information', async () => {
+      mockDriveApi.files.get.mockResolvedValue({
+        data: {
+          id: 'file1',
+          name: 'Report.docx',
+          mimeType: 'application/vnd.google-apps.document',
+          createdTime: '2026-01-01T00:00:00Z',
+          modifiedTime: '2026-02-13T10:00:00Z',
+          webViewLink: 'https://docs.google.com/document/d/file1',
+          size: '2048',
+          owners: [{ emailAddress: 'owner@example.com' }],
+          parents: ['folder1'],
+          shared: true,
+        },
+      });
+
+      const result = await driveTools.drive_get_file.handler({ fileId: 'file1' });
+
+      expect(result.id).toBe('file1');
+      expect(result.name).toBe('Report.docx');
+      expect(result.owners).toEqual(['owner@example.com']);
+      expect(result.shared).toBe(true);
+      expect(result.parentId).toBe('folder1');
+    });
+
+    it('should reject invalid file IDs', async () => {
+      await expect(
+        driveTools.drive_get_file.handler({ fileId: "file1'; DROP TABLE" })
+      ).rejects.toThrow();
+    });
+  });
+
+  describe('drive_copy - TC-D09: File Copy', () => {
+    it('should copy a file with new name', async () => {
+      mockDriveApi.files.copy.mockResolvedValue({
+        data: {
+          id: 'copiedFile1',
+          name: 'Report Copy',
+          webViewLink: 'https://drive.google.com/file/d/copiedFile1',
+        },
+      });
+
+      const result = await driveTools.drive_copy.handler({
+        fileId: 'file1',
+        newName: 'Report Copy',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.fileId).toBe('copiedFile1');
+      expect(result.name).toBe('Report Copy');
+      expect(mockDriveApi.files.copy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fileId: 'file1',
+          requestBody: expect.objectContaining({ name: 'Report Copy' }),
+          supportsAllDrives: true,
+        })
+      );
+    });
+
+    it('should copy a file to a specific folder', async () => {
+      mockDriveApi.files.copy.mockResolvedValue({
+        data: { id: 'copiedFile2', name: 'File' },
+      });
+
+      await driveTools.drive_copy.handler({
+        fileId: 'file1',
+        parentId: 'targetFolder',
+      });
+
+      const calledArgs = mockDriveApi.files.copy.mock.calls[0][0];
+      expect(calledArgs.requestBody.parents).toEqual(['targetFolder']);
+    });
+  });
+
+  describe('drive_move - TC-D10: File Move', () => {
+    it('should move file to new parent', async () => {
+      mockDriveApi.files.get.mockResolvedValue({
+        data: { parents: ['oldFolder'] },
+      });
+      mockDriveApi.files.update.mockResolvedValue({
+        data: {
+          id: 'file1',
+          name: 'Moved File',
+          parents: ['newFolder'],
+          webViewLink: 'https://drive.google.com/file/d/file1',
+        },
+      });
+
+      const result = await driveTools.drive_move.handler({
+        fileId: 'file1',
+        newParentId: 'newFolder',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.newParentId).toBe('newFolder');
+      expect(mockDriveApi.files.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fileId: 'file1',
+          addParents: 'newFolder',
+          removeParents: 'oldFolder',
+        })
+      );
+    });
+  });
+
+  describe('drive_rename - TC-D11: File Rename', () => {
+    it('should rename a file', async () => {
+      mockDriveApi.files.update.mockResolvedValue({
+        data: {
+          id: 'file1',
+          name: 'New Name.pdf',
+          webViewLink: 'https://drive.google.com/file/d/file1',
+        },
+      });
+
+      const result = await driveTools.drive_rename.handler({
+        fileId: 'file1',
+        newName: 'New Name.pdf',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.name).toBe('New Name.pdf');
+      expect(mockDriveApi.files.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fileId: 'file1',
+          requestBody: { name: 'New Name.pdf' },
+        })
+      );
+    });
+  });
+
+  describe('drive_share_link - TC-D12: Link Sharing', () => {
+    it('should enable anyone link sharing', async () => {
+      mockDriveApi.permissions.create.mockResolvedValue({ data: {} });
+      mockDriveApi.files.get.mockResolvedValue({
+        data: { webViewLink: 'https://drive.google.com/file/d/file1' },
+      });
+
+      const result = await driveTools.drive_share_link.handler({
+        fileId: 'file1',
+        type: 'anyone',
+        role: 'reader',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.link).toBe('https://drive.google.com/file/d/file1');
+      expect(mockDriveApi.permissions.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          requestBody: { type: 'anyone', role: 'reader' },
+        })
+      );
+    });
+
+    it('should enable domain link sharing', async () => {
+      mockDriveApi.permissions.create.mockResolvedValue({ data: {} });
+      mockDriveApi.files.get.mockResolvedValue({
+        data: { webViewLink: 'https://drive.google.com/file/d/file1' },
+      });
+
+      await driveTools.drive_share_link.handler({
+        fileId: 'file1',
+        type: 'domain',
+        role: 'writer',
+      });
+
+      expect(mockDriveApi.permissions.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          requestBody: { type: 'domain', role: 'writer' },
+        })
+      );
+    });
+  });
+
+  describe('drive_unshare - TC-D13: Remove Sharing', () => {
+    it('should remove sharing permission by email', async () => {
+      mockDriveApi.permissions.list.mockResolvedValue({
+        data: {
+          permissions: [
+            { id: 'perm1', emailAddress: 'user@example.com' },
+            { id: 'perm2', emailAddress: 'other@example.com' },
+          ],
+        },
+      });
+      mockDriveApi.permissions.delete.mockResolvedValue({ data: {} });
+
+      const result = await driveTools.drive_unshare.handler({
+        fileId: 'file1',
+        email: 'user@example.com',
+      });
+
+      expect(result.success).toBe(true);
+      expect(mockDriveApi.permissions.delete).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fileId: 'file1',
+          permissionId: 'perm1',
+        })
+      );
+    });
+
+    it('should return failure when permission not found', async () => {
+      mockDriveApi.permissions.list.mockResolvedValue({
+        data: {
+          permissions: [
+            { id: 'perm1', emailAddress: 'other@example.com' },
+          ],
+        },
+      });
+
+      const result = await driveTools.drive_unshare.handler({
+        fileId: 'file1',
+        email: 'notfound@example.com',
+      });
+
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject invalid email format', async () => {
+      await expect(
+        driveTools.drive_unshare.handler({
+          fileId: 'file1',
+          email: 'not-an-email',
+        })
+      ).rejects.toThrow(/Invalid email/);
+    });
+  });
+
+  describe('drive_list_permissions - TC-D14: Permission List', () => {
+    it('should list all permissions for a file', async () => {
+      mockDriveApi.permissions.list.mockResolvedValue({
+        data: {
+          permissions: [
+            { id: 'perm1', type: 'user', role: 'owner', emailAddress: 'owner@example.com', displayName: 'Owner' },
+            { id: 'perm2', type: 'anyone', role: 'reader' },
+          ],
+        },
+      });
+
+      const result = await driveTools.drive_list_permissions.handler({ fileId: 'file1' });
+
+      expect(result.permissions).toHaveLength(2);
+      expect(result.permissions![0]).toEqual({
+        id: 'perm1',
+        type: 'user',
+        role: 'owner',
+        email: 'owner@example.com',
+        name: 'Owner',
+      });
+    });
+  });
 });

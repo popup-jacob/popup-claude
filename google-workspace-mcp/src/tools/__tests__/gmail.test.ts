@@ -526,3 +526,142 @@ describe('Gmail Tools - Label Operations (P1)', () => {
     });
   });
 });
+
+describe('Gmail Tools - Draft Operations (P1)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should list drafts', async () => {
+    mockGmailApi.users.drafts.list.mockResolvedValue({
+      data: {
+        drafts: [{ id: 'draft1' }, { id: 'draft2' }],
+      },
+    });
+
+    mockGmailApi.users.drafts.get.mockResolvedValue({
+      data: {
+        message: {
+          payload: {
+            headers: [
+              { name: 'To', value: 'user@example.com' },
+              { name: 'Subject', value: 'Draft Subject' },
+            ],
+          },
+          snippet: 'Draft preview...',
+        },
+      },
+    });
+
+    const result = await gmailTools.gmail_draft_list.handler({ maxResults: 10 });
+
+    expect(result.total).toBe(2);
+    expect(result.drafts).toHaveLength(2);
+    expect(result.drafts[0].subject).toBe('Draft Subject');
+  });
+
+  it('should handle empty draft list', async () => {
+    mockGmailApi.users.drafts.list.mockResolvedValue({
+      data: {},
+    });
+
+    const result = await gmailTools.gmail_draft_list.handler({ maxResults: 10 });
+
+    expect(result.total).toBe(0);
+    expect(result.drafts).toEqual([]);
+  });
+
+  it('should create a draft', async () => {
+    mockGmailApi.users.drafts.create.mockResolvedValue({
+      data: { id: 'draft123' },
+    });
+
+    const result = await gmailTools.gmail_draft_create.handler({
+      to: 'user@example.com',
+      subject: 'Draft Test',
+      body: 'Draft body',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.draftId).toBe('draft123');
+  });
+
+  it('should send a draft', async () => {
+    mockGmailApi.users.drafts.send.mockResolvedValue({
+      data: { id: 'sent123' },
+    });
+
+    const result = await gmailTools.gmail_draft_send.handler({ draftId: 'draft1' });
+
+    expect(result.success).toBe(true);
+    expect(result.messageId).toBe('sent123');
+  });
+
+  it('should delete a draft', async () => {
+    mockGmailApi.users.drafts.delete.mockResolvedValue({ data: {} });
+
+    const result = await gmailTools.gmail_draft_delete.handler({ draftId: 'draft1' });
+
+    expect(result.success).toBe(true);
+  });
+});
+
+describe('Gmail Tools - Trash & Read Status (P1)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should move email to trash', async () => {
+    mockGmailApi.users.messages.trash.mockResolvedValue({ data: {} });
+
+    const result = await gmailTools.gmail_trash.handler({ messageId: 'msg123' });
+
+    expect(result.success).toBe(true);
+    expect(mockGmailApi.users.messages.trash).toHaveBeenCalledWith({
+      userId: 'me',
+      id: 'msg123',
+    });
+  });
+
+  it('should restore email from trash', async () => {
+    mockGmailApi.users.messages.untrash.mockResolvedValue({ data: {} });
+
+    const result = await gmailTools.gmail_untrash.handler({ messageId: 'msg123' });
+
+    expect(result.success).toBe(true);
+    expect(mockGmailApi.users.messages.untrash).toHaveBeenCalledWith({
+      userId: 'me',
+      id: 'msg123',
+    });
+  });
+
+  it('should mark email as read', async () => {
+    mockGmailApi.users.messages.modify.mockResolvedValue({ data: {} });
+
+    const result = await gmailTools.gmail_mark_read.handler({ messageId: 'msg123' });
+
+    expect(result.success).toBe(true);
+    expect(mockGmailApi.users.messages.modify).toHaveBeenCalledWith({
+      userId: 'me',
+      id: 'msg123',
+      requestBody: {
+        removeLabelIds: ['UNREAD'],
+      },
+    });
+  });
+
+  it('should mark email as unread', async () => {
+    mockGmailApi.users.messages.modify.mockResolvedValue({ data: {} });
+
+    const result = await gmailTools.gmail_mark_unread.handler({ messageId: 'msg123' });
+
+    expect(result.success).toBe(true);
+    expect(mockGmailApi.users.messages.modify).toHaveBeenCalledWith({
+      userId: 'me',
+      id: 'msg123',
+      requestBody: {
+        addLabelIds: ['UNREAD'],
+      },
+    });
+  });
+});
