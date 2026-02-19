@@ -30,6 +30,10 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 
     if ! command -v brew > /dev/null 2>&1; then
         echo -e "  ${GRAY}Installing Homebrew...${NC}"
+        # Cache sudo credentials before Homebrew install
+        # sudo reads password from /dev/tty, so it works even in curl|bash
+        echo -e "  ${YELLOW}Homebrew requires admin access. Enter your password:${NC}"
+        sudo -v < /dev/tty
         # NONINTERACTIVE=1 allows install without TTY prompts
         NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
