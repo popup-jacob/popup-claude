@@ -21,16 +21,37 @@ DOCKER_NEEDS_RESTART=false
 # ============================================
 echo -e "${YELLOW}[1/7] Checking Homebrew...${NC}"
 if [[ "$OSTYPE" == "darwin"* ]]; then
+    # Add Homebrew to PATH first (in case it's installed but not in PATH)
+    if [ -f "/opt/homebrew/bin/brew" ]; then
+        eval "$(/opt/homebrew/bin/brew shellenv)"
+    elif [ -f "/usr/local/bin/brew" ]; then
+        eval "$(/usr/local/bin/brew shellenv)"
+    fi
+
     if ! command -v brew > /dev/null 2>&1; then
         echo -e "  ${GRAY}Installing Homebrew...${NC}"
-        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        # NONINTERACTIVE=1 allows install without TTY prompts
+        NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-        # Add Homebrew to PATH for Apple Silicon
+        # Add Homebrew to PATH after installation
         if [ -f "/opt/homebrew/bin/brew" ]; then
             eval "$(/opt/homebrew/bin/brew shellenv)"
+        elif [ -f "/usr/local/bin/brew" ]; then
+            eval "$(/usr/local/bin/brew shellenv)"
         fi
     fi
-    echo -e "  ${GREEN}OK${NC}"
+
+    # Verify Homebrew is actually available
+    if command -v brew > /dev/null 2>&1; then
+        echo -e "  ${GREEN}OK - $(brew --version | head -1)${NC}"
+    else
+        echo -e "  ${RED}FAILED - Homebrew installation failed${NC}"
+        echo -e "  ${YELLOW}Please install manually:${NC}"
+        echo -e "  ${CYAN}/bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"${NC}"
+        echo -e "  ${YELLOW}Then add to PATH:${NC}"
+        echo -e "  ${CYAN}echo 'eval \"\$(/opt/homebrew/bin/brew shellenv)\"' >> ~/.zshrc && source ~/.zshrc${NC}"
+        echo -e "  ${YELLOW}Then re-run the installer.${NC}"
+    fi
 else
     echo -e "  ${GRAY}Skipped (Linux)${NC}"
 fi
@@ -43,7 +64,11 @@ echo -e "${YELLOW}[2/7] Checking Node.js...${NC}"
 if ! command -v node > /dev/null 2>&1; then
     echo -e "  ${GRAY}Installing Node.js...${NC}"
     if [[ "$OSTYPE" == "darwin"* ]]; then
-        brew install node
+        if command -v brew > /dev/null 2>&1; then
+            brew install node
+        else
+            echo -e "  ${YELLOW}Homebrew not available. Please install Node.js manually from https://nodejs.org${NC}"
+        fi
     else
         # FR-S2-04: Linux - multi-package manager support
         if command -v apt-get > /dev/null 2>&1; then
@@ -101,7 +126,11 @@ echo -e "${YELLOW}[4/7] Checking VS Code...${NC}"
 if ! command -v code > /dev/null 2>&1 && [ ! -d "/Applications/Visual Studio Code.app" ]; then
     echo -e "  ${GRAY}Installing VS Code...${NC}"
     if [[ "$OSTYPE" == "darwin"* ]]; then
-        brew install --cask visual-studio-code
+        if command -v brew > /dev/null 2>&1; then
+            brew install --cask visual-studio-code
+        else
+            echo -e "  ${YELLOW}Homebrew not available. Please install VS Code from https://code.visualstudio.com${NC}"
+        fi
     else
         # FR-S2-04: Linux - multi-package manager VS Code support
         if command -v snap > /dev/null 2>&1; then
@@ -134,6 +163,9 @@ if [ "$NEEDS_DOCKER" = true ]; then
     if ! command -v docker > /dev/null 2>&1; then
         echo -e "  ${GRAY}Installing Docker Desktop...${NC}"
         if [[ "$OSTYPE" == "darwin"* ]]; then
+            if ! command -v brew > /dev/null 2>&1; then
+                echo -e "  ${YELLOW}Homebrew not available. Please install Docker Desktop from https://docker.com${NC}"
+            else
             echo -e "  ${GRAY}This may take 3~5 minutes. Please wait...${NC}"
             # Run brew install in background with spinner
             brew install --cask docker > /dev/null 2>&1 &
@@ -154,6 +186,7 @@ if [ "$NEEDS_DOCKER" = true ]; then
                 echo -e "  ${YELLOW}Installed (start Docker Desktop after setup)${NC}"
             else
                 echo -e "  ${RED}Installation failed. Please install Docker Desktop manually.${NC}"
+            fi
             fi
         else
             # Linux
