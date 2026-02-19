@@ -102,13 +102,15 @@ fi
 # All remote downloads are verified against checksums.json before execution.
 # This prevents MITM attacks, CDN tampering, and partial download execution.
 CHECKSUMS_JSON=""
+CHECKSUMS_LOADED=false
 
 # Download and cache checksums.json (once per session)
 load_checksums() {
-    if [ -z "$CHECKSUMS_JSON" ]; then
+    if [ "$CHECKSUMS_LOADED" = false ]; then
+        CHECKSUMS_LOADED=true
         CHECKSUMS_JSON=$(curl -sSL "$BASE_URL/checksums.json" 2>/dev/null || echo "")
         if [ -z "$CHECKSUMS_JSON" ]; then
-            echo -e "${YELLOW}[WARN] checksums.json not available. Skipping integrity verification.${NC}"
+            echo -e "${YELLOW}[WARN] checksums.json not available. Skipping integrity verification.${NC}" >&2
         fi
     fi
 }
@@ -123,7 +125,7 @@ download_and_verify() {
 
     # 1. Download the file to a temp location
     if ! curl -sSL "$url" -o "$tmpfile"; then
-        echo -e "${RED}[ERROR] Download failed: $url${NC}"
+        echo -e "${RED}[ERROR] Download failed: $url${NC}" >&2
         rm -f "$tmpfile"
         return 1
     fi
@@ -155,21 +157,21 @@ download_and_verify() {
             elif command -v sha256sum > /dev/null 2>&1; then
                 actual_hash=$(sha256sum "$tmpfile" | awk '{print $1}')
             else
-                echo -e "${YELLOW}[WARN] No SHA-256 tool found. Skipping hash verification.${NC}"
+                echo -e "${YELLOW}[WARN] No SHA-256 tool found. Skipping hash verification.${NC}" >&2
                 echo "$tmpfile"
                 return 0
             fi
 
             if [ "$actual_hash" != "$expected_hash" ]; then
-                echo -e "${RED}[SECURITY] Integrity verification failed!${NC}"
-                echo -e "${RED}  File: $relative_path${NC}"
-                echo -e "${RED}  Expected: $expected_hash${NC}"
-                echo -e "${RED}  Actual:   $actual_hash${NC}"
-                echo -e "${RED}  File may have been tampered with. Aborting.${NC}"
+                echo -e "${RED}[SECURITY] Integrity verification failed!${NC}" >&2
+                echo -e "${RED}  File: $relative_path${NC}" >&2
+                echo -e "${RED}  Expected: $expected_hash${NC}" >&2
+                echo -e "${RED}  Actual:   $actual_hash${NC}" >&2
+                echo -e "${RED}  File may have been tampered with. Aborting.${NC}" >&2
                 rm -f "$tmpfile"
                 return 1
             fi
-            echo -e "  ${GREEN}Integrity verified: $relative_path${NC}"
+            echo -e "  ${GREEN}Integrity verified: $relative_path${NC}" >&2
         fi
     fi
 
@@ -632,8 +634,14 @@ run_module() {
     local total=$3
 
     local idx=$(get_module_index "$module_name")
-    local display_name="${MODULE_DISPLAY_NAMES[$idx]}"
-    local description="${MODULE_DESCRIPTIONS[$idx]}"
+    if [ "$idx" = "-1" ]; then
+        echo -e "${YELLOW}[WARN] Module '$module_name' not found in registry. Running directly...${NC}"
+        local display_name="$module_name"
+        local description=""
+    else
+        local display_name="${MODULE_DISPLAY_NAMES[$idx]}"
+        local description="${MODULE_DESCRIPTIONS[$idx]}"
+    fi
 
     echo ""
     echo "========================================"
