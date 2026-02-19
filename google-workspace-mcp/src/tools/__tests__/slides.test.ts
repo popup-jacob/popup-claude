@@ -404,3 +404,156 @@ describe("Slides Tools - Core Functionality", () => {
     });
   });
 });
+
+/* ------------------------------------------------------------------ */
+/*  slides_add_slide text path / slides_move_slide / slides_replace_text */
+/* ------------------------------------------------------------------ */
+
+describe("Slides Tools - slides_add_slide with title/body text insertion", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should insert text into TITLE and BODY placeholders via batchUpdate", async () => {
+    const fakeNow = 1700000000000;
+    vi.spyOn(Date, "now").mockReturnValue(fakeNow);
+
+    // First batchUpdate: createSlide
+    mockSlidesApi.presentations.batchUpdate
+      .mockResolvedValueOnce({
+        data: {
+          replies: [{ createSlide: { objectId: `slide_${fakeNow}` } }],
+        },
+      })
+      // Second batchUpdate: insertText for title and body
+      .mockResolvedValueOnce({ data: {} });
+
+    mockSlidesApi.presentations.get.mockResolvedValue({
+      data: {
+        slides: [
+          {
+            objectId: `slide_${fakeNow}`,
+            pageElements: [
+              {
+                objectId: "title_el",
+                shape: { placeholder: { type: "TITLE" } },
+              },
+              {
+                objectId: "body_el",
+                shape: { placeholder: { type: "BODY" } },
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    const result = await slidesTools.slides_add_slide.handler({
+      presentationId: "pres_txt",
+      title: "My Title",
+      body: "My Body Content",
+      layout: "TITLE_AND_BODY",
+    });
+
+    expect(result.success).toBe(true);
+
+    // Second batchUpdate call should contain insertText for both placeholders
+    const secondCall = mockSlidesApi.presentations.batchUpdate.mock.calls[1][0];
+    const requests = secondCall.requestBody.requests;
+    expect(requests).toHaveLength(2);
+    expect(requests[0].insertText.objectId).toBe("title_el");
+    expect(requests[0].insertText.text).toBe("My Title");
+    expect(requests[1].insertText.objectId).toBe("body_el");
+    expect(requests[1].insertText.text).toBe("My Body Content");
+
+    vi.restoreAllMocks();
+  });
+});
+
+describe("Slides Tools - slides_move_slide", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should move a slide to a new position", async () => {
+    mockSlidesApi.presentations.batchUpdate.mockResolvedValue({ data: {} });
+
+    const result = await slidesTools.slides_move_slide.handler({
+      presentationId: "pres_move",
+      slideId: "slide5",
+      insertionIndex: 2,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.message).toBe("Slide moved to position 3.");
+    expect(mockSlidesApi.presentations.batchUpdate).toHaveBeenCalledWith({
+      presentationId: "pres_move",
+      requestBody: {
+        requests: [
+          {
+            updateSlidesPosition: {
+              slideObjectIds: ["slide5"],
+              insertionIndex: 2,
+            },
+          },
+        ],
+      },
+    });
+  });
+});
+
+describe("Slides Tools - slides_replace_text", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should replace text across the presentation", async () => {
+    mockSlidesApi.presentations.batchUpdate.mockResolvedValue({
+      data: {
+        replies: [{ replaceAllText: { occurrencesChanged: 5 } }],
+      },
+    });
+
+    const result = await slidesTools.slides_replace_text.handler({
+      presentationId: "pres_replace",
+      searchText: "old text",
+      replaceText: "new text",
+      matchCase: true,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.occurrencesChanged).toBe(5);
+    expect(result.message).toBe("5 text occurrences replaced.");
+    expect(mockSlidesApi.presentations.batchUpdate).toHaveBeenCalledWith({
+      presentationId: "pres_replace",
+      requestBody: {
+        requests: [
+          {
+            replaceAllText: {
+              containsText: { text: "old text", matchCase: true },
+              replaceText: "new text",
+            },
+          },
+        ],
+      },
+    });
+  });
+
+  it("should handle zero occurrences replaced", async () => {
+    mockSlidesApi.presentations.batchUpdate.mockResolvedValue({
+      data: {
+        replies: [{ replaceAllText: { occurrencesChanged: 0 } }],
+      },
+    });
+
+    const result = await slidesTools.slides_replace_text.handler({
+      presentationId: "pres_replace2",
+      searchText: "nonexistent",
+      replaceText: "replacement",
+      matchCase: false,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.occurrencesChanged).toBe(0);
+  });
+});

@@ -53,7 +53,7 @@ export function validateDriveId(id: string, fieldName: string): void {
  * FR-S1-10: Gmail Email Header Injection Prevention
  */
 export function sanitizeEmailHeader(header: string): string {
-  return header.replace(/[\r\n]/g, "");
+  return header.replace(/[\r\n\0]/g, "");
 }
 
 /**
@@ -63,6 +63,9 @@ export function sanitizeEmailHeader(header: string): string {
  * without being overly permissive. Rejects obvious injection attempts.
  */
 export function validateEmail(email: string): boolean {
+  // Reject non-ASCII characters to prevent unicode homograph attacks
+  const asciiOnly = /^[\x00-\x7F]+$/;
+  if (!asciiOnly.test(email)) return false;
   const emailRegex = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
   return emailRegex.test(email) && email.length <= 254;
 }

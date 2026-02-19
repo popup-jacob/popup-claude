@@ -624,3 +624,211 @@ describe("Drive Tools - Core Functionality (P1)", () => {
     });
   });
 });
+
+/* ------------------------------------------------------------------ */
+/*  TC-DRV-002 ~ TC-DRV-019: Drive additional coverage tests          */
+/* ------------------------------------------------------------------ */
+
+describe("Drive Tools - TC-DRV-002: drive_search MIME type filter", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should include mimeType clause in query when mimeType is provided", async () => {
+    mockDriveApi.files.list.mockResolvedValue({
+      data: {
+        files: [
+          {
+            id: "pdf1",
+            name: "Report.pdf",
+            mimeType: "application/pdf",
+            modifiedTime: "2026-02-10T08:00:00Z",
+            webViewLink: "https://drive.google.com/file/d/pdf1",
+            owners: [{ emailAddress: "user@example.com" }],
+            size: "204800",
+            parents: ["folder1"],
+          },
+        ],
+      },
+    });
+
+    const result = await driveTools.drive_search.handler({
+      query: "Report",
+      mimeType: "application/pdf",
+      maxResults: 10,
+      driveType: "all",
+    });
+
+    const calledArgs = mockDriveApi.files.list.mock.calls[0][0];
+    expect(calledArgs.q).toContain("mimeType = 'application/pdf'");
+    expect(calledArgs.q).toContain("trashed = false");
+    expect(result.total).toBe(1);
+    expect(result.files![0].type).toBe("application/pdf");
+  });
+
+  it("should not include mimeType clause when mimeType is omitted", async () => {
+    mockDriveApi.files.list.mockResolvedValue({ data: { files: [] } });
+
+    await driveTools.drive_search.handler({
+      query: "test",
+      maxResults: 5,
+      driveType: "all",
+    });
+
+    const calledArgs = mockDriveApi.files.list.mock.calls[0][0];
+    expect(calledArgs.q).not.toContain("mimeType");
+  });
+});
+
+describe("Drive Tools - TC-DRV-004: drive_list root folder listing", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should list files from root folder", async () => {
+    mockDriveApi.files.list.mockResolvedValue({
+      data: {
+        files: [
+          {
+            id: "folder1",
+            name: "Projects",
+            mimeType: "application/vnd.google-apps.folder",
+            modifiedTime: "2026-02-01T12:00:00Z",
+            webViewLink: "https://drive.google.com/drive/folders/folder1",
+            size: undefined,
+          },
+          {
+            id: "doc1",
+            name: "Notes.docx",
+            mimeType: "application/vnd.google-apps.document",
+            modifiedTime: "2026-02-15T09:30:00Z",
+            webViewLink: "https://docs.google.com/document/d/doc1",
+            size: "4096",
+          },
+        ],
+      },
+    });
+
+    const result = await driveTools.drive_list.handler({
+      folderId: "root",
+      maxResults: 20,
+      orderBy: "modifiedTime desc",
+    });
+
+    const calledArgs = mockDriveApi.files.list.mock.calls[0][0];
+    expect(calledArgs.q).toContain("'root' in parents");
+    expect(calledArgs.q).toContain("trashed = false");
+    expect(calledArgs.pageSize).toBe(20);
+
+    expect(result.folderId).toBe("root");
+    expect(result.total).toBe(2);
+    expect(result.files![0].isFolder).toBe(true);
+    expect(result.files![1].isFolder).toBe(false);
+  });
+
+  it("should return empty results when folder is empty", async () => {
+    mockDriveApi.files.list.mockResolvedValue({ data: { files: [] } });
+
+    const result = await driveTools.drive_list.handler({
+      folderId: "root",
+      maxResults: 20,
+      orderBy: "modifiedTime desc",
+    });
+
+    expect(result.folderId).toBe("root");
+    expect(result.total).toBe(0);
+  });
+});
+
+describe("Drive Tools - TC-DRV-006: drive_get_file metadata", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should return all metadata fields including multiple owners", async () => {
+    mockDriveApi.files.get.mockResolvedValue({
+      data: {
+        id: "fileAll",
+        name: "FullMeta.xlsx",
+        mimeType: "application/vnd.google-apps.spreadsheet",
+        createdTime: "2026-01-15T08:00:00Z",
+        modifiedTime: "2026-02-18T14:30:00Z",
+        webViewLink: "https://docs.google.com/spreadsheets/d/fileAll",
+        size: "512000",
+        owners: [
+          { emailAddress: "alice@example.com" },
+          { emailAddress: "bob@example.com" },
+        ],
+        parents: ["parentFolder99"],
+        shared: true,
+      },
+    });
+
+    const result = await driveTools.drive_get_file.handler({ fileId: "fileAll" });
+
+    expect(result.id).toBe("fileAll");
+    expect(result.name).toBe("FullMeta.xlsx");
+    expect(result.type).toBe("application/vnd.google-apps.spreadsheet");
+    expect(result.createdTime).toBe("2026-01-15T08:00:00Z");
+    expect(result.modifiedTime).toBe("2026-02-18T14:30:00Z");
+    expect(result.link).toBe("https://docs.google.com/spreadsheets/d/fileAll");
+    expect(result.size).toBe("512000");
+    expect(result.owners).toEqual(["alice@example.com", "bob@example.com"]);
+    expect(result.parentId).toBe("parentFolder99");
+    expect(result.shared).toBe(true);
+  });
+
+  it("should handle file with no parents and no owners gracefully", async () => {
+    mockDriveApi.files.get.mockResolvedValue({
+      data: {
+        id: "orphan1",
+        name: "Orphan.txt",
+        mimeType: "text/plain",
+        createdTime: "2026-02-01T00:00:00Z",
+        modifiedTime: "2026-02-01T00:00:00Z",
+        webViewLink: "https://drive.google.com/file/d/orphan1",
+        size: "128",
+        owners: undefined,
+        parents: undefined,
+        shared: false,
+      },
+    });
+
+    const result = await driveTools.drive_get_file.handler({ fileId: "orphan1" });
+
+    expect(result.id).toBe("orphan1");
+    expect(result.owners).toBeUndefined();
+    expect(result.parentId).toBeUndefined();
+    expect(result.shared).toBe(false);
+  });
+});
+
+describe("Drive Tools - TC-DRV-011: drive_move previousParents handling", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should join multiple previous parents with comma in removeParents", async () => {
+    mockDriveApi.files.get.mockResolvedValue({
+      data: { parents: ["parentX", "parentY"] },
+    });
+    mockDriveApi.files.update.mockResolvedValue({
+      data: {
+        id: "fileMulti",
+        name: "MultiParent.doc",
+        parents: ["newTarget"],
+        webViewLink: "https://drive.google.com/file/d/fileMulti",
+      },
+    });
+
+    const result = await driveTools.drive_move.handler({
+      fileId: "fileMulti",
+      newParentId: "newTarget",
+    });
+
+    expect(result.success).toBe(true);
+    const updateArgs = mockDriveApi.files.update.mock.calls[0][0];
+    expect(updateArgs.removeParents).toBe("parentX,parentY");
+    expect(updateArgs.addParents).toBe("newTarget");
+  });
+});

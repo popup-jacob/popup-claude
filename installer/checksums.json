@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "algorithm": "sha256",
-  "generated": "2026-02-13T08:14:25Z",
+  "generated": "2026-02-19T08:58:46Z",
   "files": {
     "modules.json": "61adcac86ce9b039c236bf6a47652691af0a3c58152b5771eb5667291be46eba",
     "modules/atlassian/module.json": "74a1ae49f32792abf633c5733b345123a80a98599150f0f7e90364ec1dbf1897",
@@ -12,7 +12,7 @@
     "modules/notion/module.json": "46273eca7e817f0a8d2c40b088786aa75e6187cb2fe5be03b140c0a48a8a61fc",
     "modules/pencil/module.json": "66161567a21e359d6e6ccf200514007477aa55936ed41cfde8a1d70d3d7135ec",
     "modules/atlassian/install.sh": "6da6dab0fc6f407bd8e06d4c86bfd18efb5e03c4b5bc426cbc75acd299d612f9",
-    "modules/base/install.sh": "8a03c550a2ece5a427a628ced4f5a56299e393677979ef890101b9756aba0e2a",
+    "modules/base/install.sh": "946786b61a3c6c034a2a03da9bc5fb8dbb424a6f30d1f01172c492d9bd2da742",
     "modules/figma/install.sh": "70a9241eb86456c02286727abf78bd670ced18d7f8166316aee8174d1cb7bd82",
     "modules/github/install.sh": "7b99dc402c23a18eecfc6dd1e6790c130458b0d15bbe20a337342f2042df7fb0",
     "modules/google/install.sh": "01bc73753c02e39f7cabcc121bc2564b1415392c6377c1e77e08e214d769f136",

@@ -163,4 +163,73 @@ describe("sanitize utilities", () => {
       expect(sanitizeRange(" A1:B2 ")).toBe("A1:B2");
     });
   });
+
+  /* ------------------------------------------------------------------ */
+  /*  TC-SEC-021 ~ TC-SEC-028: Security additional tests                */
+  /* ------------------------------------------------------------------ */
+
+  describe("escapeDriveQuery - advanced injection", () => {
+    it("TC-SEC-021: should prevent nested quote injection", () => {
+      const malicious = "name contains 'test' or name contains '";
+      const result = escapeDriveQuery(malicious);
+      expect(result).toBe("name contains \\'test\\' or name contains \\'");
+      // No unescaped quotes remain
+      expect(result.replace(/\\'/g, "")).not.toContain("'");
+    });
+  });
+
+  describe("validateDriveId - path traversal", () => {
+    it("TC-SEC-022: should reject path traversal attempts", () => {
+      expect(() => validateDriveId("../../../etc/passwd", "fileId")).toThrow("Invalid fileId");
+    });
+
+    it("TC-SEC-022b: should reject URL-encoded path traversal", () => {
+      expect(() => validateDriveId("%2e%2e%2f", "folderId")).toThrow("Invalid folderId");
+    });
+  });
+
+  describe("sanitizeEmailHeader - null byte injection", () => {
+    it("TC-SEC-024: should strip null bytes from header values", () => {
+      expect(sanitizeEmailHeader("user@test.com\0")).toBe("user@test.com");
+    });
+
+    it("TC-SEC-024b: should strip mixed CR, LF, and null bytes", () => {
+      const malicious = "user@test.com\r\n\0Bcc: evil@attacker.com";
+      expect(sanitizeEmailHeader(malicious)).toBe("user@test.comBcc: evil@attacker.com");
+    });
+  });
+
+  describe("validateEmail - injection vectors", () => {
+    it("TC-SEC-025: should reject emails with angle brackets", () => {
+      expect(validateEmail("<script>@evil.com")).toBe(false);
+    });
+
+    it("TC-SEC-028: should reject unicode homograph attack", () => {
+      // Cyrillic 'а' (U+0430) looks like Latin 'a' but is different
+      expect(validateEmail("аdmin@example.com")).toBe(false);
+    });
+  });
+
+  describe("sanitizeFilename - path traversal", () => {
+    it("TC-SEC-026: should neutralize path traversal in filenames", () => {
+      const result = sanitizeFilename("../../../etc/passwd");
+      expect(result).not.toContain("..");
+      expect(result).not.toContain("/");
+    });
+
+    it("TC-SEC-026b: should neutralize backslash path traversal", () => {
+      const result = sanitizeFilename("..\\..\\windows\\system32");
+      expect(result).not.toContain("\\");
+    });
+  });
+
+  describe("sanitizeRange - injection", () => {
+    it("TC-SEC-027: should reject formula injection in range", () => {
+      expect(sanitizeRange("=SUM(A1:A10)")).toBeNull();
+    });
+
+    it("TC-SEC-027b: should reject pipe injection in range", () => {
+      expect(sanitizeRange("A1|cat /etc/passwd")).toBeNull();
+    });
+  });
 });

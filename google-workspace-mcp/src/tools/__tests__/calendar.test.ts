@@ -409,3 +409,109 @@ describe("Calendar Tools - Core Functionality (P1)", () => {
     });
   });
 });
+
+/* ------------------------------------------------------------------ */
+/*  calendar_get_event / calendar_update_event with attendees           */
+/* ------------------------------------------------------------------ */
+
+describe("Calendar Tools - calendar_get_event", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should return detailed event info including attendees", async () => {
+    mockCalendarApi.events.get.mockResolvedValue({
+      data: {
+        id: "evt_detail_1",
+        summary: "Project Review",
+        description: "Quarterly review",
+        start: { dateTime: "2026-02-20T14:00:00+09:00" },
+        end: { dateTime: "2026-02-20T15:00:00+09:00" },
+        location: "Conference Room B",
+        attendees: [
+          { email: "alice@example.com", displayName: "Alice", responseStatus: "accepted", organizer: true },
+          { email: "bob@example.com", displayName: "Bob", responseStatus: "tentative" },
+        ],
+        htmlLink: "https://calendar.google.com/event?id=evt_detail_1",
+        status: "confirmed",
+        recurrence: ["RRULE:FREQ=WEEKLY"],
+        reminders: { useDefault: true },
+        conferenceData: { entryPoints: [{ uri: "https://meet.google.com/abc" }] },
+      },
+    });
+
+    const result = await calendarTools.calendar_get_event.handler({
+      calendarId: "primary",
+      eventId: "evt_detail_1",
+    });
+
+    expect(result.id).toBe("evt_detail_1");
+    expect(result.title).toBe("Project Review");
+    expect(result.description).toBe("Quarterly review");
+    expect(result.start).toBe("2026-02-20T14:00:00+09:00");
+    expect(result.end).toBe("2026-02-20T15:00:00+09:00");
+    expect(result.location).toBe("Conference Room B");
+    expect(result.attendees).toHaveLength(2);
+    expect(result.attendees![0].email).toBe("alice@example.com");
+    expect(result.attendees![0].organizer).toBe(true);
+    expect(result.link).toContain("calendar.google.com");
+    expect(result.status).toBe("confirmed");
+    expect(result.recurrence).toEqual(["RRULE:FREQ=WEEKLY"]);
+  });
+
+  it("should handle all-day event in get_event", async () => {
+    mockCalendarApi.events.get.mockResolvedValue({
+      data: {
+        id: "allday_evt",
+        summary: "Holiday",
+        start: { date: "2026-03-01" },
+        end: { date: "2026-03-02" },
+        status: "confirmed",
+      },
+    });
+
+    const result = await calendarTools.calendar_get_event.handler({
+      calendarId: "primary",
+      eventId: "allday_evt",
+    });
+
+    expect(result.start).toBe("2026-03-01");
+    expect(result.end).toBe("2026-03-02");
+  });
+});
+
+describe("Calendar Tools - calendar_update_event with attendees", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should include attendees in update and send notifications", async () => {
+    mockCalendarApi.events.get.mockResolvedValue({
+      data: {
+        summary: "Original Title",
+        description: "Original Description",
+        location: "Room A",
+        start: { dateTime: "2026-02-14T10:00:00+09:00" },
+        end: { dateTime: "2026-02-14T11:00:00+09:00" },
+      },
+    });
+
+    mockCalendarApi.events.update.mockResolvedValue({
+      data: { id: "evt_att", htmlLink: "https://calendar.google.com" },
+    });
+
+    const result = await calendarTools.calendar_update_event.handler({
+      eventId: "evt_att",
+      calendarId: "primary",
+      attendees: ["alice@example.com", "bob@example.com"],
+    });
+
+    expect(result.success).toBe(true);
+    const calledArgs = mockCalendarApi.events.update.mock.calls[0][0];
+    expect(calledArgs.requestBody.attendees).toEqual([
+      { email: "alice@example.com" },
+      { email: "bob@example.com" },
+    ]);
+    expect(calledArgs.sendUpdates).toBe("all");
+  });
+});

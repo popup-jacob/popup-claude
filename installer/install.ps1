@@ -44,7 +44,7 @@ if ($env:INSTALL_ALL -eq "true" -or $env:INSTALL_ALL -eq "1") {
 }
 
 # Base URL for module downloads - GitHub raw (always latest from master)
-$BaseUrl = "https://raw.githubusercontent.com/popup-jacob/popup-claude/feature/adw-improvement/installer"
+$BaseUrl = "https://raw.githubusercontent.com/popup-jacob/popup-claude/master/installer"
 
 # For local development, use local files
 # 원격 실행 시 $MyInvocation.MyCommand.Path가 null이므로 체크 필요

@@ -23,7 +23,7 @@ GRAY='\033[0;90m'
 NC='\033[0m'
 
 # Base URL for module downloads
-BASE_URL="https://raw.githubusercontent.com/popup-jacob/popup-claude/feature/adw-improvement/installer"
+BASE_URL="https://raw.githubusercontent.com/popup-jacob/popup-claude/master/installer"
 
 # Cross-platform JSON parser (FR-S1-03: injection-safe, FR-S2-01: Linux support)
 # Priority: node > python3 > osascript (macOS fallback)

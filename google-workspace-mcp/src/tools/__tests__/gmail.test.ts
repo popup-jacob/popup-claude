@@ -648,3 +648,149 @@ describe("Gmail Tools - Trash & Read Status (P1)", () => {
     });
   });
 });
+
+/* ------------------------------------------------------------------ */
+/*  TC-GML-007 ~ TC-GML-018: Gmail additional coverage tests          */
+/* ------------------------------------------------------------------ */
+
+describe("Gmail Tools - TC-GML-007: gmail_send with CC/BCC", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should include CC header in raw message when cc is provided", async () => {
+    mockGmailApi.users.messages.send.mockResolvedValue({
+      data: { id: "msg_cc", labelIds: ["SENT"] },
+    });
+
+    const result = await gmailTools.gmail_send.handler({
+      to: "recipient@example.com",
+      subject: "Test with CC",
+      body: "Hello with CC",
+      cc: "cc-user@example.com",
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.messageId).toBe("msg_cc");
+
+    const sentMessage = mockGmailApi.users.messages.send.mock.calls[0][0];
+    const rawEncoded = sentMessage.requestBody.raw;
+    const decoded = Buffer.from(
+      rawEncoded.replace(/-/g, "+").replace(/_/g, "/"),
+      "base64"
+    ).toString("utf-8");
+
+    expect(decoded).toContain("Cc: cc-user@example.com");
+  });
+
+  it("should include BCC header in raw message when bcc is provided", async () => {
+    mockGmailApi.users.messages.send.mockResolvedValue({
+      data: { id: "msg_bcc", labelIds: ["SENT"] },
+    });
+
+    const result = await gmailTools.gmail_send.handler({
+      to: "recipient@example.com",
+      subject: "Test with BCC",
+      body: "Hello with BCC",
+      bcc: "bcc-user@example.com",
+    });
+
+    expect(result.success).toBe(true);
+
+    const sentMessage = mockGmailApi.users.messages.send.mock.calls[0][0];
+    const rawEncoded = sentMessage.requestBody.raw;
+    const decoded = Buffer.from(
+      rawEncoded.replace(/-/g, "+").replace(/_/g, "/"),
+      "base64"
+    ).toString("utf-8");
+
+    expect(decoded).toContain("Bcc: bcc-user@example.com");
+  });
+});
+
+describe("Gmail Tools - TC-GML-009: gmail_send base64url encoding", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should produce valid base64url encoding without + / or trailing =", async () => {
+    mockGmailApi.users.messages.send.mockResolvedValue({
+      data: { id: "msg_b64", labelIds: ["SENT"] },
+    });
+
+    await gmailTools.gmail_send.handler({
+      to: "user@example.com",
+      subject: "Base64url Test",
+      body: "Body with special chars: +/= test data padding",
+    });
+
+    const sentMessage = mockGmailApi.users.messages.send.mock.calls[0][0];
+    const rawEncoded = sentMessage.requestBody.raw;
+
+    expect(rawEncoded).not.toMatch(/\+/);
+    expect(rawEncoded).not.toMatch(/\//);
+    expect(rawEncoded).not.toMatch(/=$/);
+  });
+
+  it("should pass raw message via requestBody.raw", async () => {
+    mockGmailApi.users.messages.send.mockResolvedValue({
+      data: { id: "msg_api", labelIds: ["SENT"] },
+    });
+
+    await gmailTools.gmail_send.handler({
+      to: "user@example.com",
+      subject: "API Format Test",
+      body: "Body",
+    });
+
+    expect(mockGmailApi.users.messages.send).toHaveBeenCalledWith({
+      userId: "me",
+      requestBody: {
+        raw: expect.any(String),
+      },
+    });
+  });
+});
+
+describe("Gmail Tools - TC-GML-018: gmail_attachment_get data integrity", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should return attachment data and metadata", async () => {
+    const attachData = "SGVsbG8gV29ybGQ";
+
+    mockGmailApi.users.messages.attachments.get.mockResolvedValue({
+      data: {
+        size: 100,
+        data: attachData,
+      },
+    });
+
+    const result = await gmailTools.gmail_attachment_get.handler({
+      messageId: "msg_att",
+      attachmentId: "att_test",
+    });
+
+    expect(result.data).toBe(attachData);
+    expect(result.size).toBe(100);
+    expect(result.attachmentId).toBe("att_test");
+  });
+
+  it("should call the attachment API with correct parameters", async () => {
+    mockGmailApi.users.messages.attachments.get.mockResolvedValue({
+      data: { size: 10, data: "dGVzdA" },
+    });
+
+    await gmailTools.gmail_attachment_get.handler({
+      messageId: "msg_params",
+      attachmentId: "att_params",
+    });
+
+    expect(mockGmailApi.users.messages.attachments.get).toHaveBeenCalledWith({
+      userId: "me",
+      messageId: "msg_params",
+      id: "att_params",
+    });
+  });
+});

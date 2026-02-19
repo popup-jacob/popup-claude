@@ -1,6 +1,14 @@
 name: Test Installer
 
 on:
+  push:
+    branches: [master, develop, feature/adw-improvement]
+    paths:
+      - 'installer/**'
+  pull_request:
+    branches: [master]
+    paths:
+      - 'installer/**'
   workflow_dispatch:
     inputs:
       os:
@@ -27,7 +35,7 @@ env:
 
 jobs:
   test-windows:
-    if: ${{ github.event.inputs.os == 'all' || github.event.inputs.os == 'windows' }}
+    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.os == 'all' || github.event.inputs.os == 'windows' }}
     runs-on: windows-latest
     steps:
       - name: Checkout
@@ -41,8 +49,10 @@ jobs:
           # Claude native install PATH 추가
           $env:PATH = "$env:USERPROFILE\.local\bin;$env:PATH"
           Write-Host "Testing Windows installer..."
-          $env:MODULES = '${{ github.event.inputs.module }}'
-          & ./installer/install.ps1 -modules '${{ github.event.inputs.module }}'
+          $module = '${{ github.event.inputs.module }}'
+          if (-not $module) { $module = 'base' }
+          $env:MODULES = $module
+          & ./installer/install.ps1 -modules $module
 
       - name: Verify installation
         shell: pwsh
@@ -71,7 +81,7 @@ jobs:
           }
 
   test-macos:
-    if: ${{ github.event.inputs.os == 'all' || github.event.inputs.os == 'macos' }}
+    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.os == 'all' || github.event.inputs.os == 'macos' }}
     runs-on: macos-latest
     steps:
       - name: Checkout
@@ -81,7 +91,8 @@ jobs:
         run: |
           echo "Testing macOS installer..."
           chmod +x ./installer/install.sh
-          MODULES='${{ github.event.inputs.module }}' bash ./installer/install.sh
+          MODULE='${{ github.event.inputs.module || 'base' }}'
+          MODULES="$MODULE" bash ./installer/install.sh
 
       - name: Verify installation
         run: |
