@@ -242,19 +242,40 @@ load_modules() {
 
         if [ -n "$modules_json" ]; then
             # FR-S1-03: Parse module names safely via stdin (no shell interpolation)
-            local module_names=$(echo "$modules_json" | node -e "
-                let data = '';
-                process.stdin.setEncoding('utf8');
-                process.stdin.on('data', chunk => data += chunk);
-                process.stdin.on('end', () => {
-                    try {
-                        const parsed = JSON.parse(data);
-                        process.stdout.write(parsed.modules.map(m => m.name).join(' '));
-                    } catch (e) {
-                        process.stdout.write('');
-                    }
-                });
-            " 2>/dev/null)
+            # Uses same fallback chain as parse_json: node > python3 > osascript
+            local module_names=""
+            if command -v node > /dev/null 2>&1; then
+                module_names=$(echo "$modules_json" | node -e "
+                    let data = '';
+                    process.stdin.setEncoding('utf8');
+                    process.stdin.on('data', chunk => data += chunk);
+                    process.stdin.on('end', () => {
+                        try {
+                            const parsed = JSON.parse(data);
+                            process.stdout.write(parsed.modules.map(m => m.name).join(' '));
+                        } catch (e) {
+                            process.stdout.write('');
+                        }
+                    });
+                " 2>/dev/null)
+            elif command -v python3 > /dev/null 2>&1; then
+                module_names=$(echo "$modules_json" | python3 -c "
+import json, sys
+try:
+    d = json.load(sys.stdin)
+    print(' '.join(m['name'] for m in d.get('modules', [])), end='')
+except:
+    print('', end='')
+" 2>/dev/null)
+            elif command -v osascript > /dev/null 2>&1; then
+                module_names=$(echo "$modules_json" | osascript -l JavaScript -e "
+                    var input = $.NSFileHandle.fileHandleWithStandardInput;
+                    var data = input.readDataToEndOfFile;
+                    var str = $.NSString.alloc.initWithDataEncoding(data, $.NSUTF8StringEncoding).js;
+                    var obj = JSON.parse(str);
+                    obj.modules.map(function(m){ return m.name; }).join(' ');
+                " 2>/dev/null)
+            fi
             for name in $module_names; do
                 # FR-S1-11: Verify module.json files too
                 local mod_tmpfile
