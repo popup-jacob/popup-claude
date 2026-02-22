@@ -755,10 +755,7 @@ describe("Drive Tools - TC-DRV-006: drive_get_file metadata", () => {
         modifiedTime: "2026-02-18T14:30:00Z",
         webViewLink: "https://docs.google.com/spreadsheets/d/fileAll",
         size: "512000",
-        owners: [
-          { emailAddress: "alice@example.com" },
-          { emailAddress: "bob@example.com" },
-        ],
+        owners: [{ emailAddress: "alice@example.com" }, { emailAddress: "bob@example.com" }],
         parents: ["parentFolder99"],
         shared: true,
       },

@@ -170,9 +170,9 @@ describe("withRetry - delay and backoff options", () => {
   it("TC-PER-011: should respect custom maxAttempts", async () => {
     const fn = vi.fn().mockRejectedValue({ response: { status: 503 } });
 
-    await expect(
-      withRetry(fn, { maxAttempts: 2, initialDelay: 10 })
-    ).rejects.toEqual({ response: { status: 503 } });
+    await expect(withRetry(fn, { maxAttempts: 2, initialDelay: 10 })).rejects.toEqual({
+      response: { status: 503 },
+    });
     expect(fn).toHaveBeenCalledTimes(2);
   });
 });
@@ -202,9 +202,7 @@ describe("withRetry - error and result preservation", () => {
     };
     const fn = vi.fn().mockRejectedValue(apiError);
 
-    await expect(
-      withRetry(fn, { maxAttempts: 2, initialDelay: 10 })
-    ).rejects.toEqual(apiError);
+    await expect(withRetry(fn, { maxAttempts: 2, initialDelay: 10 })).rejects.toEqual(apiError);
   });
 
   it("TC-PER-016: should return the resolved value from the wrapped function", async () => {

@@ -471,10 +471,7 @@ describe("Sheets Tools - TC-SHT-005: sheets_read_multiple ranges", () => {
   it("should handle empty values in some ranges", async () => {
     mockSheetsApi.spreadsheets.values.batchGet.mockResolvedValue({
       data: {
-        valueRanges: [
-          { range: "Sheet1!A1:A5", values: [["Data1"]] },
-          { range: "Sheet1!C1:C5" },
-        ],
+        valueRanges: [{ range: "Sheet1!A1:A5", values: [["Data1"]] }, { range: "Sheet1!C1:C5" }],
       },
     });
 

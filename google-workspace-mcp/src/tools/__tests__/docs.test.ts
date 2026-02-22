@@ -386,9 +386,7 @@ describe("Docs Tools - TC-DOC-012: docs_read empty document edge cases", () => {
         documentId: "doc_struct",
         title: "Structural Only",
         body: {
-          content: [
-            { sectionBreak: { sectionStyle: {} } },
-          ],
+          content: [{ sectionBreak: { sectionStyle: {} } }],
         },
       },
     });
@@ -405,9 +403,7 @@ describe("Docs Tools - TC-DOC-012: docs_read empty document edge cases", () => {
         documentId: "doc_no_text",
         title: "No Text",
         body: {
-          content: [
-            { paragraph: { elements: [] } },
-          ],
+          content: [{ paragraph: { elements: [] } }],
         },
       },
     });
@@ -516,9 +512,7 @@ describe("Docs Tools - docs_get_comments", () => {
             author: { displayName: "Alice" },
             createdTime: "2026-02-19T10:00:00Z",
             resolved: false,
-            replies: [
-              { content: "Thanks!", author: { displayName: "Bob" } },
-            ],
+            replies: [{ content: "Thanks!", author: { displayName: "Bob" } }],
           },
           {
             id: "c2",

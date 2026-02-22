@@ -429,7 +429,12 @@ describe("Calendar Tools - calendar_get_event", () => {
         end: { dateTime: "2026-02-20T15:00:00+09:00" },
         location: "Conference Room B",
         attendees: [
-          { email: "alice@example.com", displayName: "Alice", responseStatus: "accepted", organizer: true },
+          {
+            email: "alice@example.com",
+            displayName: "Alice",
+            responseStatus: "accepted",
+            organizer: true,
+          },
           { email: "bob@example.com", displayName: "Bob", responseStatus: "tentative" },
         ],
         htmlLink: "https://calendar.google.com/event?id=evt_detail_1",

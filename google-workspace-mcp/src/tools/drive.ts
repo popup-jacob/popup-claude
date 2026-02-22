@@ -52,7 +52,8 @@ export const driveTools = {
       const listParams: Record<string, unknown> = {
         q,
         pageSize: maxResults,
-        fields: "files(id, name, mimeType, modifiedTime, webViewLink, owners, size, parents, driveId)",
+        fields:
+          "files(id, name, mimeType, modifiedTime, webViewLink, owners, size, parents, driveId)",
         supportsAllDrives: true,
       };
 
