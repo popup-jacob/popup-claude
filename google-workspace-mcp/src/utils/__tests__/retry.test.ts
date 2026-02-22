@@ -211,7 +211,7 @@ describe("withRetry - error and result preservation", () => {
 
     const result = await withRetry(fn);
     expect(result).toEqual(payload);
-    expect(result.files[0].id).toBe("abc");
+    expect((result as typeof payload).files[0].id).toBe("abc");
   });
 });
 
