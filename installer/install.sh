@@ -514,13 +514,17 @@ if [ "$NEEDS_DOCKER" = true ] && [ "$HAS_DOCKER" = "true" ] && [ "$DOCKER_RUNNIN
     echo -e "${GRAY}  - Click Docker icon in Applications (Mac)${NC}"
     echo -e "${GRAY}  - Or run 'sudo systemctl start docker' (Linux)${NC}"
     echo ""
-    read -p "Press Enter after starting Docker (or 'q' to quit): " DOCKER_WAIT < /dev/tty
-    if [ "$DOCKER_WAIT" = "q" ]; then exit 0; fi
+    if [ "$CI" = "true" ]; then
+        echo -e "${YELLOW}CI mode: skipping Docker wait${NC}"
+    else
+        read -p "Press Enter after starting Docker (or 'q' to quit): " DOCKER_WAIT < /dev/tty
+        if [ "$DOCKER_WAIT" = "q" ]; then exit 0; fi
 
-    if ! docker info > /dev/null 2>&1; then
-        echo -e "${RED}Docker still not running. Please start it and try again.${NC}"
-        read -p "Press Enter to exit" < /dev/tty
-        exit 1
+        if ! docker info > /dev/null 2>&1; then
+            echo -e "${RED}Docker still not running. Please start it and try again.${NC}"
+            read -p "Press Enter to exit" < /dev/tty
+            exit 1
+        fi
     fi
     echo -e "${GREEN}Docker is now running!${NC}"
     echo ""
@@ -571,7 +575,9 @@ for mod in $SELECTED_MODULES; do
     echo -e "  ${GREEN}[*] ${MODULE_DISPLAY_NAMES[$idx]}${NC}"
 done
 echo ""
-read -p "Press Enter to start installation" < /dev/tty
+if [ "$CI" != "true" ]; then
+    read -p "Press Enter to start installation" < /dev/tty
+fi
 
 # ============================================
 # 7. FR-S5-02: Rollback Mechanism
@@ -712,7 +718,7 @@ run_module() {
         echo -e "${YELLOW}Rolling back MCP configuration...${NC}"
         rollback_mcp_config
         echo -e "${RED}Installation aborted.${NC}"
-        read -p "Press Enter to exit" < /dev/tty
+        if [ "$CI" != "true" ]; then read -p "Press Enter to exit" < /dev/tty; fi
         exit 1
     fi
 
@@ -800,4 +806,4 @@ if [ -f "$MCP_CONFIG" ] || [ -f "$MCP_LEGACY" ]; then
 fi
 
 echo ""
-read -p "Press Enter to close" < /dev/tty
+if [ "$CI" != "true" ]; then read -p "Press Enter to close" < /dev/tty; fi
