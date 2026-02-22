@@ -23,10 +23,11 @@ echo -e "  ${GRAY}- Inspect design components${NC}"
 echo -e "  ${GRAY}- Extract design tokens and styles${NC}"
 echo ""
 
-# Check Claude CLI
-echo -e "${YELLOW}[Check] Claude CLI...${NC}"
-if ! command -v claude > /dev/null 2>&1; then
-    echo -e "  ${RED}Claude CLI is required. Please install base module first.${NC}"
+# Check AI CLI
+CLI_CMD="${CLI_TYPE:-claude}"
+echo -e "${YELLOW}[Check] $CLI_CMD CLI...${NC}"
+if ! command -v "$CLI_CMD" > /dev/null 2>&1; then
+    echo -e "  ${RED}$CLI_CMD CLI is required. Please install base module first.${NC}"
     exit 1
 fi
 echo -e "  ${GREEN}OK${NC}"
@@ -43,7 +44,7 @@ echo -e "  ${GREEN}OK${NC}"
 # Register Remote MCP server
 echo ""
 echo -e "${YELLOW}[Config] Registering Figma Remote MCP server...${NC}"
-claude mcp add --transport http figma https://mcp.figma.com/mcp
+$CLI_CMD mcp add --transport http figma https://mcp.figma.com/mcp
 echo -e "  ${GREEN}OK${NC}"
 
 # Auto OAuth authentication

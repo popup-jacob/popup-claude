@@ -12,12 +12,18 @@ if [ -z "$NC" ]; then
 fi
 
 # Get the MCP config file path (unified across platforms)
+# Branches on CLI_TYPE: claude -> ~/.claude/mcp.json, gemini -> ~/.gemini/settings.json
 mcp_get_config_path() {
-    local config_path="$HOME/.claude/mcp.json"
+    local config_path
+    if [ "$CLI_TYPE" = "gemini" ]; then
+        config_path="$HOME/.gemini/settings.json"
+    else
+        config_path="$HOME/.claude/mcp.json"
+    fi
     local legacy_path="$HOME/.mcp.json"
 
-    # Migrate legacy config if needed
-    if [ -f "$legacy_path" ] && [ ! -f "$config_path" ]; then
+    # Migrate legacy config if needed (claude only)
+    if [ "$CLI_TYPE" != "gemini" ] && [ -f "$legacy_path" ] && [ ! -f "$config_path" ]; then
         mkdir -p "$(dirname "$config_path")"
         cp "$legacy_path" "$config_path"
         echo -e "  ${YELLOW}Migrated MCP config from $legacy_path to $config_path${NC}"

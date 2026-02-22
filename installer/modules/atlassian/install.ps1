@@ -117,11 +117,16 @@ if ($useDocker) {
     docker pull ghcr.io/sooperset/mcp-atlassian:latest 2>$null
     Write-Host "  OK" -ForegroundColor Green
 
-    # Update .mcp.json
+    # Update MCP config
     Write-Host ""
-    Write-Host "[Config] Updating .mcp.json..." -ForegroundColor Yellow
-    $mcpConfigPath = "$env:USERPROFILE\.claude\mcp.json"
-    if (-not (Test-Path "$env:USERPROFILE\.claude")) { New-Item -ItemType Directory -Path "$env:USERPROFILE\.claude" -Force | Out-Null }
+    Write-Host "[Config] Updating MCP config..." -ForegroundColor Yellow
+    if ($env:CLI_TYPE -eq "gemini") {
+        $mcpConfigPath = "$env:USERPROFILE\.gemini\settings.json"
+        if (-not (Test-Path "$env:USERPROFILE\.gemini")) { New-Item -ItemType Directory -Path "$env:USERPROFILE\.gemini" -Force | Out-Null }
+    } else {
+        $mcpConfigPath = "$env:USERPROFILE\.claude\mcp.json"
+        if (-not (Test-Path "$env:USERPROFILE\.claude")) { New-Item -ItemType Directory -Path "$env:USERPROFILE\.claude" -Force | Out-Null }
+    }
 
     $mcpConfig = @{ mcpServers = @{} }
     if (Test-Path $mcpConfigPath) {
@@ -164,7 +169,8 @@ if ($useDocker) {
     Write-Host "Please login and authorize the access." -ForegroundColor White
     Write-Host ""
 
-    claude mcp add --transport sse atlassian https://mcp.atlassian.com/v1/sse
+    $cliCmd = if ($env:CLI_TYPE -eq "gemini") { "gemini" } else { "claude" }
+    & $cliCmd mcp add --transport sse atlassian https://mcp.atlassian.com/v1/sse
 
     Write-Host ""
     Write-Host "  Rovo MCP setup complete!" -ForegroundColor Green

@@ -13,6 +13,13 @@ else
     CYAN='\033[0;36m'; GRAY='\033[0;90m'; NC='\033[0m'
 fi
 
+# Pencil is a VS Code/Cursor extension — not supported with Antigravity
+if [ "$CLI_TYPE" = "gemini" ]; then
+    echo -e "${YELLOW}[Skip] Pencil is not yet supported with Antigravity.${NC}"
+    echo -e "${GRAY}Pencil requires VS Code or Cursor IDE.${NC}"
+    exit 0
+fi
+
 echo ""
 echo -e "${CYAN}Pencil Setup${NC}"
 echo -e "${CYAN}------------${NC}"

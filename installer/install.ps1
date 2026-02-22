@@ -17,6 +17,7 @@
 
 param(
     [string]$modules = "",       # Comma-separated module list
+    [string]$cli = "",           # CLI type: claude or gemini
     [switch]$all,                # Install all modules
     [switch]$skipBase,           # Skip base module
     [switch]$installDocker,      # Force Docker installation (for Step 1)
@@ -36,6 +37,15 @@ param(
 if (-not $modules -and $env:MODULES) {
     $modules = $env:MODULES
 }
+if (-not $cli -and $env:CLI_TYPE) {
+    $cli = $env:CLI_TYPE
+}
+if (-not $cli) { $cli = "claude" }
+if ($cli -ne "claude" -and $cli -ne "gemini") {
+    Write-Host "Invalid -cli value: $cli (use 'claude' or 'gemini')" -ForegroundColor Red
+    exit 1
+}
+$env:CLI_TYPE = $cli
 if ($env:SKIP_BASE -eq "true" -or $env:SKIP_BASE -eq "1") {
     $skipBase = $true
 }
@@ -138,8 +148,8 @@ function Test-AdminRequired {
     # Admin required when: base module needs to install system packages OR Docker needed
     if (-not $skipBase) {
         $status = Get-InstallStatus
-        # Need admin if Node.js, Git, VS Code, or Docker need installation
-        if (-not $status.NodeJS -or -not $status.Git -or -not $status.VSCode) {
+        # Need admin if Node.js, Git, IDE, or Docker need installation
+        if (-not $status.NodeJS -or -not $status.Git -or -not $status.IDE) {
             return $true
         }
     }
@@ -154,6 +164,7 @@ if ((Test-AdminRequired) -and -not (Test-Admin)) {
 
     $params = @()
     if ($modules) { $params += "-modules '$modules'" }
+    if ($cli -ne "claude") { $params += "-cli '$cli'" }
     if ($all) { $params += "-all" }
     if ($skipBase) { $params += "-skipBase" }
     if ($installDocker) { $params += "-installDocker" }
@@ -197,15 +208,23 @@ foreach ($mod in $selectedModules) {
 # 5. Smart Status Check
 # ============================================
 function Get-InstallStatus {
+    $cliCmd = if ($env:CLI_TYPE -eq "gemini") { "gemini" } else { "claude" }
     $status = @{
         NodeJS = [bool](Get-Command node -ErrorAction SilentlyContinue)
         Git = [bool](Get-Command git -ErrorAction SilentlyContinue)
-        VSCode = (Test-Path "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe") -or (Test-Path "$env:ProgramFiles\Microsoft VS Code\Code.exe")
+        IDE = $false
         WSL = $false
         Docker = [bool](Get-Command docker -ErrorAction SilentlyContinue)
         DockerRunning = $false
-        Claude = [bool](Get-Command claude -ErrorAction SilentlyContinue)
+        CLI = [bool](Get-Command $cliCmd -ErrorAction SilentlyContinue)
         Bkit = $false
+    }
+
+    # IDE check depends on CLI_TYPE
+    if ($env:CLI_TYPE -eq "gemini") {
+        $status.IDE = (Test-Path "$env:LOCALAPPDATA\Programs\Antigravity\Antigravity.exe") -or (Test-Path "$env:ProgramFiles\Antigravity\Antigravity.exe")
+    } else {
+        $status.IDE = (Test-Path "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe") -or (Test-Path "$env:ProgramFiles\Microsoft VS Code\Code.exe")
     }
 
     # Check WSL
@@ -222,9 +241,11 @@ function Get-InstallStatus {
         $status.DockerRunning = ($LASTEXITCODE -eq 0)
     }
 
-    if ($status.Claude) {
-        $bkitCheck = claude plugin list 2>$null | Select-String "bkit"
-        $status.Bkit = [bool]$bkitCheck
+    if ($status.CLI) {
+        if ($env:CLI_TYPE -ne "gemini") {
+            $bkitCheck = claude plugin list 2>$null | Select-String "bkit"
+            $status.Bkit = [bool]$bkitCheck
+        }
     }
 
     return $status
@@ -284,16 +305,19 @@ foreach ($modName in $selectedModules) {
     }
 }
 
-Write-Host "Current Status:" -ForegroundColor White
-Write-Host "  Node.js:  $(if($status.NodeJS){'[OK]'}else{'[  ]'})" -ForegroundColor $(if($status.NodeJS){'Green'}else{'DarkGray'})
-Write-Host "  Git:      $(if($status.Git){'[OK]'}else{'[  ]'})" -ForegroundColor $(if($status.Git){'Green'}else{'DarkGray'})
-Write-Host "  VS Code:  $(if($status.VSCode){'[OK]'}else{'[  ]'})" -ForegroundColor $(if($status.VSCode){'Green'}else{'DarkGray'})
+$ideLabel = if ($env:CLI_TYPE -eq "gemini") { "Antigravity" } else { "VS Code" }
+$cliLabel = if ($env:CLI_TYPE -eq "gemini") { "Gemini" } else { "Claude" }
+
+Write-Host "Current Status: (CLI: $($env:CLI_TYPE))" -ForegroundColor White
+Write-Host "  Node.js:     $(if($status.NodeJS){'[OK]'}else{'[  ]'})" -ForegroundColor $(if($status.NodeJS){'Green'}else{'DarkGray'})
+Write-Host "  Git:         $(if($status.Git){'[OK]'}else{'[  ]'})" -ForegroundColor $(if($status.Git){'Green'}else{'DarkGray'})
+Write-Host "  ${ideLabel}:  $(if($status.IDE){'[OK]'}else{'[  ]'})" -ForegroundColor $(if($status.IDE){'Green'}else{'DarkGray'})
 if ($script:needsDocker) {
-    Write-Host "  WSL:      $(if($status.WSL){'[OK]'}else{'[  ]'})" -ForegroundColor $(if($status.WSL){'Green'}else{'DarkGray'})
-    Write-Host "  Docker:   $(if($status.Docker){'[OK]'}else{'[  ]'}) $(if($status.Docker -and $status.DockerRunning){'(Running)'}elseif($status.Docker){'(Not Running)'}else{''})" -ForegroundColor $(if($status.DockerRunning){'Green'}elseif($status.Docker){'Yellow'}else{'DarkGray'})
+    Write-Host "  WSL:         $(if($status.WSL){'[OK]'}else{'[  ]'})" -ForegroundColor $(if($status.WSL){'Green'}else{'DarkGray'})
+    Write-Host "  Docker:      $(if($status.Docker){'[OK]'}else{'[  ]'}) $(if($status.Docker -and $status.DockerRunning){'(Running)'}elseif($status.Docker){'(Not Running)'}else{''})" -ForegroundColor $(if($status.DockerRunning){'Green'}elseif($status.Docker){'Yellow'}else{'DarkGray'})
 }
-Write-Host "  Claude:   $(if($status.Claude){'[OK]'}else{'[  ]'})" -ForegroundColor $(if($status.Claude){'Green'}else{'DarkGray'})
-Write-Host "  bkit:     $(if($status.Bkit){'[OK]'}else{'[  ]'})" -ForegroundColor $(if($status.Bkit){'Green'}else{'DarkGray'})
+Write-Host "  ${cliLabel}:  $(if($status.CLI){'[OK]'}else{'[  ]'})" -ForegroundColor $(if($status.CLI){'Green'}else{'DarkGray'})
+Write-Host "  bkit:        $(if($status.Bkit){'[OK]'}else{'[  ]'})" -ForegroundColor $(if($status.Bkit){'Green'}else{'DarkGray'})
 Write-Host ""
 
 if ($script:needsDockerRunning -and $status.Docker -and -not $status.DockerRunning) {
@@ -320,7 +344,7 @@ if ($script:needsDockerRunning -and $status.Docker -and -not $status.DockerRunni
 }
 
 # Auto-skip base if all required tools installed
-$baseInstalled = $status.NodeJS -and $status.Git -and $status.Claude -and $status.Bkit
+$baseInstalled = $status.NodeJS -and $status.Git -and $status.CLI -and $status.Bkit
 if ($script:needsDocker) {
     $baseInstalled = $baseInstalled -and $status.WSL -and $status.Docker
 }
@@ -342,9 +366,10 @@ if ($totalSteps -eq 0) {
     $skipBase = $false
 }
 
+$baseLabel = if ($env:CLI_TYPE -eq "gemini") { "Base (Gemini + bkit)" } else { "Base (Claude + bkit)" }
 Write-Host "Selected modules:" -ForegroundColor White
 if (-not $skipBase) {
-    Write-Host "  [*] Base (Claude + bkit)" -ForegroundColor Green
+    Write-Host "  [*] $baseLabel" -ForegroundColor Green
 } else {
     Write-Host "  [ ] Base (skipped)" -ForegroundColor DarkGray
 }
@@ -423,13 +448,22 @@ if (-not $skipBase) {
     if ($script:needsDocker) {
         if (Get-Command docker -ErrorAction SilentlyContinue) { Write-Host "  [OK] Docker" -ForegroundColor Green }
     }
-    if (Get-Command claude -ErrorAction SilentlyContinue) { Write-Host "  [OK] Claude Code CLI" -ForegroundColor Green }
-    $bkitCheck = claude plugin list 2>$null | Select-String "bkit"
-    if ($bkitCheck) { Write-Host "  [OK] bkit Plugin" -ForegroundColor Green }
+    $cliCmd = if ($env:CLI_TYPE -eq "gemini") { "gemini" } else { "claude" }
+    if (Get-Command $cliCmd -ErrorAction SilentlyContinue) { Write-Host "  [OK] $cliLabel CLI" -ForegroundColor Green }
+    if ($env:CLI_TYPE -eq "gemini") {
+        Write-Host "  [OK] bkit Plugin (Gemini)" -ForegroundColor Green
+    } else {
+        $bkitCheck = claude plugin list 2>$null | Select-String "bkit"
+        if ($bkitCheck) { Write-Host "  [OK] bkit Plugin" -ForegroundColor Green }
+    }
 }
 
 # Check MCP config
-$mcpConfigPath = "$env:USERPROFILE\.claude\mcp.json"
+if ($env:CLI_TYPE -eq "gemini") {
+    $mcpConfigPath = "$env:USERPROFILE\.gemini\settings.json"
+} else {
+    $mcpConfigPath = "$env:USERPROFILE\.claude\mcp.json"
+}
 if (Test-Path $mcpConfigPath) {
     $mcpJson = Get-Content $mcpConfigPath -Raw | ConvertFrom-Json
     foreach ($modName in $sortedModules) {

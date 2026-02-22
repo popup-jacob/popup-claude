@@ -322,11 +322,16 @@ if (Test-Path $tokenPath) {
     Write-Host "  Login may have failed. Try again later." -ForegroundColor Yellow
 }
 
-# Update .mcp.json
+# Update MCP config
 Write-Host ""
-Write-Host "[Config] Updating .mcp.json..." -ForegroundColor Yellow
-$mcpConfigPath = "$env:USERPROFILE\.claude\mcp.json"
-if (-not (Test-Path "$env:USERPROFILE\.claude")) { New-Item -ItemType Directory -Path "$env:USERPROFILE\.claude" -Force | Out-Null }
+Write-Host "[Config] Updating MCP config..." -ForegroundColor Yellow
+if ($env:CLI_TYPE -eq "gemini") {
+    $mcpConfigPath = "$env:USERPROFILE\.gemini\settings.json"
+    if (-not (Test-Path "$env:USERPROFILE\.gemini")) { New-Item -ItemType Directory -Path "$env:USERPROFILE\.gemini" -Force | Out-Null }
+} else {
+    $mcpConfigPath = "$env:USERPROFILE\.claude\mcp.json"
+    if (-not (Test-Path "$env:USERPROFILE\.claude")) { New-Item -ItemType Directory -Path "$env:USERPROFILE\.claude" -Force | Out-Null }
+}
 $configDirUnix = $configDir -replace '\\', '/'
 
 # Read existing or create new

@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "algorithm": "sha256",
-  "generated": "2026-02-19T08:58:46Z",
+  "generated": "2026-02-22T09:34:12Z",
   "files": {
     "modules.json": "61adcac86ce9b039c236bf6a47652691af0a3c58152b5771eb5667291be46eba",
     "modules/atlassian/module.json": "74a1ae49f32792abf633c5733b345123a80a98599150f0f7e90364ec1dbf1897",
@@ -11,19 +11,19 @@
     "modules/google/module.json": "195bf3da49da0b5d25cca3335a13f8c0a013834438b3f3b573a31babd7f0af44",
     "modules/notion/module.json": "46273eca7e817f0a8d2c40b088786aa75e6187cb2fe5be03b140c0a48a8a61fc",
     "modules/pencil/module.json": "66161567a21e359d6e6ccf200514007477aa55936ed41cfde8a1d70d3d7135ec",
-    "modules/atlassian/install.sh": "6da6dab0fc6f407bd8e06d4c86bfd18efb5e03c4b5bc426cbc75acd299d612f9",
-    "modules/base/install.sh": "946786b61a3c6c034a2a03da9bc5fb8dbb424a6f30d1f01172c492d9bd2da742",
-    "modules/figma/install.sh": "70a9241eb86456c02286727abf78bd670ced18d7f8166316aee8174d1cb7bd82",
+    "modules/atlassian/install.sh": "3511c8c4dbdf7b792f1b2db98c3c3730d8c06a81185bf0c048b0b81ae0a827c2",
+    "modules/base/install.sh": "3822f25303c713d4a554cd7a467b906fbf459030d5d9991e1e8350313f145865",
+    "modules/figma/install.sh": "67ba0f301f804c37f8e8ae9a0db5fb18e5579a58847dc74fa04bc1a1c9a31b5d",
     "modules/github/install.sh": "7b99dc402c23a18eecfc6dd1e6790c130458b0d15bbe20a337342f2042df7fb0",
     "modules/google/install.sh": "01bc73753c02e39f7cabcc121bc2564b1415392c6377c1e77e08e214d769f136",
-    "modules/notion/install.sh": "ffd814f4d9768da9c59e9322e30a0b39cdbff8783bf5d324dd91cea227dc6423",
-    "modules/pencil/install.sh": "826101f204e215fc94fc5b59eb834f3d1da17947ad2b60253cdf4faa14f581d6",
-    "modules/atlassian/install.ps1": "dfc72a44922af40f3480bab3e15a6ded33f4f5b632f6bf140461280d607f9935",
-    "modules/base/install.ps1": "48c0d0bd0de0d3370a1e8664bb048a6d10c071b63d90389cb2e99b9b627cef77",
-    "modules/figma/install.ps1": "775a54567eb47260d2b109633d322f81aedb86b9b22fe64078815d45baefdf8d",
+    "modules/notion/install.sh": "4df36c53eef1fb6ad8f42d3d6753b2034b9d1b073397f89dda11bf5fce771d22",
+    "modules/pencil/install.sh": "fcf7e29de3229cbb6ca12aa68542f89a79fe585f654ef51dcf6290c6c74ac3f2",
+    "modules/atlassian/install.ps1": "779bd9390aec92b26c49cf7c8f690d8598824a528c6824257f6fa83644343e46",
+    "modules/base/install.ps1": "f9d105efeff948f20f47dd69d681a2649c00ed1d5be3176708addcbc0796ade7",
+    "modules/figma/install.ps1": "64328ff6a898981522a9191ac24bbfa8d5b45e881f14cc5faa082e4fde398447",
     "modules/github/install.ps1": "6b4cdb15a1aa3601078484d2bde09ef091146f7a9dd3f51f86b66bd45c2cbebc",
-    "modules/google/install.ps1": "54eaabbb341dc0109a72b36a12cff8472c93294976645c3b90d67ce4f0d01bc9",
-    "modules/notion/install.ps1": "dbfac490bae1e840ac7d45e56b0b49ab6be2a2e70fe3cba5ad227d2573503e36",
-    "modules/pencil/install.ps1": "3b4620b6612af05c6f31781b03e3d7831d48060425ce8d8f79b5592c1f1eb300"
+    "modules/google/install.ps1": "6bbc08b055bc44731ca84ce8f476fe4298f96731b989f35fd31cc3ac566fcfbb",
+    "modules/notion/install.ps1": "e64043ce0fe265831c9a828c1562624bda1af1a909c927060832ccaca1874546",
+    "modules/pencil/install.ps1": "14e3968dde17338e033ec6e4f19a42bf04030e5e891d0d0770b707f27f0079fd"
   }
 }

@@ -123,39 +123,59 @@ else
 fi
 
 # ============================================
-# 4. VS Code
+# 4. IDE (VS Code or Antigravity)
 # ============================================
 echo ""
-echo -e "${YELLOW}[4/7] Checking VS Code...${NC}"
-if ! command -v code > /dev/null 2>&1 && [ ! -d "/Applications/Visual Studio Code.app" ]; then
-    echo -e "  ${GRAY}Installing VS Code...${NC}"
+if [ "$CLI_TYPE" = "gemini" ]; then
+    echo -e "${YELLOW}[4/7] Checking Antigravity...${NC}"
     if [[ "$OSTYPE" == "darwin"* ]]; then
-        if command -v brew > /dev/null 2>&1; then
-            brew install --cask visual-studio-code
-        else
-            echo -e "  ${YELLOW}Homebrew not available. Please install VS Code from https://code.visualstudio.com${NC}"
+        if [ ! -d "/Applications/Antigravity.app" ]; then
+            echo -e "  ${GRAY}Installing Antigravity...${NC}"
+            if command -v brew > /dev/null 2>&1; then
+                brew install --cask antigravity
+            else
+                echo -e "  ${YELLOW}Homebrew not available. Please install Antigravity from https://antigravity.google/download${NC}"
+            fi
         fi
     else
-        # FR-S2-04: Linux - multi-package manager VS Code support
-        if command -v snap > /dev/null 2>&1; then
-            sudo snap install code --classic
-        elif command -v dnf > /dev/null 2>&1; then
-            sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc 2>/dev/null || true
-            echo -e "  ${YELLOW}Please install VS Code manually from https://code.visualstudio.com${NC}"
-        elif command -v pacman > /dev/null 2>&1; then
-            echo -e "  ${YELLOW}Please install VS Code from AUR or https://code.visualstudio.com${NC}"
-        else
-            echo -e "  ${YELLOW}Please install VS Code manually from https://code.visualstudio.com${NC}"
+        # Linux: manual install guide
+        if ! command -v agy > /dev/null 2>&1; then
+            echo -e "  ${YELLOW}Please install Antigravity from: https://antigravity.google/download${NC}"
         fi
     fi
-fi
-echo -e "  ${GREEN}OK${NC}"
+    echo -e "  ${GREEN}OK${NC}"
+else
+    echo -e "${YELLOW}[4/7] Checking VS Code...${NC}"
+    if ! command -v code > /dev/null 2>&1 && [ ! -d "/Applications/Visual Studio Code.app" ]; then
+        echo -e "  ${GRAY}Installing VS Code...${NC}"
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            if command -v brew > /dev/null 2>&1; then
+                brew install --cask visual-studio-code
+            else
+                echo -e "  ${YELLOW}Homebrew not available. Please install VS Code from https://code.visualstudio.com${NC}"
+            fi
+        else
+            # FR-S2-04: Linux - multi-package manager VS Code support
+            if command -v snap > /dev/null 2>&1; then
+                sudo snap install code --classic
+            elif command -v dnf > /dev/null 2>&1; then
+                sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc 2>/dev/null || true
+                echo -e "  ${YELLOW}Please install VS Code manually from https://code.visualstudio.com${NC}"
+            elif command -v pacman > /dev/null 2>&1; then
+                echo -e "  ${YELLOW}Please install VS Code from AUR or https://code.visualstudio.com${NC}"
+            else
+                echo -e "  ${YELLOW}Please install VS Code manually from https://code.visualstudio.com${NC}"
+            fi
+        fi
+    fi
+    echo -e "  ${GREEN}OK${NC}"
 
-# Install Claude extension for VS Code
-if command -v code > /dev/null 2>&1; then
-    echo -e "  ${GRAY}Installing Claude extension...${NC}"
-    code --install-extension anthropic.claude-code 2>/dev/null || true
-    echo -e "  ${GREEN}Claude extension installed${NC}"
+    # Install Claude extension for VS Code (claude only)
+    if command -v code > /dev/null 2>&1; then
+        echo -e "  ${GRAY}Installing Claude extension...${NC}"
+        code --install-extension anthropic.claude-code 2>/dev/null || true
+        echo -e "  ${GREEN}Claude extension installed${NC}"
+    fi
 fi
 
 # ============================================
@@ -207,33 +227,53 @@ else
 fi
 
 # ============================================
-# 6. Claude Code CLI
+# 6. AI CLI (Claude or Gemini)
 # ============================================
 echo ""
-echo -e "${YELLOW}[6/7] Checking Claude Code CLI...${NC}"
-if ! command -v claude > /dev/null 2>&1; then
-    echo -e "  ${GRAY}Installing Claude Code CLI (native)...${NC}"
-    curl -fsSL https://claude.ai/install.sh | bash
-fi
-if command -v claude > /dev/null 2>&1; then
-    CLAUDE_VERSION=$(claude --version 2>/dev/null || echo "unknown")
-    echo -e "  ${GREEN}OK - $CLAUDE_VERSION${NC}"
+if [ "$CLI_TYPE" = "gemini" ]; then
+    echo -e "${YELLOW}[6/7] Checking Gemini CLI...${NC}"
+    if ! command -v gemini > /dev/null 2>&1; then
+        echo -e "  ${GRAY}Installing Gemini CLI...${NC}"
+        npm install -g @google/gemini-cli
+    fi
+    if command -v gemini > /dev/null 2>&1; then
+        GEMINI_VERSION=$(gemini --version 2>/dev/null || echo "unknown")
+        echo -e "  ${GREEN}OK - $GEMINI_VERSION${NC}"
+    else
+        echo -e "  ${YELLOW}Installed (restart terminal to use)${NC}"
+    fi
 else
-    echo -e "  ${YELLOW}Installed (restart terminal to use)${NC}"
+    echo -e "${YELLOW}[6/7] Checking Claude Code CLI...${NC}"
+    if ! command -v claude > /dev/null 2>&1; then
+        echo -e "  ${GRAY}Installing Claude Code CLI (native)...${NC}"
+        curl -fsSL https://claude.ai/install.sh | bash
+    fi
+    if command -v claude > /dev/null 2>&1; then
+        CLAUDE_VERSION=$(claude --version 2>/dev/null || echo "unknown")
+        echo -e "  ${GREEN}OK - $CLAUDE_VERSION${NC}"
+    else
+        echo -e "  ${YELLOW}Installed (restart terminal to use)${NC}"
+    fi
 fi
 
 # ============================================
 # 7. bkit Plugin
 # ============================================
 echo ""
-echo -e "${YELLOW}[7/7] Installing bkit Plugin...${NC}"
-claude plugin marketplace add popup-studio-ai/bkit-claude-code 2>/dev/null || true
-claude plugin install bkit@bkit-marketplace 2>/dev/null || true
-
-if claude plugin list 2>/dev/null | grep -q "bkit"; then
+if [ "$CLI_TYPE" = "gemini" ]; then
+    echo -e "${YELLOW}[7/7] Installing bkit Plugin (Gemini)...${NC}"
+    gemini extensions install https://github.com/popup-studio-ai/bkit-gemini.git 2>/dev/null || true
     echo -e "  ${GREEN}OK${NC}"
 else
-    echo -e "  ${YELLOW}Installed (verify with 'claude plugin list')${NC}"
+    echo -e "${YELLOW}[7/7] Installing bkit Plugin...${NC}"
+    claude plugin marketplace add popup-studio-ai/bkit-claude-code 2>/dev/null || true
+    claude plugin install bkit@bkit-marketplace 2>/dev/null || true
+
+    if claude plugin list 2>/dev/null | grep -q "bkit"; then
+        echo -e "  ${GREEN}OK${NC}"
+    else
+        echo -e "  ${YELLOW}Installed (verify with 'claude plugin list')${NC}"
+    fi
 fi
 
 # ============================================

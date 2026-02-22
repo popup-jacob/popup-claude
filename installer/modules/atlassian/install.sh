@@ -170,7 +170,8 @@ else
     echo "Please login and authorize the access."
     echo ""
 
-    claude mcp add --transport sse atlassian https://mcp.atlassian.com/v1/sse
+    CLI_CMD="${CLI_TYPE:-claude}"
+    $CLI_CMD mcp add --transport sse atlassian https://mcp.atlassian.com/v1/sse
 
     echo ""
     echo -e "  ${GREEN}Rovo MCP setup complete!${NC}"

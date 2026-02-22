@@ -65,29 +65,46 @@ if (Test-CommandExists "git") {
 }
 
 # ============================================
-# 4. VS Code
+# 4. IDE (VS Code or Antigravity)
 # ============================================
 Write-Host ""
-Write-Host "[4/8] Checking VS Code..." -ForegroundColor Yellow
-$vscodePaths = @(
-    "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe",
-    "$env:ProgramFiles\Microsoft VS Code\Code.exe"
-)
-$vscodeInstalled = $false
-foreach ($path in $vscodePaths) {
-    if (Test-Path $path) { $vscodeInstalled = $true; break }
-}
-if (-not $vscodeInstalled) {
-    Write-Host "  Installing VS Code..." -ForegroundColor Gray
-    winget install Microsoft.VisualStudioCode --accept-source-agreements --accept-package-agreements -h
-}
-Write-Host "  OK" -ForegroundColor Green
+if ($env:CLI_TYPE -eq "gemini") {
+    Write-Host "[4/8] Checking Antigravity..." -ForegroundColor Yellow
+    $antigravityPaths = @(
+        "$env:LOCALAPPDATA\Programs\Antigravity\Antigravity.exe",
+        "$env:ProgramFiles\Antigravity\Antigravity.exe"
+    )
+    $antigravityInstalled = $false
+    foreach ($path in $antigravityPaths) {
+        if (Test-Path $path) { $antigravityInstalled = $true; break }
+    }
+    if (-not $antigravityInstalled) {
+        Write-Host "  Installing Antigravity..." -ForegroundColor Gray
+        winget install Google.Antigravity --accept-source-agreements --accept-package-agreements -h
+    }
+    Write-Host "  OK" -ForegroundColor Green
+} else {
+    Write-Host "[4/8] Checking VS Code..." -ForegroundColor Yellow
+    $vscodePaths = @(
+        "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe",
+        "$env:ProgramFiles\Microsoft VS Code\Code.exe"
+    )
+    $vscodeInstalled = $false
+    foreach ($path in $vscodePaths) {
+        if (Test-Path $path) { $vscodeInstalled = $true; break }
+    }
+    if (-not $vscodeInstalled) {
+        Write-Host "  Installing VS Code..." -ForegroundColor Gray
+        winget install Microsoft.VisualStudioCode --accept-source-agreements --accept-package-agreements -h
+    }
+    Write-Host "  OK" -ForegroundColor Green
 
-# Install Claude extension for VS Code
-if (Test-CommandExists "code") {
-    Write-Host "  Installing Claude extension..." -ForegroundColor Gray
-    code --install-extension anthropic.claude-code 2>$null
-    Write-Host "  Claude extension installed" -ForegroundColor Green
+    # Install Claude extension for VS Code (claude only)
+    if (Test-CommandExists "code") {
+        Write-Host "  Installing Claude extension..." -ForegroundColor Gray
+        code --install-extension anthropic.claude-code 2>$null
+        Write-Host "  Claude extension installed" -ForegroundColor Green
+    }
 }
 
 # ============================================
@@ -142,43 +159,67 @@ if ($script:needsDocker) {
 }
 
 # ============================================
-# 7. Claude Code CLI
+# 7. AI CLI (Claude or Gemini)
 # ============================================
 Write-Host ""
-Write-Host "[7/8] Checking Claude Code CLI..." -ForegroundColor Yellow
-Refresh-Path
-if (-not (Test-CommandExists "claude")) {
-    Write-Host "  Installing Claude Code CLI (native)..." -ForegroundColor Gray
-    irm https://claude.ai/install.ps1 | iex
+if ($env:CLI_TYPE -eq "gemini") {
+    Write-Host "[7/8] Checking Gemini CLI..." -ForegroundColor Yellow
     Refresh-Path
-    # Native install puts claude in ~/.local/bin (not in registry PATH yet)
-    $claudePath = "$env:USERPROFILE\.local\bin"
-    if ((Test-Path $claudePath) -and ($env:PATH -notlike "*$claudePath*")) {
-        $env:PATH = "$claudePath;$env:PATH"
+    if (-not (Test-CommandExists "gemini")) {
+        Write-Host "  Installing Gemini CLI..." -ForegroundColor Gray
+        npm install -g @google/gemini-cli
+        Refresh-Path
     }
-}
-if (Test-CommandExists "claude") {
-    $claudeVersion = claude --version 2>$null
-    Write-Host "  OK - $claudeVersion" -ForegroundColor Green
+    if (Test-CommandExists "gemini") {
+        $geminiVersion = gemini --version 2>$null
+        Write-Host "  OK - $geminiVersion" -ForegroundColor Green
+    } else {
+        Write-Host "  Installed (restart terminal to use)" -ForegroundColor Yellow
+    }
 } else {
-    Write-Host "  Installed (restart terminal to use)" -ForegroundColor Yellow
+    Write-Host "[7/8] Checking Claude Code CLI..." -ForegroundColor Yellow
+    Refresh-Path
+    if (-not (Test-CommandExists "claude")) {
+        Write-Host "  Installing Claude Code CLI (native)..." -ForegroundColor Gray
+        irm https://claude.ai/install.ps1 | iex
+        Refresh-Path
+        # Native install puts claude in ~/.local/bin (not in registry PATH yet)
+        $claudePath = "$env:USERPROFILE\.local\bin"
+        if ((Test-Path $claudePath) -and ($env:PATH -notlike "*$claudePath*")) {
+            $env:PATH = "$claudePath;$env:PATH"
+        }
+    }
+    if (Test-CommandExists "claude") {
+        $claudeVersion = claude --version 2>$null
+        Write-Host "  OK - $claudeVersion" -ForegroundColor Green
+    } else {
+        Write-Host "  Installed (restart terminal to use)" -ForegroundColor Yellow
+    }
 }
 
 # ============================================
 # 8. bkit Plugin
 # ============================================
 Write-Host ""
-Write-Host "[8/8] Installing bkit Plugin..." -ForegroundColor Yellow
-$ErrorActionPreference = "SilentlyContinue"
-claude plugin marketplace add popup-studio-ai/bkit-claude-code 2>$null
-claude plugin install bkit@bkit-marketplace 2>$null
-$ErrorActionPreference = "Stop"
-
-$bkitCheck = claude plugin list 2>$null | Select-String "bkit"
-if ($bkitCheck) {
+if ($env:CLI_TYPE -eq "gemini") {
+    Write-Host "[8/8] Installing bkit Plugin (Gemini)..." -ForegroundColor Yellow
+    $ErrorActionPreference = "SilentlyContinue"
+    gemini extensions install https://github.com/popup-studio-ai/bkit-gemini.git 2>$null
+    $ErrorActionPreference = "Stop"
     Write-Host "  OK" -ForegroundColor Green
 } else {
-    Write-Host "  Installed (verify with 'claude plugin list')" -ForegroundColor Yellow
+    Write-Host "[8/8] Installing bkit Plugin..." -ForegroundColor Yellow
+    $ErrorActionPreference = "SilentlyContinue"
+    claude plugin marketplace add popup-studio-ai/bkit-claude-code 2>$null
+    claude plugin install bkit@bkit-marketplace 2>$null
+    $ErrorActionPreference = "Stop"
+
+    $bkitCheck = claude plugin list 2>$null | Select-String "bkit"
+    if ($bkitCheck) {
+        Write-Host "  OK" -ForegroundColor Green
+    } else {
+        Write-Host "  Installed (verify with 'claude plugin list')" -ForegroundColor Yellow
+    }
 }
 
 # ============================================

@@ -1,6 +1,6 @@
 # AI-Driven Work (ADW)
 
-Claude Code + bkit 플러그인 + MCP 도구를 한 번에 설치하는 올인원 설치 프로그램입니다.
+Claude Code 또는 Gemini CLI + 개발 도구 + MCP 모듈을 한 번에 설치하는 올인원 설치 프로그램입니다.
 
 ---
 
@@ -9,7 +9,7 @@ Claude Code + bkit 플러그인 + MCP 도구를 한 번에 설치하는 올인�
 랜딩페이지에서 원하는 모듈을 선택하면 설치 명령어가 자동으로 생성됩니다:
 https://ai-driven-work.vercel.app
 
-### Windows
+### Windows (Claude)
 
 `Win + R` 키를 누르고, 아래 명령어를 붙여넣고 실행:
 ```
@@ -21,9 +21,15 @@ powershell -ep bypass -c "irm https://raw.githubusercontent.com/popup-jacob/popu
 powershell -ep bypass -c "$env:MODULES='google,notion'; irm https://raw.githubusercontent.com/popup-jacob/popup-claude/master/installer/install.ps1 | iex"
 ```
 
-> Docker가 필요한 모듈(google, atlassian) 선택 시 2단계 설치가 필요합니다. 랜딩페이지에서 자동으로 안내됩니다.
+### Windows (Gemini)
 
-### Mac/Linux
+```
+powershell -ep bypass -c "$env:CLI_TYPE='gemini'; irm https://raw.githubusercontent.com/popup-jacob/popup-claude/master/installer/install.ps1 | iex"
+```
+
+> **Windows**: Docker가 필요한 모듈(google, atlassian) 선택 시 2단계 설치가 필요합니다. 랜딩페이지에서 자동으로 안내됩니다.
+
+### Mac/Linux (Claude)
 
 터미널을 열고 아래 명령어 실행:
 ```bash
@@ -35,20 +41,26 @@ curl -fsSL https://raw.githubusercontent.com/popup-jacob/popup-claude/master/ins
 curl -fsSL https://raw.githubusercontent.com/popup-jacob/popup-claude/master/installer/install.sh | MODULES="google,notion" bash
 ```
 
+### Mac/Linux (Gemini)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/popup-jacob/popup-claude/master/installer/install.sh | CLI_TYPE=gemini bash
+```
+
 ---
 
 ## 설치되는 항목
 
 ### 기본 설치 (Base)
 
-| 프로그램 | 설명 |
-|---------|------|
-| Node.js | JavaScript 실행 환경 |
-| Git | 버전 관리 도구 |
-| VS Code | 코드 편집기 + Claude 확장 |
-| Docker Desktop | 컨테이너 플랫폼 (Docker 모듈 선택 시만) |
-| Claude Code CLI | AI 코딩 어시스턴트 (네이티브 설치) |
-| bkit 플러그인 | 개발 워크플로우 플러그인 |
+| 프로그램 | Claude | Gemini |
+|---------|--------|--------|
+| Node.js | O | O |
+| Git | O | O |
+| IDE | VS Code | Antigravity |
+| Docker Desktop | 선택 | 선택 |
+| AI CLI | Claude Code CLI | Gemini CLI |
+| 플러그인 | bkit (Claude plugin) | bkit-gemini (Gemini extension) |
 
 ### MCP 모듈 (선택)
 

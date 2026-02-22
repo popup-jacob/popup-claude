@@ -194,9 +194,18 @@ while [[ $# -gt 0 ]]; do
         --all) INSTALL_ALL=true; shift ;;
         --skip-base) SKIP_BASE=true; shift ;;
         --list) LIST_ONLY=true; shift ;;
+        --cli) CLI_TYPE="$2"; shift 2 ;;
         *) echo "Unknown option: $1"; exit 1 ;;
     esac
 done
+
+# CLI type: claude (default) or gemini
+CLI_TYPE="${CLI_TYPE:-claude}"
+if [[ "$CLI_TYPE" != "claude" && "$CLI_TYPE" != "gemini" ]]; then
+    echo -e "${RED}Invalid --cli value: $CLI_TYPE (use 'claude' or 'gemini')${NC}"
+    exit 1
+fi
+export CLI_TYPE
 
 # ============================================
 # 2. Scan Modules Folder
@@ -387,9 +396,14 @@ done
 get_install_status() {
     if command -v node > /dev/null 2>&1; then HAS_NODE="true"; else HAS_NODE="false"; fi
     if command -v git > /dev/null 2>&1; then HAS_GIT="true"; else HAS_GIT="false"; fi
-    if command -v code > /dev/null 2>&1 || [ -d "/Applications/Visual Studio Code.app" ]; then HAS_VSCODE="true"; else HAS_VSCODE="false"; fi
+    if [ "$CLI_TYPE" = "gemini" ]; then
+        if [ -d "/Applications/Antigravity.app" ] || command -v agy > /dev/null 2>&1; then HAS_IDE="true"; else HAS_IDE="false"; fi
+    else
+        if command -v code > /dev/null 2>&1 || [ -d "/Applications/Visual Studio Code.app" ]; then HAS_IDE="true"; else HAS_IDE="false"; fi
+    fi
     if command -v docker > /dev/null 2>&1; then HAS_DOCKER="true"; else HAS_DOCKER="false"; fi
-    if command -v claude > /dev/null 2>&1; then HAS_CLAUDE="true"; else HAS_CLAUDE="false"; fi
+    CLI_CMD="${CLI_TYPE:-claude}"
+    if command -v "$CLI_CMD" > /dev/null 2>&1; then HAS_CLI="true"; else HAS_CLI="false"; fi
     HAS_BKIT="false"
     DOCKER_RUNNING="false"
 
@@ -397,8 +411,13 @@ get_install_status() {
         if docker info > /dev/null 2>&1; then DOCKER_RUNNING="true"; fi
     fi
 
-    if [ "$HAS_CLAUDE" = "true" ]; then
-        claude plugin list 2>/dev/null | grep -q "bkit" && HAS_BKIT="true" || true
+    if [ "$HAS_CLI" = "true" ]; then
+        if [ "$CLI_TYPE" = "gemini" ]; then
+            # For gemini, bkit check is different
+            HAS_BKIT="false"
+        else
+            claude plugin list 2>/dev/null | grep -q "bkit" && HAS_BKIT="true" || true
+        fi
     fi
 }
 
@@ -458,23 +477,26 @@ for mod in $SELECTED_MODULES; do
     fi
 done
 
-echo "Current Status:"
-[ "$HAS_NODE" = "true" ] && echo -e "  Node.js:  ${GREEN}[OK]${NC}" || echo -e "  Node.js:  ${GRAY}[  ]${NC}"
-[ "$HAS_GIT" = "true" ] && echo -e "  Git:      ${GREEN}[OK]${NC}" || echo -e "  Git:      ${GRAY}[  ]${NC}"
-[ "$HAS_VSCODE" = "true" ] && echo -e "  VS Code:  ${GREEN}[OK]${NC}" || echo -e "  VS Code:  ${GRAY}[  ]${NC}"
+IDE_LABEL=$([ "$CLI_TYPE" = "gemini" ] && echo "Antigravity" || echo "VS Code")
+CLI_LABEL=$([ "$CLI_TYPE" = "gemini" ] && echo "Gemini" || echo "Claude")
+
+echo "Current Status: (CLI: $CLI_TYPE)"
+[ "$HAS_NODE" = "true" ] && echo -e "  Node.js:     ${GREEN}[OK]${NC}" || echo -e "  Node.js:     ${GRAY}[  ]${NC}"
+[ "$HAS_GIT" = "true" ] && echo -e "  Git:         ${GREEN}[OK]${NC}" || echo -e "  Git:         ${GRAY}[  ]${NC}"
+[ "$HAS_IDE" = "true" ] && echo -e "  $IDE_LABEL:  ${GREEN}[OK]${NC}" || echo -e "  $IDE_LABEL:  ${GRAY}[  ]${NC}"
 if [ "$NEEDS_DOCKER" = true ]; then
     if [ "$HAS_DOCKER" = "true" ]; then
         if [ "$DOCKER_RUNNING" = "true" ]; then
-            echo -e "  Docker:   ${GREEN}[OK] (Running)${NC}"
+            echo -e "  Docker:      ${GREEN}[OK] (Running)${NC}"
         else
-            echo -e "  Docker:   ${YELLOW}[OK] (Not Running)${NC}"
+            echo -e "  Docker:      ${YELLOW}[OK] (Not Running)${NC}"
         fi
     else
-        echo -e "  Docker:   ${GRAY}[  ]${NC}"
+        echo -e "  Docker:      ${GRAY}[  ]${NC}"
     fi
 fi
-[ "$HAS_CLAUDE" = "true" ] && echo -e "  Claude:   ${GREEN}[OK]${NC}" || echo -e "  Claude:   ${GRAY}[  ]${NC}"
-[ "$HAS_BKIT" = "true" ] && echo -e "  bkit:     ${GREEN}[OK]${NC}" || echo -e "  bkit:     ${GRAY}[  ]${NC}"
+[ "$HAS_CLI" = "true" ] && echo -e "  $CLI_LABEL:  ${GREEN}[OK]${NC}" || echo -e "  $CLI_LABEL:  ${GRAY}[  ]${NC}"
+[ "$HAS_BKIT" = "true" ] && echo -e "  bkit:        ${GREEN}[OK]${NC}" || echo -e "  bkit:        ${GRAY}[  ]${NC}"
 echo ""
 
 if [ "$NEEDS_DOCKER" = true ] && [ "$HAS_DOCKER" = "true" ] && [ "$DOCKER_RUNNING" = "false" ]; then
@@ -502,7 +524,7 @@ fi
 
 # Auto-skip base if all required tools installed
 BASE_INSTALLED=true
-if [ "$HAS_NODE" != "true" ] || [ "$HAS_GIT" != "true" ] || [ "$HAS_CLAUDE" != "true" ] || [ "$HAS_BKIT" != "true" ]; then
+if [ "$HAS_NODE" != "true" ] || [ "$HAS_GIT" != "true" ] || [ "$HAS_CLI" != "true" ] || [ "$HAS_BKIT" != "true" ]; then
     BASE_INSTALLED=false
 fi
 if [ "$NEEDS_DOCKER" = true ] && [ "$HAS_DOCKER" != "true" ]; then
@@ -532,9 +554,10 @@ if [ $TOTAL_STEPS -eq 0 ]; then
     SKIP_BASE=false
 fi
 
+BASE_LABEL=$([ "$CLI_TYPE" = "gemini" ] && echo "Base (Gemini + bkit)" || echo "Base (Claude + bkit)")
 echo "Selected modules:"
 if [ "$SKIP_BASE" = false ]; then
-    echo -e "  ${GREEN}[*] Base (Claude + bkit)${NC}"
+    echo -e "  ${GREEN}[*] $BASE_LABEL${NC}"
 else
     echo -e "  ${GRAY}[ ] Base (skipped)${NC}"
 fi
@@ -550,7 +573,11 @@ read -p "Press Enter to start installation" < /dev/tty
 # 7. FR-S5-02: Rollback Mechanism
 # ============================================
 # Backup MCP config before module installation
-MCP_CONFIG_FILE="$HOME/.claude/mcp.json"
+if [ "$CLI_TYPE" = "gemini" ]; then
+    MCP_CONFIG_FILE="$HOME/.gemini/settings.json"
+else
+    MCP_CONFIG_FILE="$HOME/.claude/mcp.json"
+fi
 MCP_BACKUP_FILE=""
 
 backup_mcp_config() {
@@ -743,12 +770,21 @@ if [ "$SKIP_BASE" = false ]; then
             echo -e "  ${YELLOW}[!] Docker (start Docker Desktop)${NC}"
         fi
     fi
-    if command -v claude > /dev/null 2>&1; then echo -e "  ${GREEN}[OK] Claude Code CLI${NC}"; fi
-    if claude plugin list 2>/dev/null | grep -q "bkit"; then echo -e "  ${GREEN}[OK] bkit Plugin${NC}"; fi
+    CLI_CMD="${CLI_TYPE:-claude}"
+    if command -v "$CLI_CMD" > /dev/null 2>&1; then echo -e "  ${GREEN}[OK] $CLI_LABEL CLI${NC}"; fi
+    if [ "$CLI_TYPE" = "gemini" ]; then
+        echo -e "  ${GREEN}[OK] bkit Plugin (Gemini)${NC}"
+    elif claude plugin list 2>/dev/null | grep -q "bkit"; then
+        echo -e "  ${GREEN}[OK] bkit Plugin${NC}"
+    fi
 fi
 
-# FR-S2-03: Unified MCP config path
-MCP_CONFIG="$HOME/.claude/mcp.json"
+# MCP config path (depends on CLI_TYPE)
+if [ "$CLI_TYPE" = "gemini" ]; then
+    MCP_CONFIG="$HOME/.gemini/settings.json"
+else
+    MCP_CONFIG="$HOME/.claude/mcp.json"
+fi
 MCP_LEGACY="$HOME/.mcp.json"
 if [ -f "$MCP_CONFIG" ] || [ -f "$MCP_LEGACY" ]; then
     for mod in $SORTED_MODULES; do

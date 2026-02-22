@@ -8,18 +8,19 @@ Write-Host "  - Search databases" -ForegroundColor Gray
 Write-Host "  - Query content" -ForegroundColor Gray
 Write-Host ""
 
-# Check Claude CLI
-Write-Host "[Check] Claude CLI..." -ForegroundColor Yellow
-if (-not (Get-Command claude -ErrorAction SilentlyContinue)) {
-    Write-Host "  Claude CLI is required. Please install base module first." -ForegroundColor Red
-    throw "Claude CLI not found"
+# Check AI CLI
+$cliCmd = if ($env:CLI_TYPE -eq "gemini") { "gemini" } else { "claude" }
+Write-Host "[Check] $cliCmd CLI..." -ForegroundColor Yellow
+if (-not (Get-Command $cliCmd -ErrorAction SilentlyContinue)) {
+    Write-Host "  $cliCmd CLI is required. Please install base module first." -ForegroundColor Red
+    throw "$cliCmd CLI not found"
 }
 Write-Host "  OK" -ForegroundColor Green
 
 # Register Remote MCP server
 Write-Host ""
 Write-Host "[Config] Registering Notion Remote MCP server..." -ForegroundColor Yellow
-claude mcp add --transport http notion https://mcp.notion.com/mcp
+& $cliCmd mcp add --transport http notion https://mcp.notion.com/mcp
 Write-Host "  OK" -ForegroundColor Green
 
 # Auto OAuth authentication

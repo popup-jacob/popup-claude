@@ -247,9 +247,10 @@ mcp_oauth_flow() {
     # ── Step 3: Get clientId from Claude Code's credentials ──
     local client_id="" client_secret="" mcp_key=""
 
-    # Trigger Claude Code to register the client (creates credentials entry)
+    # Trigger CLI to register the client (creates credentials entry)
+    local cli_cmd="${CLI_TYPE:-claude}"
     echo -e "  ${GRAY}Initializing MCP connection...${NC}"
-    claude mcp list > /dev/null 2>&1
+    $cli_cmd mcp list > /dev/null 2>&1
 
     if [ -f "$CRED_FILE" ]; then
         local entry_info
@@ -263,7 +264,7 @@ mcp_oauth_flow() {
 
     if [ -z "$client_id" ]; then
         echo -e "  ${RED}Could not find OAuth client for $server_name.${NC}"
-        echo -e "  ${YELLOW}Make sure 'claude mcp add' was run first.${NC}"
+        echo -e "  ${YELLOW}Make sure '$cli_cmd mcp add' was run first.${NC}"
         return 1
     fi
 
