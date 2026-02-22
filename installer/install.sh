@@ -445,24 +445,28 @@ else
     SYS_DISK=$(df -BG / | awk 'NR==2{gsub("G",""); print $4}')
 fi
 
-SPEC_FAILED=false
-if [ "$SYS_RAM" -lt "$MIN_RAM" ] 2>/dev/null; then
-    echo -e "  ${RED}RAM: ${SYS_RAM}GB (minimum: ${MIN_RAM}GB)${NC}"
-    SPEC_FAILED=true
-fi
-if [ "$SYS_CPU" -lt "$MIN_CPU" ] 2>/dev/null; then
-    echo -e "  ${RED}CPU: ${SYS_CPU} cores (minimum: ${MIN_CPU} cores)${NC}"
-    SPEC_FAILED=true
-fi
-if [ "$SYS_DISK" -lt "$MIN_DISK" ] 2>/dev/null; then
-    echo -e "  ${RED}Disk: ${SYS_DISK}GB free (minimum: ${MIN_DISK}GB)${NC}"
-    SPEC_FAILED=true
-fi
+if [ "$CI" = "true" ]; then
+    echo -e "  ${YELLOW}CI mode: skipping system requirements check${NC}"
+else
+    SPEC_FAILED=false
+    if [ "$SYS_RAM" -lt "$MIN_RAM" ] 2>/dev/null; then
+        echo -e "  ${RED}RAM: ${SYS_RAM}GB (minimum: ${MIN_RAM}GB)${NC}"
+        SPEC_FAILED=true
+    fi
+    if [ "$SYS_CPU" -lt "$MIN_CPU" ] 2>/dev/null; then
+        echo -e "  ${RED}CPU: ${SYS_CPU} cores (minimum: ${MIN_CPU} cores)${NC}"
+        SPEC_FAILED=true
+    fi
+    if [ "$SYS_DISK" -lt "$MIN_DISK" ] 2>/dev/null; then
+        echo -e "  ${RED}Disk: ${SYS_DISK}GB free (minimum: ${MIN_DISK}GB)${NC}"
+        SPEC_FAILED=true
+    fi
 
-if [ "$SPEC_FAILED" = true ]; then
-    echo ""
-    echo -e "${RED}Your system does not meet the minimum requirements for installation.${NC}"
-    exit 1
+    if [ "$SPEC_FAILED" = true ]; then
+        echo ""
+        echo -e "${RED}Your system does not meet the minimum requirements for installation.${NC}"
+        exit 1
+    fi
 fi
 
 get_install_status

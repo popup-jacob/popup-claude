@@ -64,6 +64,7 @@ export function sanitizeEmailHeader(header: string): string {
  */
 export function validateEmail(email: string): boolean {
   // Reject non-ASCII characters to prevent unicode homograph attacks
+  // eslint-disable-next-line no-control-regex
   const asciiOnly = /^[\x00-\x7F]+$/;
   if (!asciiOnly.test(email)) return false;
   const emailRegex = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;

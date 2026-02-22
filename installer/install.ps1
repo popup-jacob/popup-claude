@@ -135,7 +135,54 @@ if ($list) {
 }
 
 # ============================================
-# 3. Admin Check & Elevation (only when required)
+# 3. Smart Status Check (must be before Admin Check)
+# ============================================
+function Get-InstallStatus {
+    $cliCmd = if ($env:CLI_TYPE -eq "gemini") { "gemini" } else { "claude" }
+    $status = @{
+        NodeJS = [bool](Get-Command node -ErrorAction SilentlyContinue)
+        Git = [bool](Get-Command git -ErrorAction SilentlyContinue)
+        IDE = $false
+        WSL = $false
+        Docker = [bool](Get-Command docker -ErrorAction SilentlyContinue)
+        DockerRunning = $false
+        CLI = [bool](Get-Command $cliCmd -ErrorAction SilentlyContinue)
+        Bkit = $false
+    }
+
+    # IDE check depends on CLI_TYPE
+    if ($env:CLI_TYPE -eq "gemini") {
+        $status.IDE = (Test-Path "$env:LOCALAPPDATA\Programs\Antigravity\Antigravity.exe") -or (Test-Path "$env:ProgramFiles\Antigravity\Antigravity.exe")
+    } else {
+        $status.IDE = (Test-Path "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe") -or (Test-Path "$env:ProgramFiles\Microsoft VS Code\Code.exe")
+    }
+
+    # Check WSL
+    $prevEA = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    wsl --version 2>&1 | Out-Null
+    if ($LASTEXITCODE -eq 0) {
+        $status.WSL = $true
+    }
+    $ErrorActionPreference = $prevEA
+
+    if ($status.Docker) {
+        $null = docker info 2>&1
+        $status.DockerRunning = ($LASTEXITCODE -eq 0)
+    }
+
+    if ($status.CLI) {
+        if ($env:CLI_TYPE -ne "gemini") {
+            $bkitCheck = claude plugin list 2>$null | Select-String "bkit"
+            $status.Bkit = [bool]$bkitCheck
+        }
+    }
+
+    return $status
+}
+
+# ============================================
+# 4. Admin Check & Elevation (only when required)
 # FR-S2-10: Conditional admin - only elevate when installing system packages
 # ============================================
 function Test-Admin {
@@ -204,53 +251,6 @@ foreach ($mod in $selectedModules) {
     }
 }
 
-# ============================================
-# 5. Smart Status Check
-# ============================================
-function Get-InstallStatus {
-    $cliCmd = if ($env:CLI_TYPE -eq "gemini") { "gemini" } else { "claude" }
-    $status = @{
-        NodeJS = [bool](Get-Command node -ErrorAction SilentlyContinue)
-        Git = [bool](Get-Command git -ErrorAction SilentlyContinue)
-        IDE = $false
-        WSL = $false
-        Docker = [bool](Get-Command docker -ErrorAction SilentlyContinue)
-        DockerRunning = $false
-        CLI = [bool](Get-Command $cliCmd -ErrorAction SilentlyContinue)
-        Bkit = $false
-    }
-
-    # IDE check depends on CLI_TYPE
-    if ($env:CLI_TYPE -eq "gemini") {
-        $status.IDE = (Test-Path "$env:LOCALAPPDATA\Programs\Antigravity\Antigravity.exe") -or (Test-Path "$env:ProgramFiles\Antigravity\Antigravity.exe")
-    } else {
-        $status.IDE = (Test-Path "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe") -or (Test-Path "$env:ProgramFiles\Microsoft VS Code\Code.exe")
-    }
-
-    # Check WSL
-    $prevEA = $ErrorActionPreference
-    $ErrorActionPreference = "Continue"
-    wsl --version 2>&1 | Out-Null
-    if ($LASTEXITCODE -eq 0) {
-        $status.WSL = $true
-    }
-    $ErrorActionPreference = $prevEA
-
-    if ($status.Docker) {
-        $null = docker info 2>&1
-        $status.DockerRunning = ($LASTEXITCODE -eq 0)
-    }
-
-    if ($status.CLI) {
-        if ($env:CLI_TYPE -ne "gemini") {
-            $bkitCheck = claude plugin list 2>$null | Select-String "bkit"
-            $status.Bkit = [bool]$bkitCheck
-        }
-    }
-
-    return $status
-}
-
 Clear-Host
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
@@ -259,32 +259,34 @@ Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
 # ============================================
-# System Requirements Check
+# System Requirements Check (skip in CI)
 # ============================================
-$ramGB = [math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB)
-$cpuCores = (Get-CimInstance Win32_Processor).NumberOfCores
-$diskFreeGB = [math]::Round((Get-PSDrive C).Free / 1GB)
+if ($env:CI -ne "true") {
+    $ramGB = [math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB)
+    $cpuCores = (Get-CimInstance Win32_Processor).NumberOfCores
+    $diskFreeGB = [math]::Round((Get-PSDrive C).Free / 1GB)
 
-$minRAM = 8
-$minCPU = 4
-$minDisk = 40
+    $minRAM = 8
+    $minCPU = 4
+    $minDisk = 40
 
-$specFailed = $false
-$specMessages = @()
-if ($ramGB -lt $minRAM) { $specMessages += "RAM: ${ramGB}GB (minimum: ${minRAM}GB)"; $specFailed = $true }
-if ($cpuCores -lt $minCPU) { $specMessages += "CPU: ${cpuCores} cores (minimum: ${minCPU} cores)"; $specFailed = $true }
-if ($diskFreeGB -lt $minDisk) { $specMessages += "Disk: ${diskFreeGB}GB free (minimum: ${minDisk}GB)"; $specFailed = $true }
+    $specFailed = $false
+    $specMessages = @()
+    if ($ramGB -lt $minRAM) { $specMessages += "RAM: ${ramGB}GB (minimum: ${minRAM}GB)"; $specFailed = $true }
+    if ($cpuCores -lt $minCPU) { $specMessages += "CPU: ${cpuCores} cores (minimum: ${minCPU} cores)"; $specFailed = $true }
+    if ($diskFreeGB -lt $minDisk) { $specMessages += "Disk: ${diskFreeGB}GB free (minimum: ${minDisk}GB)"; $specFailed = $true }
 
-if ($specFailed) {
-    Write-Host "System Requirements Check:" -ForegroundColor Red
-    foreach ($msg in $specMessages) {
-        Write-Host "  $msg" -ForegroundColor Red
+    if ($specFailed) {
+        Write-Host "System Requirements Check:" -ForegroundColor Red
+        foreach ($msg in $specMessages) {
+            Write-Host "  $msg" -ForegroundColor Red
+        }
+        Write-Host ""
+        Write-Host "Your system does not meet the minimum requirements for installation." -ForegroundColor Red
+        Write-Host ""
+        Read-Host "Press Enter to exit"
+        exit 1
     }
-    Write-Host ""
-    Write-Host "Your system does not meet the minimum requirements for installation." -ForegroundColor Red
-    Write-Host ""
-    Read-Host "Press Enter to exit"
-    exit 1
 }
 
 $status = Get-InstallStatus
