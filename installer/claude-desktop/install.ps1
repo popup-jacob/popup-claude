@@ -91,38 +91,62 @@ if ($claudeDesktopPath) {
     Write-Host "  Claude Desktop not found. Installing..." -ForegroundColor Yellow
     Write-Host ""
 
-    # Download latest installer directly from Anthropic
-    $downloadUrl = "https://downloads.claude.ai/releases/win32/ClaudeSetup.exe"
-    $installerPath = "$env:TEMP\ClaudeSetup.exe"
+    # Try winget first (most reliable)
+    $wingetCheck = Get-Command winget -ErrorAction SilentlyContinue
+    if ($wingetCheck) {
+        Write-Host "  Installing via winget..." -ForegroundColor Yellow
+        winget install Anthropic.Claude --accept-source-agreements --accept-package-agreements
 
-    Write-Host "  Downloading latest Claude Desktop..." -ForegroundColor Yellow
-    try {
-        Invoke-WebRequest -Uri $downloadUrl -OutFile $installerPath -UseBasicParsing
-        Write-Host "  Download complete." -ForegroundColor Green
-
-        Write-Host "  Running installer..." -ForegroundColor Yellow
-        Start-Process -FilePath $installerPath
-
-        # Wait for installer to complete (Squirrel extracts in background)
-        Write-Host "  Waiting for installation to complete..." -ForegroundColor Gray
-        for ($i = 0; $i -lt 60; $i++) {
-            Start-Sleep -Seconds 1
+        # Refresh PATH and re-check
+        $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+        $claudeDesktopPath = Find-ClaudeDesktop
+        if ($claudeDesktopPath) {
+            Write-Host "  Claude Desktop installed successfully!" -ForegroundColor Green
+        } else {
+            Write-Host "  winget install finished. Checking..." -ForegroundColor Gray
+            # Give it a moment to register
+            Start-Sleep -Seconds 3
             $claudeDesktopPath = Find-ClaudeDesktop
             if ($claudeDesktopPath) {
                 Write-Host "  Claude Desktop installed successfully!" -ForegroundColor Green
-                break
             }
-            if ($i % 5 -eq 4) { Write-Host "." -NoNewline -ForegroundColor Gray }
         }
-        if ($i % 5 -ne 0) { Write-Host "" }
-
-        # Cleanup
-        Remove-Item $installerPath -Force -ErrorAction SilentlyContinue
-    } catch {
-        Write-Host "  Download failed: $_" -ForegroundColor Red
     }
 
-    # Fallback: open download page
+    # Fallback: direct download
+    if (-not $claudeDesktopPath) {
+        $downloadUrl = "https://downloads.claude.ai/releases/win32/ClaudeSetup.exe"
+        $installerPath = "$env:TEMP\ClaudeSetup.exe"
+
+        Write-Host "  Downloading Claude Desktop installer..." -ForegroundColor Yellow
+        try {
+            Invoke-WebRequest -Uri $downloadUrl -OutFile $installerPath -UseBasicParsing
+            Write-Host "  Download complete." -ForegroundColor Green
+
+            Write-Host "  Running installer..." -ForegroundColor Yellow
+            Start-Process -FilePath $installerPath -Wait
+
+            # Wait for installation
+            Write-Host "  Waiting for installation to complete..." -ForegroundColor Gray
+            for ($i = 0; $i -lt 60; $i++) {
+                Start-Sleep -Seconds 1
+                $claudeDesktopPath = Find-ClaudeDesktop
+                if ($claudeDesktopPath) {
+                    Write-Host "  Claude Desktop installed successfully!" -ForegroundColor Green
+                    break
+                }
+                if ($i % 5 -eq 4) { Write-Host "." -NoNewline -ForegroundColor Gray }
+            }
+            if ($i % 5 -ne 0) { Write-Host "" }
+
+            # Cleanup
+            Remove-Item $installerPath -Force -ErrorAction SilentlyContinue
+        } catch {
+            Write-Host "  Download failed: $_" -ForegroundColor Red
+        }
+    }
+
+    # Final fallback: open download page
     if (-not $claudeDesktopPath) {
         Write-Host ""
         Write-Host "  Please download Claude Desktop manually:" -ForegroundColor White
