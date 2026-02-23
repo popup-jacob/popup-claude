@@ -11,9 +11,6 @@ param(
     [switch]$help
 )
 
-$ErrorActionPreference = "Stop"
-
-
 # ============================================
 # Find Claude Desktop
 # ============================================
@@ -42,6 +39,10 @@ function Find-ClaudeDesktop {
     }
     return $null
 }
+
+try {
+
+$ErrorActionPreference = "Stop"
 
 # ============================================
 # Parse MODULES env var
@@ -104,7 +105,6 @@ if ($claudeDesktopPath) {
             Write-Host "  Claude Desktop installed successfully!" -ForegroundColor Green
         } else {
             Write-Host "  winget install finished. Checking..." -ForegroundColor Gray
-            # Give it a moment to register
             Start-Sleep -Seconds 3
             $claudeDesktopPath = Find-ClaudeDesktop
             if ($claudeDesktopPath) {
@@ -126,7 +126,6 @@ if ($claudeDesktopPath) {
             Write-Host "  Running installer..." -ForegroundColor Yellow
             Start-Process -FilePath $installerPath -Wait
 
-            # Wait for installation
             Write-Host "  Waiting for installation to complete..." -ForegroundColor Gray
             for ($i = 0; $i -lt 60; $i++) {
                 Start-Sleep -Seconds 1
@@ -139,7 +138,6 @@ if ($claudeDesktopPath) {
             }
             if ($i % 5 -ne 0) { Write-Host "" }
 
-            # Cleanup
             Remove-Item $installerPath -Force -ErrorAction SilentlyContinue
         } catch {
             Write-Host "  Download failed: $_" -ForegroundColor Red
@@ -161,8 +159,6 @@ if ($claudeDesktopPath) {
         if (-not $claudeDesktopPath) {
             Write-Host "  Claude Desktop still not detected." -ForegroundColor Red
             Write-Host "  Please install it and run this script again." -ForegroundColor Yellow
-            Write-Host ""
-            Read-Host "  Press Enter to exit"
             return
         }
         Write-Host "  Claude Desktop detected!" -ForegroundColor Green
@@ -199,7 +195,6 @@ if ($hasModules) {
     Write-Host ""
     Write-Host "[3/$totalSteps] Configuring MCP modules..." -ForegroundColor Yellow
 
-    # Read existing config
     $configJson = Get-Content $configPath -Raw -Encoding UTF8 | ConvertFrom-Json
     if (-not $configJson.mcpServers) {
         $configJson | Add-Member -NotePropertyName "mcpServers" -NotePropertyValue ([PSCustomObject]@{}) -Force
@@ -211,7 +206,6 @@ if ($hasModules) {
                 Write-Host ""
                 Write-Host "  [GitHub] Configuring MCP server..." -ForegroundColor Yellow
 
-                # Check Node.js (required for npx)
                 $nodeCheck = Get-Command node -ErrorAction SilentlyContinue
                 if (-not $nodeCheck) {
                     Write-Host "  Node.js not found. Installing via winget..." -ForegroundColor Yellow
@@ -224,7 +218,6 @@ if ($hasModules) {
                     }
                 }
 
-                # Also install gh CLI for better integration
                 $ghCheck = Get-Command gh -ErrorAction SilentlyContinue
                 if (-not $ghCheck) {
                     Write-Host "  Installing GitHub CLI (gh)..." -ForegroundColor Yellow
@@ -235,7 +228,6 @@ if ($hasModules) {
                     }
                 }
 
-                # Add GitHub MCP to config
                 $configJson.mcpServers | Add-Member -NotePropertyName "github" -NotePropertyValue ([PSCustomObject]@{
                     command = "npx"
                     args = @("-y", "@modelcontextprotocol/server-github")
@@ -246,7 +238,6 @@ if ($hasModules) {
 
                 Write-Host "  GitHub MCP added to config." -ForegroundColor Green
                 Write-Host "  Note: Set your GitHub token in config after setup." -ForegroundColor Gray
-                Write-Host "  Config: $configPath" -ForegroundColor Gray
             }
             "figma" {
                 Write-Host ""
@@ -274,7 +265,6 @@ if ($hasModules) {
         }
     }
 
-    # Write updated config (UTF-8 without BOM)
     $updatedJson = $configJson | ConvertTo-Json -Depth 4
     [System.IO.File]::WriteAllText($configPath, $updatedJson, [System.Text.UTF8Encoding]::new($false))
     Write-Host ""
@@ -307,5 +297,11 @@ if ($requestedModules -contains "github") {
     Write-Host ""
 }
 Write-Host "  Launch Claude Desktop and sign in to get started." -ForegroundColor White
-Write-Host ""
-Read-Host "  Press Enter to exit"
+
+} catch {
+    Write-Host ""
+    Write-Host "  ERROR: $_" -ForegroundColor Red
+} finally {
+    Write-Host ""
+    Read-Host "  Press Enter to exit"
+}
