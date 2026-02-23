@@ -241,23 +241,49 @@ if ($hasModules) {
             }
             "figma" {
                 Write-Host ""
-                Write-Host "  [Figma] Configuring Remote MCP server..." -ForegroundColor Yellow
+                Write-Host "  [Figma] Configuring MCP server..." -ForegroundColor Yellow
+
+                $nodeCheck = Get-Command node -ErrorAction SilentlyContinue
+                if (-not $nodeCheck) {
+                    Write-Host "  Node.js not found. Installing via winget..." -ForegroundColor Yellow
+                    $wingetCheck = Get-Command winget -ErrorAction SilentlyContinue
+                    if ($wingetCheck) {
+                        winget install OpenJS.NodeJS.LTS --accept-source-agreements --accept-package-agreements
+                        $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+                    } else {
+                        Write-Host "  Please install Node.js manually: https://nodejs.org/" -ForegroundColor Red
+                    }
+                }
 
                 $configJson.mcpServers | Add-Member -NotePropertyName "figma" -NotePropertyValue ([PSCustomObject]@{
-                    url = "https://mcp.figma.com/mcp"
+                    command = "npx"
+                    args = @("-y", "mcp-remote", "https://mcp.figma.com/mcp")
                 }) -Force
 
-                Write-Host "  Figma MCP added (OAuth in Claude Desktop)." -ForegroundColor Green
+                Write-Host "  Figma MCP added (OAuth on first use)." -ForegroundColor Green
             }
             "notion" {
                 Write-Host ""
-                Write-Host "  [Notion] Configuring Remote MCP server..." -ForegroundColor Yellow
+                Write-Host "  [Notion] Configuring MCP server..." -ForegroundColor Yellow
+
+                $nodeCheck = Get-Command node -ErrorAction SilentlyContinue
+                if (-not $nodeCheck) {
+                    Write-Host "  Node.js not found. Installing via winget..." -ForegroundColor Yellow
+                    $wingetCheck = Get-Command winget -ErrorAction SilentlyContinue
+                    if ($wingetCheck) {
+                        winget install OpenJS.NodeJS.LTS --accept-source-agreements --accept-package-agreements
+                        $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+                    } else {
+                        Write-Host "  Please install Node.js manually: https://nodejs.org/" -ForegroundColor Red
+                    }
+                }
 
                 $configJson.mcpServers | Add-Member -NotePropertyName "notion" -NotePropertyValue ([PSCustomObject]@{
-                    url = "https://mcp.notion.com/mcp"
+                    command = "npx"
+                    args = @("-y", "mcp-remote", "https://mcp.notion.com/mcp")
                 }) -Force
 
-                Write-Host "  Notion MCP added (OAuth in Claude Desktop)." -ForegroundColor Green
+                Write-Host "  Notion MCP added (OAuth on first use)." -ForegroundColor Green
             }
             default {
                 Write-Host "  Unknown module: $mod (skipped)" -ForegroundColor Yellow

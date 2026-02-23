@@ -250,37 +250,61 @@ with open('$CONFIG_PATH', 'w') as f: json.dump(c, f, indent=2)
                 ;;
             figma)
                 echo ""
-                echo -e "  ${YELLOW}[Figma] Configuring Remote MCP server...${NC}"
+                echo -e "  ${YELLOW}[Figma] Configuring MCP server...${NC}"
+
+                if ! command -v node > /dev/null 2>&1; then
+                    echo -e "  ${YELLOW}Node.js not found. Installing...${NC}"
+                    if [[ "$OSTYPE" == "darwin"* ]] && command -v brew > /dev/null 2>&1; then
+                        brew install node
+                    elif command -v apt-get > /dev/null 2>&1; then
+                        curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+                        sudo apt-get install -y nodejs
+                    else
+                        echo -e "  ${RED}Please install Node.js manually: https://nodejs.org/${NC}"
+                    fi
+                fi
 
                 if [ "$HAS_JQ" = true ]; then
-                    jq '.mcpServers.figma = {"url":"https://mcp.figma.com/mcp"}' "$CONFIG_PATH" > "$CONFIG_PATH.tmp" && mv "$CONFIG_PATH.tmp" "$CONFIG_PATH"
+                    jq '.mcpServers.figma = {"command":"npx","args":["-y","mcp-remote","https://mcp.figma.com/mcp"]}' "$CONFIG_PATH" > "$CONFIG_PATH.tmp" && mv "$CONFIG_PATH.tmp" "$CONFIG_PATH"
                 elif [ "$HAS_PYTHON" = true ]; then
                     python3 -c "
 import json
 with open('$CONFIG_PATH', 'r') as f: c = json.load(f)
-c.setdefault('mcpServers', {})['figma'] = {'url':'https://mcp.figma.com/mcp'}
+c.setdefault('mcpServers', {})['figma'] = {'command':'npx','args':['-y','mcp-remote','https://mcp.figma.com/mcp']}
 with open('$CONFIG_PATH', 'w') as f: json.dump(c, f, indent=2)
 "
                 fi
 
-                echo -e "  ${GREEN}Figma MCP added (OAuth in Claude Desktop).${NC}"
+                echo -e "  ${GREEN}Figma MCP added (OAuth on first use).${NC}"
                 ;;
             notion)
                 echo ""
-                echo -e "  ${YELLOW}[Notion] Configuring Remote MCP server...${NC}"
+                echo -e "  ${YELLOW}[Notion] Configuring MCP server...${NC}"
+
+                if ! command -v node > /dev/null 2>&1; then
+                    echo -e "  ${YELLOW}Node.js not found. Installing...${NC}"
+                    if [[ "$OSTYPE" == "darwin"* ]] && command -v brew > /dev/null 2>&1; then
+                        brew install node
+                    elif command -v apt-get > /dev/null 2>&1; then
+                        curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+                        sudo apt-get install -y nodejs
+                    else
+                        echo -e "  ${RED}Please install Node.js manually: https://nodejs.org/${NC}"
+                    fi
+                fi
 
                 if [ "$HAS_JQ" = true ]; then
-                    jq '.mcpServers.notion = {"url":"https://mcp.notion.com/mcp"}' "$CONFIG_PATH" > "$CONFIG_PATH.tmp" && mv "$CONFIG_PATH.tmp" "$CONFIG_PATH"
+                    jq '.mcpServers.notion = {"command":"npx","args":["-y","mcp-remote","https://mcp.notion.com/mcp"]}' "$CONFIG_PATH" > "$CONFIG_PATH.tmp" && mv "$CONFIG_PATH.tmp" "$CONFIG_PATH"
                 elif [ "$HAS_PYTHON" = true ]; then
                     python3 -c "
 import json
 with open('$CONFIG_PATH', 'r') as f: c = json.load(f)
-c.setdefault('mcpServers', {})['notion'] = {'url':'https://mcp.notion.com/mcp'}
+c.setdefault('mcpServers', {})['notion'] = {'command':'npx','args':['-y','mcp-remote','https://mcp.notion.com/mcp']}
 with open('$CONFIG_PATH', 'w') as f: json.dump(c, f, indent=2)
 "
                 fi
 
-                echo -e "  ${GREEN}Notion MCP added (OAuth in Claude Desktop).${NC}"
+                echo -e "  ${GREEN}Notion MCP added (OAuth on first use).${NC}"
                 ;;
             *)
                 echo -e "  ${YELLOW}Unknown module: $mod (skipped)${NC}"
