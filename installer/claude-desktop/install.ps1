@@ -138,6 +138,7 @@ if ($claudeDesktopPath) {
             Write-Host "  Claude Desktop still not detected." -ForegroundColor Red
             Write-Host "  Please install it and run this script again." -ForegroundColor Yellow
             Write-Host ""
+            Read-Host "  Press Enter to exit"
             return
         }
         Write-Host "  Claude Desktop detected!" -ForegroundColor Green
@@ -283,3 +284,4 @@ if ($requestedModules -contains "github") {
 }
 Write-Host "  Launch Claude Desktop and sign in to get started." -ForegroundColor White
 Write-Host ""
+Read-Host "  Press Enter to exit"
