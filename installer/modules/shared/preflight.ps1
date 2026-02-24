@@ -284,11 +284,12 @@ if ($preflight.hasDockerToolbox) {
 }
 
 # npm global Claude CLI detection
+# Use exit code: npm list -g returns 0 if found, 1 if not found
 $preflight.hasNpmClaude = $false
 if (Test-CommandExists "npm") {
     try {
-        $npmGlobal = npm list -g @anthropic-ai/claude-code 2>$null
-        if ($npmGlobal -and $npmGlobal -notlike "*empty*" -and $npmGlobal -notlike "*(empty)*") {
+        npm list -g @anthropic-ai/claude-code 2>$null | Out-Null
+        if ($LASTEXITCODE -eq 0) {
             $preflight.hasNpmClaude = $true
             $preflight.warnings += "npm global Claude CLI detected. Will remove to avoid conflict with native install."
         }
