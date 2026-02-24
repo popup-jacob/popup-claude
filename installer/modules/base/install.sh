@@ -217,110 +217,72 @@ else
 fi
 
 # ============================================
-# 4. IDE (VS Code or Antigravity)
+# 4. VS Code
 # ============================================
 echo ""
-if [ "$CLI_TYPE" = "gemini" ]; then
-    echo -e "${YELLOW}[4/7] Checking Antigravity...${NC}"
+echo -e "${YELLOW}[4/7] Checking VS Code...${NC}"
+VS_CODE_INSTALLED=false
+if command -v code > /dev/null 2>&1 || [ -d "/Applications/Visual Studio Code.app" ]; then
+    VS_CODE_INSTALLED=true
+fi
+
+if ! $VS_CODE_INSTALLED; then
+    echo -e "  ${GRAY}Installing VS Code...${NC}"
     if [[ "$OSTYPE" == "darwin"* ]]; then
-        if [ ! -d "/Applications/Antigravity.app" ]; then
-            echo -e "  ${GRAY}Installing Antigravity...${NC}"
-            if command -v brew > /dev/null 2>&1; then
-                brew install --cask antigravity || {
-                    echo -e "  ${RED}Brew cask install failed.${NC}"
-                    echo -e "  ${YELLOW}Manual download: https://antigravity.google/download${NC}"
-                }
-            else
-                echo -e "  ${YELLOW}Homebrew not available. Please install Antigravity from https://antigravity.google/download${NC}"
-            fi
-        fi
-
-        # Add agy CLI to PATH if app is present but agy not in PATH
-        _agy_cli_candidates=(
-            "/Applications/Antigravity.app/Contents/Resources/bin"
-            "/Applications/Antigravity.app/Contents/MacOS"
-        )
-        if ! command -v agy > /dev/null 2>&1; then
-            for _agy_dir in "${_agy_cli_candidates[@]}"; do
-                if [ -d "$_agy_dir" ] && ls "$_agy_dir"/agy* &>/dev/null 2>&1; then
-                    _add_to_path "$_agy_dir"
-                    echo -e "  ${GRAY}Added agy to PATH ($( echo "$_agy_dir" | sed "s|$HOME|~|"))${NC}"
-                    break
-                fi
-            done
-        fi
-
-        # Gatekeeper: remove quarantine so Antigravity opens without warning
-        if [ -d "/Applications/Antigravity.app" ]; then
-            xattr -rd com.apple.quarantine "/Applications/Antigravity.app" 2>/dev/null || true
-        fi
-    else
-        # Linux: manual install guide
-        if ! command -v agy > /dev/null 2>&1; then
-            echo -e "  ${YELLOW}Please install Antigravity from: https://antigravity.google/download${NC}"
-        fi
-    fi
-
-    if [ -d "/Applications/Antigravity.app" ] || command -v agy > /dev/null 2>&1; then
-        echo -e "  ${GREEN}OK${NC}"
-    else
-        echo -e "  ${YELLOW}Antigravity not detected after install${NC}"
-        echo -e "  ${GRAY}Note: Requires personal @gmail.com account (18+, supported region)${NC}"
-    fi
-else
-    echo -e "${YELLOW}[4/7] Checking VS Code...${NC}"
-    VS_CODE_INSTALLED=false
-    if command -v code > /dev/null 2>&1 || [ -d "/Applications/Visual Studio Code.app" ]; then
-        VS_CODE_INSTALLED=true
-    fi
-
-    if ! $VS_CODE_INSTALLED; then
-        echo -e "  ${GRAY}Installing VS Code...${NC}"
-        if [[ "$OSTYPE" == "darwin"* ]]; then
-            if command -v brew > /dev/null 2>&1; then
-                brew install --cask visual-studio-code || {
-                    echo -e "  ${RED}Brew cask install failed.${NC}"
-                    echo -e "  ${YELLOW}Manual download: https://code.visualstudio.com${NC}"
-                }
-            else
-                echo -e "  ${YELLOW}Homebrew not available. Please install VS Code from https://code.visualstudio.com${NC}"
-            fi
+        if command -v brew > /dev/null 2>&1; then
+            brew install --cask visual-studio-code || {
+                echo -e "  ${RED}Brew cask install failed.${NC}"
+                echo -e "  ${YELLOW}Manual download: https://code.visualstudio.com${NC}"
+            }
         else
-            # FR-S2-04: Linux - multi-package manager VS Code support
-            if command -v snap > /dev/null 2>&1; then
-                sudo snap install code --classic
-            elif command -v dnf > /dev/null 2>&1; then
-                sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc 2>/dev/null || true
-                echo -e "  ${YELLOW}Please install VS Code manually from https://code.visualstudio.com${NC}"
-            elif command -v pacman > /dev/null 2>&1; then
-                echo -e "  ${YELLOW}Please install VS Code from AUR or https://code.visualstudio.com${NC}"
-            else
-                echo -e "  ${YELLOW}Please install VS Code manually from https://code.visualstudio.com${NC}"
-            fi
+            echo -e "  ${YELLOW}Homebrew not available. Please install VS Code from https://code.visualstudio.com${NC}"
+        fi
+    else
+        # FR-S2-04: Linux - multi-package manager VS Code support
+        if command -v snap > /dev/null 2>&1; then
+            sudo snap install code --classic
+        elif command -v dnf > /dev/null 2>&1; then
+            sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc 2>/dev/null || true
+            echo -e "  ${YELLOW}Please install VS Code manually from https://code.visualstudio.com${NC}"
+        elif command -v pacman > /dev/null 2>&1; then
+            echo -e "  ${YELLOW}Please install VS Code from AUR or https://code.visualstudio.com${NC}"
+        else
+            echo -e "  ${YELLOW}Please install VS Code manually from https://code.visualstudio.com${NC}"
         fi
     fi
+fi
 
-    # Ensure 'code' CLI is in PATH (macOS — VS Code installs it under the .app bundle)
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        _code_cli_dir="/Applications/Visual Studio Code.app/Contents/Resources/app/bin"
-        if [ -d "$_code_cli_dir" ] && ! command -v code > /dev/null 2>&1; then
-            _add_to_path "$_code_cli_dir"
-            export PATH="$_code_cli_dir:$PATH"   # needed immediately for the extension step below
-            echo -e "  ${GRAY}Added 'code' to PATH${NC}"
+# Ensure 'code' CLI is in PATH (macOS — VS Code installs it under the .app bundle)
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    _code_cli_dir="/Applications/Visual Studio Code.app/Contents/Resources/app/bin"
+    if [ -d "$_code_cli_dir" ] && ! command -v code > /dev/null 2>&1; then
+        _add_to_path "$_code_cli_dir"
+        export PATH="$_code_cli_dir:$PATH"   # needed immediately for the extension step below
+        echo -e "  ${GRAY}Added 'code' to PATH${NC}"
+    fi
+fi
+
+# Gatekeeper: remove quarantine attribute (prevents "unverified developer" dialog)
+if [[ "$OSTYPE" == "darwin"* ]] && [ -d "/Applications/Visual Studio Code.app" ]; then
+    xattr -rd com.apple.quarantine "/Applications/Visual Studio Code.app" 2>/dev/null || true
+fi
+
+echo -e "  ${GREEN}OK${NC}"
+
+# Install IDE extension based on CLI type
+if command -v code > /dev/null 2>&1; then
+    if [ "$CLI_TYPE" = "gemini" ]; then
+        echo -e "  ${GRAY}Installing Gemini CLI Companion extension...${NC}"
+        _ext_output="$(code --install-extension Google.gemini-cli-vscode-ide-companion --force 2>&1 || true)"
+        if echo "$_ext_output" | grep -qi "failed\|error\|ENOENT\|ECONNREFUSED\|certificate"; then
+            echo -e "  ${YELLOW}Gemini extension install issue detected:${NC}"
+            echo -e "  ${GRAY}$_ext_output${NC}" | head -5
+            echo -e "  ${YELLOW}Manual install: Open VS Code > Extensions > search 'Gemini CLI Companion'${NC}"
+        else
+            echo -e "  ${GREEN}Gemini CLI Companion extension installed${NC}"
         fi
-    fi
-
-    # Gatekeeper: remove quarantine attribute (prevents "unverified developer" dialog)
-    if [[ "$OSTYPE" == "darwin"* ]] && [ -d "/Applications/Visual Studio Code.app" ]; then
-        xattr -rd com.apple.quarantine "/Applications/Visual Studio Code.app" 2>/dev/null || true
-    fi
-
-    echo -e "  ${GREEN}OK${NC}"
-
-    # Install Claude extension for VS Code
-    if command -v code > /dev/null 2>&1; then
+    else
         echo -e "  ${GRAY}Installing Claude extension...${NC}"
-        # Capture output — VS Code CLI can return exit 0 even on failure
         _ext_output="$(code --install-extension anthropic.claude-code --force 2>&1 || true)"
         if echo "$_ext_output" | grep -qi "failed\|error\|ENOENT\|ECONNREFUSED\|certificate"; then
             echo -e "  ${YELLOW}Claude extension install issue detected:${NC}"

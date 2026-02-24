@@ -2,13 +2,6 @@
 # Pencil Module — AI Design Canvas for IDE
 # ============================================
 
-# Pencil is a VS Code/Cursor extension — not supported with Antigravity
-if ($env:CLI_TYPE -eq "gemini") {
-    Write-Host "[Skip] Pencil is not yet supported with Antigravity." -ForegroundColor Yellow
-    Write-Host "Pencil requires VS Code or Cursor IDE." -ForegroundColor Gray
-    return
-}
-
 Write-Host ""
 Write-Host "Pencil Setup" -ForegroundColor Cyan
 Write-Host "------------" -ForegroundColor Cyan

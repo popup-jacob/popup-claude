@@ -26,10 +26,10 @@
 | CLI 명령어 | `claude` | `gemini` |
 | CLI 설치 (Mac/Linux) | `curl -fsSL https://claude.ai/install.sh \| bash` | `npm install -g @google/gemini-cli` |
 | CLI 설치 (Windows) | `irm https://claude.ai/install.ps1 \| iex` | `npm install -g @google/gemini-cli` |
-| IDE 설치 (Windows) | `winget install Microsoft.VisualStudioCode` | `winget install Google.Antigravity` |
-| IDE 설치 (Mac) | `brew install --cask visual-studio-code` | `brew install --cask antigravity` |
-| IDE 설치 (Linux apt) | `sudo snap install code --classic` | `sudo dpkg -i` (수동 안내) |
-| VS Code 확장 | `code --install-extension anthropic.claude-code` | 스킵 (Antigravity 내장) |
+| IDE 설치 (Windows) | `winget install Microsoft.VisualStudioCode` | `winget install Microsoft.VisualStudioCode` |
+| IDE 설치 (Mac) | `brew install --cask visual-studio-code` | `brew install --cask visual-studio-code` |
+| IDE 설치 (Linux apt) | `sudo snap install code --classic` | `sudo snap install code --classic` |
+| VS Code 확장 | `code --install-extension anthropic.claude-code` | `code --install-extension Google.gemini-cli-vscode-ide-companion` |
 | 플러그인 설치 | `claude plugin marketplace add popup-studio-ai/bkit-claude-code && claude plugin install bkit@bkit-marketplace` | `gemini extensions install https://github.com/popup-studio-ai/bkit-gemini.git` |
 | MCP 설정 파일 | `~/.claude/mcp.json` | `~/.gemini/settings.json` |
 | MCP 추가 (http) | `claude mcp add --transport http {name} {url}` | `gemini mcp add --transport http {name} {url}` |
@@ -95,30 +95,23 @@ $env:CLI_TYPE = $cli
 
 **FR-04, FR-05, FR-06, FR-07**
 
-#### IDE 설치 분기 (기존 "4. VS Code" 섹션 교체)
+#### IDE 설치 (공통 VS Code)
 
 ```bash
 # ============================================
-# 4. IDE (VS Code or Antigravity)
+# 4. VS Code
 # ============================================
 echo ""
-if [ "$CLI_TYPE" = "gemini" ]; then
-    echo -e "${YELLOW}[4/7] Checking Antigravity...${NC}"
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        if [ ! -d "/Applications/Antigravity.app" ]; then
-            echo -e "  ${GRAY}Installing Antigravity...${NC}"
-            brew install --cask antigravity
-        fi
+echo -e "${YELLOW}[4/7] Checking VS Code...${NC}"
+# ... VS Code 설치 로직 (Claude/Gemini 공통) ...
+
+# Install IDE extension based on CLI type
+if command -v code > /dev/null 2>&1; then
+    if [ "$CLI_TYPE" = "gemini" ]; then
+        code --install-extension Google.gemini-cli-vscode-ide-companion --force
     else
-        # Linux: 수동 설치 안내
-        if ! command -v agy > /dev/null 2>&1; then
-            echo -e "  ${YELLOW}Please install Antigravity from: https://antigravity.google/download${NC}"
-        fi
+        code --install-extension anthropic.claude-code --force
     fi
-    echo -e "  ${GREEN}OK${NC}"
-else
-    echo -e "${YELLOW}[4/7] Checking VS Code...${NC}"
-    # ... 기존 VS Code 설치 로직 유지 ...
 fi
 ```
 
@@ -168,31 +161,20 @@ fi
 
 ### 3.4 modules/base/install.ps1 (Windows base)
 
-**FR-04, FR-05, FR-06, FR-07** — install.sh와 동일한 분기를 PowerShell로 구현
+**FR-04, FR-05, FR-06, FR-07** — install.sh와 동일한 패턴을 PowerShell로 구현
 
-#### IDE 설치 분기
+#### IDE 설치 (공통 VS Code)
 
 ```powershell
-# 기존 "4. VS Code" 섹션 교체
+# 4. VS Code (Claude/Gemini 공통)
+Write-Host "[4/8] Checking VS Code..." -ForegroundColor Yellow
+# ... VS Code 설치 로직 ...
+
+# Install IDE extension based on CLI type
 if ($env:CLI_TYPE -eq "gemini") {
-    Write-Host "[4/8] Checking Antigravity..." -ForegroundColor Yellow
-    # Antigravity 설치 체크
-    $antigravityPaths = @(
-        "$env:LOCALAPPDATA\Programs\Antigravity\Antigravity.exe",
-        "$env:ProgramFiles\Antigravity\Antigravity.exe"
-    )
-    $antigravityInstalled = $false
-    foreach ($path in $antigravityPaths) {
-        if (Test-Path $path) { $antigravityInstalled = $true; break }
-    }
-    if (-not $antigravityInstalled) {
-        Write-Host "  Installing Antigravity..." -ForegroundColor Gray
-        winget install Google.Antigravity --accept-source-agreements --accept-package-agreements -h
-    }
-    Write-Host "  OK" -ForegroundColor Green
+    Install-VSCodeExtension -ExtensionId "Google.gemini-cli-vscode-ide-companion" -DisplayName "Gemini CLI Companion" -Command $codeCmd
 } else {
-    Write-Host "[4/8] Checking VS Code..." -ForegroundColor Yellow
-    # ... 기존 VS Code 설치 로직 유지 ...
+    Install-VSCodeExtension -ExtensionId "anthropic.claude-code" -DisplayName "Claude Code" -Command $codeCmd
 }
 ```
 
@@ -376,16 +358,10 @@ $cliCmd = if ($env:CLI_TYPE -eq "gemini") { "gemini" } else { "claude" }
 
 ### 3.15 modules/pencil/install.sh, install.ps1
 
-**Gemini 선택 시 스킵 처리**
+**Gemini 선택 시에도 Pencil 정상 지원**
 
-```bash
-# Pencil은 VS Code/Cursor 확장이므로 Antigravity에서는 미지원
-if [ "$CLI_TYPE" = "gemini" ]; then
-    echo -e "${YELLOW}[Skip] Pencil is not yet supported with Antigravity.${NC}"
-    echo -e "${GRAY}Pencil requires VS Code or Cursor IDE.${NC}"
-    exit 0
-fi
-```
+Gemini도 VS Code를 사용하므로 스킵 처리 없이 Claude와 동일하게 Pencil을 설치한다.
+(`highagency.pencildev` 확장을 `code --install-extension`으로 설치)
 
 ### 3.16 README.md
 

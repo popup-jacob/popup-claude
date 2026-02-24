@@ -175,86 +175,43 @@ try {
 }
 
 # ============================================
-# 4. IDE (VS Code or Antigravity)
+# 4. VS Code
 # ============================================
 Write-Host ""
-if ($env:CLI_TYPE -eq "gemini") {
-    Write-Host "[4/8] Checking Antigravity..." -ForegroundColor Yellow
-    try {
-        # Mod 1: CRITICAL BUG FIX - Antigravity install path correction
-        $antigravityPaths = @(
-            "$env:ProgramFiles\Google\Antigravity\Antigravity.exe",
-            "$env:LOCALAPPDATA\Programs\Google\Antigravity\Antigravity.exe",
-            "$env:LOCALAPPDATA\Programs\Antigravity\Antigravity.exe"   # Legacy compat
-        )
-        $antigravityInstalled = $false
-        foreach ($path in $antigravityPaths) {
-            if (Test-Path $path) { $antigravityInstalled = $true; break }
-        }
-        if (-not $antigravityInstalled) {
-            Write-Host "  Installing Antigravity..." -ForegroundColor Gray
-            Install-WithWinget -PackageId "Google.Antigravity" -DisplayName "Antigravity"
-        }
-        # Mod 2: Ensure agy CLI is in PATH
-        Ensure-InPath "$env:ProgramFiles\Google\Antigravity\bin"
-        Ensure-InPath "$env:ProgramFiles\Google\Antigravity"
-        Refresh-Path
-
-        if (Test-CommandExists "agy") {
-            Write-Host "  OK (agy CLI available)" -ForegroundColor Green
-        } else {
-            Write-Host "  OK (restart terminal for agy CLI)" -ForegroundColor Yellow
-        }
-
-        # Mod 2: Install Gemini companion extension via agy
-        if (Test-CommandExists "agy") {
-            Install-VSCodeExtension -ExtensionId "google.gemini-cli-companion" -DisplayName "Gemini Companion" -Command "agy"
-        }
-
-        # AG9: Copilot extension conflict warning
-        if (Test-CommandExists "agy") {
-            $copilotCheck = agy --list-extensions 2>$null | Out-String
-            if ($copilotCheck -like "*copilot*") {
-                Write-Host "  WARNING: GitHub Copilot extension detected in Antigravity." -ForegroundColor Yellow
-                Write-Host "  This may cause Antigravity to freeze on loading screen." -ForegroundColor Yellow
-                Write-Host "  Fix: Disable Copilot extension in Antigravity (Extensions panel)." -ForegroundColor Yellow
-            }
-        }
-    } catch {
-        Write-Host "  Antigravity install failed: $_" -ForegroundColor Red
-        Write-Host "  Manual install: https://antigravity.google/download" -ForegroundColor Cyan
+Write-Host "[4/8] Checking VS Code..." -ForegroundColor Yellow
+try {
+    $vscodePaths = @(
+        "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe",
+        "$env:ProgramFiles\Microsoft VS Code\Code.exe"
+    )
+    $vscodeInstalled = $false
+    foreach ($path in $vscodePaths) {
+        if (Test-Path $path) { $vscodeInstalled = $true; break }
     }
-} else {
-    Write-Host "[4/8] Checking VS Code..." -ForegroundColor Yellow
-    try {
-        $vscodePaths = @(
-            "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe",
-            "$env:ProgramFiles\Microsoft VS Code\Code.exe"
-        )
-        $vscodeInstalled = $false
-        foreach ($path in $vscodePaths) {
-            if (Test-Path $path) { $vscodeInstalled = $true; break }
-        }
-        if (-not $vscodeInstalled) {
-            Write-Host "  Installing VS Code..." -ForegroundColor Gray
-            Install-WithWinget -PackageId "Microsoft.VisualStudioCode" -DisplayName "VS Code"
-            Ensure-InPath "$env:LOCALAPPDATA\Programs\Microsoft VS Code\bin"
-            Ensure-InPath "$env:ProgramFiles\Microsoft VS Code\bin"
-        }
-        Refresh-Path
-        Write-Host "  OK" -ForegroundColor Green
+    if (-not $vscodeInstalled) {
+        Write-Host "  Installing VS Code..." -ForegroundColor Gray
+        Install-WithWinget -PackageId "Microsoft.VisualStudioCode" -DisplayName "VS Code"
+        Ensure-InPath "$env:LOCALAPPDATA\Programs\Microsoft VS Code\bin"
+        Ensure-InPath "$env:ProgramFiles\Microsoft VS Code\bin"
+    }
+    Refresh-Path
+    Write-Host "  OK" -ForegroundColor Green
 
-        # Mod 4: Extension install with proper error capture
-        # Determine correct IDE command (code vs code-insiders)
-        $codeCmd = "code"
-        if ($preflight.hasCodeInsiders -and -not $preflight.hasCode) {
-            $codeCmd = "code-insiders"
-        }
+    # Determine correct IDE command (code vs code-insiders)
+    $codeCmd = "code"
+    if ($preflight.hasCodeInsiders -and -not $preflight.hasCode) {
+        $codeCmd = "code-insiders"
+    }
+
+    # Install IDE extension based on CLI type
+    if ($env:CLI_TYPE -eq "gemini") {
+        Install-VSCodeExtension -ExtensionId "Google.gemini-cli-vscode-ide-companion" -DisplayName "Gemini CLI Companion" -Command $codeCmd
+    } else {
         Install-VSCodeExtension -ExtensionId "anthropic.claude-code" -DisplayName "Claude Code" -Command $codeCmd
-    } catch {
-        Write-Host "  VS Code install failed: $_" -ForegroundColor Red
-        Write-Host "  Manual install: https://code.visualstudio.com/" -ForegroundColor Cyan
     }
+} catch {
+    Write-Host "  VS Code install failed: $_" -ForegroundColor Red
+    Write-Host "  Manual install: https://code.visualstudio.com/" -ForegroundColor Cyan
 }
 
 # ============================================

@@ -150,12 +150,8 @@ function Get-InstallStatus {
         Bkit = $false
     }
 
-    # IDE check depends on CLI_TYPE
-    if ($env:CLI_TYPE -eq "gemini") {
-        $status.IDE = (Test-Path "$env:LOCALAPPDATA\Programs\Antigravity\Antigravity.exe") -or (Test-Path "$env:ProgramFiles\Antigravity\Antigravity.exe")
-    } else {
-        $status.IDE = (Test-Path "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe") -or (Test-Path "$env:ProgramFiles\Microsoft VS Code\Code.exe")
-    }
+    # IDE check
+    $status.IDE = (Test-Path "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe") -or (Test-Path "$env:ProgramFiles\Microsoft VS Code\Code.exe")
 
     # Check WSL
     $prevEA = $ErrorActionPreference
@@ -307,7 +303,7 @@ foreach ($modName in $selectedModules) {
     }
 }
 
-$ideLabel = if ($env:CLI_TYPE -eq "gemini") { "Antigravity" } else { "VS Code" }
+$ideLabel = "VS Code"
 $cliLabel = if ($env:CLI_TYPE -eq "gemini") { "Gemini" } else { "Claude" }
 
 Write-Host "Current Status: (CLI: $($env:CLI_TYPE))" -ForegroundColor White

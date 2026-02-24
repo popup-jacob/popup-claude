@@ -22,9 +22,9 @@
 
 | 항목 | Claude | Gemini |
 |------|--------|--------|
-| **IDE** | VS Code | Antigravity |
-| **IDE 설치** | `winget install Microsoft.VisualStudioCode` / `brew install --cask visual-studio-code` | `winget install Google.Antigravity` / `brew install --cask antigravity` |
-| **VS Code 확장** | `anthropic.claude-code` | 불필요 (Antigravity 자체가 IDE) |
+| **IDE** | VS Code | VS Code |
+| **IDE 설치** | `winget install Microsoft.VisualStudioCode` / `brew install --cask visual-studio-code` | 동일 |
+| **VS Code 확장** | `anthropic.claude-code` | `Google.gemini-cli-vscode-ide-companion` |
 | **CLI 설치** | `curl claude.ai/install.sh \| bash` / `irm claude.ai/install.ps1 \| iex` | `npm install -g @google/gemini-cli` |
 | **플러그인** | `claude plugin install bkit@bkit-marketplace` | `gemini extensions install https://github.com/popup-studio-ai/bkit-gemini.git` |
 | **MCP 설정 파일** | `~/.claude/mcp.json` | `~/.gemini/settings.json` |
@@ -49,7 +49,7 @@
 
 모든 변경은 아래 **4가지 분기**로 귀결됨:
 
-1. **IDE 설치**: VS Code vs Antigravity
+1. **VS Code 확장**: `anthropic.claude-code` vs `Google.gemini-cli-vscode-ide-companion`
 2. **CLI 설치 + 체크**: `claude` vs `gemini` 명령어
 3. **플러그인 설치**: bkit(claude) vs bkit-gemini
 4. **MCP 설정**: `~/.claude/mcp.json` vs `~/.gemini/settings.json`
@@ -94,10 +94,10 @@
 
 | ID | Requirement | Priority | 대상 파일 |
 |----|-------------|:--------:|----------|
-| FR-04 | **IDE 설치 분기** — `claude` → VS Code, `gemini` → Antigravity | **High** | `base/install.sh`, `base/install.ps1` |
+| FR-04 | **IDE 설치** — Claude/Gemini 모두 VS Code 설치 (공통) | **High** | `base/install.sh`, `base/install.ps1` |
 | FR-05 | **CLI 설치 분기** — `claude` → claude.ai 설치, `gemini` → `npm install -g @google/gemini-cli` | **High** | `base/install.sh`, `base/install.ps1` |
 | FR-06 | **플러그인 분기** — `claude` → bkit, `gemini` → bkit-gemini | **High** | `base/install.sh`, `base/install.ps1` |
-| FR-07 | **VS Code 확장 분기** — `claude` → `anthropic.claude-code`, `gemini` → 스킵 (Antigravity 내장) | **Medium** | `base/install.sh`, `base/install.ps1` |
+| FR-07 | **VS Code 확장 분기** — `claude` → `anthropic.claude-code`, `gemini` → `Google.gemini-cli-vscode-ide-companion` | **High** | `base/install.sh`, `base/install.ps1` |
 
 #### MCP 모듈 (각 모듈 install.sh / install.ps1)
 
@@ -186,17 +186,17 @@
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
-| Gemini CLI/Antigravity가 빠르게 변화 중 | 설치 명령어 변경 가능 | npm/winget/brew 패키지명은 안정적 |
+| Gemini CLI가 빠르게 변화 중 | 설치 명령어 변경 가능 | npm 패키지명은 안정적 |
 | `gemini mcp add` 문법이 `claude mcp add`와 다를 수 있음 | MCP 등록 실패 | Design 단계에서 정확한 문법 확인 |
-| Pencil 모듈 Gemini 미지원 | 기능 제한 | Gemini 선택 시 Pencil 스킵 + 안내 |
-| Antigravity가 무료 Preview 상태 | 서비스 변경 가능 | 설치 시 Preview 상태 안내 |
+| Gemini CLI Companion Extension ID 변경 | 확장 설치 실패 | 실패 시 수동 설치 안내 메시지 포함 |
 
 ---
 
 ## 6. Success Criteria
 
-- [ ] `./install.sh --cli gemini` → Antigravity + Gemini CLI + bkit-gemini 설치
+- [ ] `./install.sh --cli gemini` → VS Code + Gemini CLI Companion 확장 + Gemini CLI + bkit-gemini 설치
 - [ ] `.\install.ps1 -cli gemini` → 동일
 - [ ] `--cli` 미지정 → 기존 Claude 설치 (하위호환 100%)
 - [ ] MCP 모듈(notion, figma, atlassian, google)이 Gemini 설정에 등록됨
+- [ ] Pencil 모듈이 Gemini 모드에서도 정상 설치됨
 - [ ] 기존 테스트 통과

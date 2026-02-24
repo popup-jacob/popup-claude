@@ -396,11 +396,7 @@ done
 get_install_status() {
     if command -v node > /dev/null 2>&1; then HAS_NODE="true"; else HAS_NODE="false"; fi
     if command -v git > /dev/null 2>&1; then HAS_GIT="true"; else HAS_GIT="false"; fi
-    if [ "$CLI_TYPE" = "gemini" ]; then
-        if [ -d "/Applications/Antigravity.app" ] || command -v agy > /dev/null 2>&1; then HAS_IDE="true"; else HAS_IDE="false"; fi
-    else
-        if command -v code > /dev/null 2>&1 || [ -d "/Applications/Visual Studio Code.app" ]; then HAS_IDE="true"; else HAS_IDE="false"; fi
-    fi
+    if command -v code > /dev/null 2>&1 || [ -d "/Applications/Visual Studio Code.app" ]; then HAS_IDE="true"; else HAS_IDE="false"; fi
     if command -v docker > /dev/null 2>&1; then HAS_DOCKER="true"; else HAS_DOCKER="false"; fi
     CLI_CMD="${CLI_TYPE:-claude}"
     if command -v "$CLI_CMD" > /dev/null 2>&1; then HAS_CLI="true"; else HAS_CLI="false"; fi
@@ -481,7 +477,7 @@ for mod in $SELECTED_MODULES; do
     fi
 done
 
-IDE_LABEL=$([ "$CLI_TYPE" = "gemini" ] && echo "Antigravity" || echo "VS Code")
+IDE_LABEL="VS Code"
 CLI_LABEL=$([ "$CLI_TYPE" = "gemini" ] && echo "Gemini" || echo "Claude")
 
 echo "Current Status: (CLI: $CLI_TYPE)"

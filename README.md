@@ -57,7 +57,8 @@ curl -fsSL https://raw.githubusercontent.com/popup-jacob/popup-claude/master/ins
 |---------|--------|--------|
 | Node.js | O | O |
 | Git | O | O |
-| IDE | VS Code | Antigravity |
+| IDE | VS Code | VS Code |
+| VS Code 확장 | Claude Code (`anthropic.claude-code`) | Gemini CLI Companion (`Google.gemini-cli-vscode-ide-companion`) |
 | Docker Desktop | 선택 | 선택 |
 | AI CLI | Claude Code CLI | Gemini CLI |
 | 플러그인 | bkit (Claude plugin) | bkit-gemini (Gemini extension) |

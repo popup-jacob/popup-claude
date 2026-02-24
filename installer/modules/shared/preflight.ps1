@@ -298,10 +298,9 @@ if (Test-CommandExists "npm") {
     }
 }
 
-# VS Code / Insiders / Antigravity detection
+# VS Code / Insiders detection
 $preflight.hasCode = Test-CommandExists "code"
 $preflight.hasCodeInsiders = Test-CommandExists "code-insiders"
-$preflight.hasAgy = Test-CommandExists "agy"
 
 if ($preflight.hasCodeInsiders -and -not $preflight.hasCode) {
     $preflight.warnings += "VS Code Insiders detected (no regular VS Code). Extensions will be installed via code-insiders."
@@ -385,10 +384,10 @@ if ($script:needsDocker) {
 }
 
 # ============================================
-# Check 14: Google Account / Region (Antigravity)
+# Check 14: Google Account / Region (Gemini)
 # ============================================
 if ($env:CLI_TYPE -eq "gemini") {
-    Write-Host "  Checking Gemini/Antigravity requirements..." -ForegroundColor Gray
+    Write-Host "  Checking Gemini requirements..." -ForegroundColor Gray
     try {
         $region = (Get-WinSystemLocale -ErrorAction SilentlyContinue).Name
         $restrictedRegions = @("zh-CN", "ru-RU", "fa-IR")
@@ -398,7 +397,7 @@ if ($env:CLI_TYPE -eq "gemini") {
         }
 
         $msg = @(
-            "Antigravity/Gemini requirements:",
+            "Gemini requirements:",
             "  - Personal @gmail.com account recommended (Workspace accounts may be blocked)",
             "  - 18+ Google account required",
             "  - Some countries have access restrictions"

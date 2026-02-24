@@ -21,7 +21,6 @@ PREFLIGHT_FREE_SPACE_GB=0
 PREFLIGHT_HAS_NODE_MANAGER=false      # nvm / fnm / volta detected
 PREFLIGHT_HAS_NPM_CLAUDE=false        # deprecated npm global Claude CLI
 PREFLIGHT_HAS_CODE=false              # 'code' command available
-PREFLIGHT_HAS_AGY=false               # 'agy' command available
 PREFLIGHT_FATAL=""
 PREFLIGHT_WARNING_COUNT=0
 
@@ -264,7 +263,6 @@ fi
 
 # Tool availability (used by install.sh)
 command -v code &>/dev/null 2>&1 && PREFLIGHT_HAS_CODE=true || PREFLIGHT_HAS_CODE=false
-command -v agy &>/dev/null 2>&1 && PREFLIGHT_HAS_AGY=true || PREFLIGHT_HAS_AGY=false
 
 # ============================================
 # Check 10: Homebrew health (if already installed)
@@ -283,14 +281,14 @@ fi
 # Check 11: Google Account / Region (Gemini only)
 # ============================================
 if [[ "${CLI_TYPE:-}" == "gemini" ]]; then
-    echo -e "  ${_PF_GRY}Checking Gemini/Antigravity requirements...${_PF_NC}"
+    echo -e "  ${_PF_GRY}Checking Gemini requirements...${_PF_NC}"
     _locale="$(locale 2>/dev/null | grep LANG | head -1 | cut -d= -f2 | tr -d '"' || echo "")"
     _region_warn=""
     if echo "$_locale" | grep -qE "^(zh_CN|ru_RU|fa_IR)"; then
         _region_warn=" WARNING: Your locale ($_locale) may indicate a restricted region."
     fi
     _pf_warn \
-        "Antigravity/Gemini account requirements:" \
+        "Gemini account requirements:" \
         "- Personal @gmail.com account recommended (Workspace may be blocked)" \
         "- 18+ Google account required" \
         "- Access restricted in some countries (China, Russia, Iran)${_region_warn:+$_region_warn}"
