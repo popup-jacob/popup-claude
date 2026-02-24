@@ -17,6 +17,7 @@
 
 param(
     [string]$modules = "",       # Comma-separated module list
+    [string]$cli = "",           # CLI type: claude or gemini
     [switch]$all,                # Install all modules
     [switch]$skipBase,           # Skip base module
     [switch]$installDocker,      # Force Docker installation (for Step 1)
@@ -36,6 +37,15 @@ param(
 if (-not $modules -and $env:MODULES) {
     $modules = $env:MODULES
 }
+if (-not $cli -and $env:CLI_TYPE) {
+    $cli = $env:CLI_TYPE
+}
+if (-not $cli) { $cli = "claude" }
+if ($cli -ne "claude" -and $cli -ne "gemini") {
+    Write-Host "Invalid -cli value: $cli (use 'claude' or 'gemini')" -ForegroundColor Red
+    exit 1
+}
+$env:CLI_TYPE = $cli
 if ($env:SKIP_BASE -eq "true" -or $env:SKIP_BASE -eq "1") {
     $skipBase = $true
 }
@@ -125,7 +135,55 @@ if ($list) {
 }
 
 # ============================================
-# 3. Admin Check & Elevation (only for installation)
+# 3. Smart Status Check (must be before Admin Check)
+# ============================================
+function Get-InstallStatus {
+    $cliCmd = if ($env:CLI_TYPE -eq "gemini") { "gemini" } else { "claude" }
+    $status = @{
+        NodeJS = [bool](Get-Command node -ErrorAction SilentlyContinue)
+        Git = [bool](Get-Command git -ErrorAction SilentlyContinue)
+        IDE = $false
+        WSL = $false
+        Docker = [bool](Get-Command docker -ErrorAction SilentlyContinue)
+        DockerRunning = $false
+        CLI = [bool](Get-Command $cliCmd -ErrorAction SilentlyContinue)
+        Bkit = $false
+    }
+
+    # IDE check depends on CLI_TYPE
+    if ($env:CLI_TYPE -eq "gemini") {
+        $status.IDE = (Test-Path "$env:LOCALAPPDATA\Programs\Antigravity\Antigravity.exe") -or (Test-Path "$env:ProgramFiles\Antigravity\Antigravity.exe")
+    } else {
+        $status.IDE = (Test-Path "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe") -or (Test-Path "$env:ProgramFiles\Microsoft VS Code\Code.exe")
+    }
+
+    # Check WSL
+    $prevEA = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    wsl --version 2>&1 | Out-Null
+    if ($LASTEXITCODE -eq 0) {
+        $status.WSL = $true
+    }
+    $ErrorActionPreference = $prevEA
+
+    if ($status.Docker) {
+        $null = docker info 2>&1
+        $status.DockerRunning = ($LASTEXITCODE -eq 0)
+    }
+
+    if ($status.CLI) {
+        if ($env:CLI_TYPE -ne "gemini") {
+            $bkitCheck = claude plugin list 2>$null | Select-String "bkit"
+            $status.Bkit = [bool]$bkitCheck
+        }
+    }
+
+    return $status
+}
+
+# ============================================
+# 4. Admin Check & Elevation (only when required)
+# FR-S2-10: Conditional admin - only elevate when installing system packages
 # ============================================
 function Test-Admin {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -133,11 +191,27 @@ function Test-Admin {
     return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
-if (-not (Test-Admin)) {
-    Write-Host "Administrator privileges required. Restarting as admin..." -ForegroundColor Yellow
+function Test-AdminRequired {
+    # Admin required when: base module needs to install system packages OR Docker needed
+    if (-not $skipBase) {
+        $status = Get-InstallStatus
+        # Need admin if Node.js, Git, IDE, or Docker need installation
+        if (-not $status.NodeJS -or -not $status.Git -or -not $status.IDE) {
+            return $true
+        }
+    }
+    if ($script:needsDocker -and -not (Get-Command docker -ErrorAction SilentlyContinue)) {
+        return $true
+    }
+    return $false
+}
+
+if ((Test-AdminRequired) -and -not (Test-Admin)) {
+    Write-Host "Administrator privileges required for system package installation. Restarting as admin..." -ForegroundColor Yellow
 
     $params = @()
     if ($modules) { $params += "-modules '$modules'" }
+    if ($cli -ne "claude") { $params += "-cli '$cli'" }
     if ($all) { $params += "-all" }
     if ($skipBase) { $params += "-skipBase" }
     if ($installDocker) { $params += "-installDocker" }
@@ -177,49 +251,43 @@ foreach ($mod in $selectedModules) {
     }
 }
 
-# ============================================
-# 5. Smart Status Check
-# ============================================
-function Get-InstallStatus {
-    $status = @{
-        NodeJS = [bool](Get-Command node -ErrorAction SilentlyContinue)
-        Git = [bool](Get-Command git -ErrorAction SilentlyContinue)
-        VSCode = (Test-Path "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe") -or (Test-Path "$env:ProgramFiles\Microsoft VS Code\Code.exe")
-        WSL = $false
-        Docker = [bool](Get-Command docker -ErrorAction SilentlyContinue)
-        DockerRunning = $false
-        Claude = [bool](Get-Command claude -ErrorAction SilentlyContinue)
-        Bkit = $false
-    }
-
-    # Check WSL
-    $prevEA = $ErrorActionPreference
-    $ErrorActionPreference = "Continue"
-    wsl --version 2>&1 | Out-Null
-    if ($LASTEXITCODE -eq 0) {
-        $status.WSL = $true
-    }
-    $ErrorActionPreference = $prevEA
-
-    if ($status.Docker) {
-        $null = docker info 2>&1
-        $status.DockerRunning = ($LASTEXITCODE -eq 0)
-    }
-
-    if ($status.Claude) {
-        $bkitCheck = claude plugin list 2>$null | Select-String "bkit"
-        $status.Bkit = [bool]$bkitCheck
-    }
-
-    return $status
-}
-
 Clear-Host
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  AI-Driven Work Installer v2" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
+
+# ============================================
+# System Requirements Check (skip in CI)
+# ============================================
+if ($env:CI -ne "true") {
+    $ramGB = [math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB)
+    $cpuCores = (Get-CimInstance Win32_Processor).NumberOfCores
+    $diskFreeGB = [math]::Round((Get-PSDrive C).Free / 1GB)
+
+    $minRAM = 8
+    $minCPU = 4
+    $minDisk = 40
+
+    $specFailed = $false
+    $specMessages = @()
+    if ($ramGB -lt $minRAM) { $specMessages += "RAM: ${ramGB}GB (minimum: ${minRAM}GB)"; $specFailed = $true }
+    if ($cpuCores -lt $minCPU) { $specMessages += "CPU: ${cpuCores} cores (minimum: ${minCPU} cores)"; $specFailed = $true }
+    if ($diskFreeGB -lt $minDisk) { $specMessages += "Disk: ${diskFreeGB}GB free (minimum: ${minDisk}GB)"; $specFailed = $true }
+
+    if ($specFailed) {
+        Write-Host "System Requirements Check:" -ForegroundColor Red
+        foreach ($msg in $specMessages) {
+            Write-Host "  $msg" -ForegroundColor Red
+        }
+        Write-Host ""
+        Write-Host "Your system does not meet the minimum requirements for installation." -ForegroundColor Red
+        Write-Host ""
+        Read-Host "Press Enter to exit"
+        exit 1
+    }
+}
 
 $status = Get-InstallStatus
 
@@ -239,16 +307,19 @@ foreach ($modName in $selectedModules) {
     }
 }
 
-Write-Host "Current Status:" -ForegroundColor White
-Write-Host "  Node.js:  $(if($status.NodeJS){'[OK]'}else{'[  ]'})" -ForegroundColor $(if($status.NodeJS){'Green'}else{'DarkGray'})
-Write-Host "  Git:      $(if($status.Git){'[OK]'}else{'[  ]'})" -ForegroundColor $(if($status.Git){'Green'}else{'DarkGray'})
-Write-Host "  VS Code:  $(if($status.VSCode){'[OK]'}else{'[  ]'})" -ForegroundColor $(if($status.VSCode){'Green'}else{'DarkGray'})
+$ideLabel = if ($env:CLI_TYPE -eq "gemini") { "Antigravity" } else { "VS Code" }
+$cliLabel = if ($env:CLI_TYPE -eq "gemini") { "Gemini" } else { "Claude" }
+
+Write-Host "Current Status: (CLI: $($env:CLI_TYPE))" -ForegroundColor White
+Write-Host "  Node.js:     $(if($status.NodeJS){'[OK]'}else{'[  ]'})" -ForegroundColor $(if($status.NodeJS){'Green'}else{'DarkGray'})
+Write-Host "  Git:         $(if($status.Git){'[OK]'}else{'[  ]'})" -ForegroundColor $(if($status.Git){'Green'}else{'DarkGray'})
+Write-Host "  ${ideLabel}:  $(if($status.IDE){'[OK]'}else{'[  ]'})" -ForegroundColor $(if($status.IDE){'Green'}else{'DarkGray'})
 if ($script:needsDocker) {
-    Write-Host "  WSL:      $(if($status.WSL){'[OK]'}else{'[  ]'})" -ForegroundColor $(if($status.WSL){'Green'}else{'DarkGray'})
-    Write-Host "  Docker:   $(if($status.Docker){'[OK]'}else{'[  ]'}) $(if($status.Docker -and $status.DockerRunning){'(Running)'}elseif($status.Docker){'(Not Running)'}else{''})" -ForegroundColor $(if($status.DockerRunning){'Green'}elseif($status.Docker){'Yellow'}else{'DarkGray'})
+    Write-Host "  WSL:         $(if($status.WSL){'[OK]'}else{'[  ]'})" -ForegroundColor $(if($status.WSL){'Green'}else{'DarkGray'})
+    Write-Host "  Docker:      $(if($status.Docker){'[OK]'}else{'[  ]'}) $(if($status.Docker -and $status.DockerRunning){'(Running)'}elseif($status.Docker){'(Not Running)'}else{''})" -ForegroundColor $(if($status.DockerRunning){'Green'}elseif($status.Docker){'Yellow'}else{'DarkGray'})
 }
-Write-Host "  Claude:   $(if($status.Claude){'[OK]'}else{'[  ]'})" -ForegroundColor $(if($status.Claude){'Green'}else{'DarkGray'})
-Write-Host "  bkit:     $(if($status.Bkit){'[OK]'}else{'[  ]'})" -ForegroundColor $(if($status.Bkit){'Green'}else{'DarkGray'})
+Write-Host "  ${cliLabel}:  $(if($status.CLI){'[OK]'}else{'[  ]'})" -ForegroundColor $(if($status.CLI){'Green'}else{'DarkGray'})
+Write-Host "  bkit:        $(if($status.Bkit){'[OK]'}else{'[  ]'})" -ForegroundColor $(if($status.Bkit){'Green'}else{'DarkGray'})
 Write-Host ""
 
 if ($script:needsDockerRunning -and $status.Docker -and -not $status.DockerRunning) {
@@ -275,7 +346,7 @@ if ($script:needsDockerRunning -and $status.Docker -and -not $status.DockerRunni
 }
 
 # Auto-skip base if all required tools installed
-$baseInstalled = $status.NodeJS -and $status.Git -and $status.Claude -and $status.Bkit
+$baseInstalled = $status.NodeJS -and $status.Git -and $status.CLI -and $status.Bkit
 if ($script:needsDocker) {
     $baseInstalled = $baseInstalled -and $status.WSL -and $status.Docker
 }
@@ -297,9 +368,10 @@ if ($totalSteps -eq 0) {
     $skipBase = $false
 }
 
+$baseLabel = if ($env:CLI_TYPE -eq "gemini") { "Base (Gemini + bkit)" } else { "Base (Claude + bkit)" }
 Write-Host "Selected modules:" -ForegroundColor White
 if (-not $skipBase) {
-    Write-Host "  [*] Base (Claude + bkit)" -ForegroundColor Green
+    Write-Host "  [*] $baseLabel" -ForegroundColor Green
 } else {
     Write-Host "  [ ] Base (skipped)" -ForegroundColor DarkGray
 }
@@ -378,13 +450,22 @@ if (-not $skipBase) {
     if ($script:needsDocker) {
         if (Get-Command docker -ErrorAction SilentlyContinue) { Write-Host "  [OK] Docker" -ForegroundColor Green }
     }
-    if (Get-Command claude -ErrorAction SilentlyContinue) { Write-Host "  [OK] Claude Code CLI" -ForegroundColor Green }
-    $bkitCheck = claude plugin list 2>$null | Select-String "bkit"
-    if ($bkitCheck) { Write-Host "  [OK] bkit Plugin" -ForegroundColor Green }
+    $cliCmd = if ($env:CLI_TYPE -eq "gemini") { "gemini" } else { "claude" }
+    if (Get-Command $cliCmd -ErrorAction SilentlyContinue) { Write-Host "  [OK] $cliLabel CLI" -ForegroundColor Green }
+    if ($env:CLI_TYPE -eq "gemini") {
+        Write-Host "  [OK] bkit Plugin (Gemini)" -ForegroundColor Green
+    } else {
+        $bkitCheck = claude plugin list 2>$null | Select-String "bkit"
+        if ($bkitCheck) { Write-Host "  [OK] bkit Plugin" -ForegroundColor Green }
+    }
 }
 
 # Check MCP config
-$mcpConfigPath = "$env:USERPROFILE\.claude\mcp.json"
+if ($env:CLI_TYPE -eq "gemini") {
+    $mcpConfigPath = "$env:USERPROFILE\.gemini\settings.json"
+} else {
+    $mcpConfigPath = "$env:USERPROFILE\.claude\mcp.json"
+}
 if (Test-Path $mcpConfigPath) {
     $mcpJson = Get-Content $mcpConfigPath -Raw | ConvertFrom-Json
     foreach ($modName in $sortedModules) {

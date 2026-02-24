@@ -12,18 +12,19 @@ Write-Host "  - Inspect design components" -ForegroundColor Gray
 Write-Host "  - Extract design tokens and styles" -ForegroundColor Gray
 Write-Host ""
 
-# Check Claude CLI
-Write-Host "[Check] Claude CLI..." -ForegroundColor Yellow
-if (-not (Get-Command claude -ErrorAction SilentlyContinue)) {
-    Write-Host "  Claude CLI is required. Please install base module first." -ForegroundColor Red
-    throw "Claude CLI not found"
+# Check AI CLI
+$cliCmd = if ($env:CLI_TYPE -eq "gemini") { "gemini" } else { "claude" }
+Write-Host "[Check] $cliCmd CLI..." -ForegroundColor Yellow
+if (-not (Get-Command $cliCmd -ErrorAction SilentlyContinue)) {
+    Write-Host "  $cliCmd CLI is required. Please install base module first." -ForegroundColor Red
+    throw "$cliCmd CLI not found"
 }
 Write-Host "  OK" -ForegroundColor Green
 
 # Register Remote MCP server
 Write-Host ""
 Write-Host "[Config] Registering Figma Remote MCP server..." -ForegroundColor Yellow
-claude mcp add --transport http figma https://mcp.figma.com/mcp
+& $cliCmd mcp add --transport http figma https://mcp.figma.com/mcp
 Write-Host "  OK" -ForegroundColor Green
 
 # Auto OAuth authentication

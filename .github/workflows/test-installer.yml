@@ -1,6 +1,14 @@
 name: Test Installer
 
 on:
+  push:
+    branches: [master, develop, feature/adw-improvement]
+    paths:
+      - 'installer/**'
+  pull_request:
+    branches: [master]
+    paths:
+      - 'installer/**'
   workflow_dispatch:
     inputs:
       os:
@@ -20,6 +28,13 @@ on:
           - notion
           - figma
         default: 'base'
+      cli_type:
+        description: 'CLI type'
+        type: choice
+        options:
+          - claude
+          - gemini
+        default: 'claude'
 
 env:
   TERM: xterm
@@ -27,7 +42,7 @@ env:
 
 jobs:
   test-windows:
-    if: ${{ github.event.inputs.os == 'all' || github.event.inputs.os == 'windows' }}
+    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.os == 'all' || github.event.inputs.os == 'windows' }}
     runs-on: windows-latest
     steps:
       - name: Checkout
@@ -41,8 +56,13 @@ jobs:
           # Claude native install PATH 추가
           $env:PATH = "$env:USERPROFILE\.local\bin;$env:PATH"
           Write-Host "Testing Windows installer..."
-          $env:MODULES = '${{ github.event.inputs.module }}'
-          & ./installer/install.ps1 -modules '${{ github.event.inputs.module }}'
+          $module = '${{ github.event.inputs.module }}'
+          if (-not $module) { $module = 'base' }
+          $cliType = '${{ github.event.inputs.cli_type }}'
+          if (-not $cliType) { $cliType = 'claude' }
+          $env:MODULES = $module
+          $env:CLI_TYPE = $cliType
+          & ./installer/install.ps1 -modules $module -cli $cliType
 
       - name: Verify installation
         shell: pwsh
@@ -63,15 +83,16 @@ jobs:
             Write-Host "FAIL Git not found"
           }
 
-          # Check Claude
-          if (Get-Command claude -ErrorAction SilentlyContinue) {
-            Write-Host "OK Claude: $(claude --version)"
+          # Check CLI (Claude or Gemini based on CLI_TYPE)
+          $cliCmd = if ($env:CLI_TYPE -eq "gemini") { "gemini" } else { "claude" }
+          if (Get-Command $cliCmd -ErrorAction SilentlyContinue) {
+            Write-Host "OK $cliCmd`: $(&$cliCmd --version)"
           } else {
-            Write-Host "WARN Claude not in PATH (may need terminal restart)"
+            Write-Host "WARN $cliCmd not in PATH (may need terminal restart)"
           }
 
   test-macos:
-    if: ${{ github.event.inputs.os == 'all' || github.event.inputs.os == 'macos' }}
+    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.os == 'all' || github.event.inputs.os == 'macos' }}
     runs-on: macos-latest
     steps:
       - name: Checkout
@@ -81,7 +102,9 @@ jobs:
         run: |
           echo "Testing macOS installer..."
           chmod +x ./installer/install.sh
-          MODULES='${{ github.event.inputs.module }}' bash ./installer/install.sh
+          MODULE='${{ github.event.inputs.module || 'base' }}'
+          CLI='${{ github.event.inputs.cli_type || 'claude' }}'
+          MODULES="$MODULE" CLI_TYPE="$CLI" bash ./installer/install.sh
 
       - name: Verify installation
         run: |
@@ -99,9 +122,94 @@ jobs:
             echo "FAIL Git not found"
           fi
 
-          if command -v claude &> /dev/null; then
-            echo "OK Claude: $(claude --version)"
+          # Check CLI (Claude or Gemini based on CLI_TYPE)
+          CLI_CMD="${CLI_TYPE:-claude}"
+          if command -v "$CLI_CMD" &> /dev/null; then
+            echo "OK $CLI_CMD: $($CLI_CMD --version)"
           else
-            echo "WARN Claude not in PATH (may need terminal restart)"
+            echo "WARN $CLI_CMD not in PATH (may need terminal restart)"
+          fi
+
+  test-windows-gemini:
+    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.cli_type == 'gemini') }}
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run installer (gemini base)
+        shell: pwsh
+        run: |
+          function Clear-Host {}
+          Write-Host "Testing Windows installer (Gemini)..."
+          $env:CLI_TYPE = 'gemini'
+          & ./installer/install.ps1 -cli gemini
+
+      - name: Verify Gemini installation
+        shell: pwsh
+        run: |
+          Write-Host "Checking Gemini tools..."
+
+          if (Get-Command node -ErrorAction SilentlyContinue) {
+            Write-Host "OK Node.js: $(node --version)"
+          } else {
+            Write-Host "FAIL Node.js not found"
+          }
+
+          if (Get-Command git -ErrorAction SilentlyContinue) {
+            Write-Host "OK Git: $(git --version)"
+          } else {
+            Write-Host "FAIL Git not found"
+          }
+
+          if (Get-Command gemini -ErrorAction SilentlyContinue) {
+            Write-Host "OK Gemini: $(gemini --version)"
+          } else {
+            Write-Host "WARN Gemini not in PATH (may need terminal restart)"
+          }
+
+  test-macos-gemini:
+    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.cli_type == 'gemini') }}
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run installer (gemini base)
+        run: |
+          echo "Testing macOS installer (Gemini)..."
+          chmod +x ./installer/install.sh
+          CLI_TYPE=gemini bash ./installer/install.sh
+
+      - name: Verify Gemini installation
+        run: |
+          echo "Checking Gemini tools..."
+
+          if command -v node &> /dev/null; then
+            echo "OK Node.js: $(node --version)"
+          else
+            echo "FAIL Node.js not found"
+          fi
+
+          if command -v git &> /dev/null; then
+            echo "OK Git: $(git --version)"
+          else
+            echo "FAIL Git not found"
+          fi
+
+          if command -v gemini &> /dev/null; then
+            echo "OK Gemini: $(gemini --version)"
+          else
+            echo "WARN Gemini not in PATH (may need terminal restart)"
           fi
 

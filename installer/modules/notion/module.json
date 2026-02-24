@@ -13,6 +13,7 @@
   "requirements": {
     "docker": false,
     "node": false,
+    "python3": true,
     "adminSetup": false
   },
 

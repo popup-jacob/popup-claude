@@ -3,13 +3,22 @@
 # Pencil Module — AI Design Canvas for IDE
 # ============================================
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-CYAN='\033[0;36m'
-GRAY='\033[0;90m'
-NC='\033[0m'
+# FR-S3-05a: Source shared color definitions instead of inline
+SHARED_DIR="${SHARED_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../shared" 2>/dev/null && pwd)}"
+if [ -n "$SHARED_DIR" ] && [ -f "$SHARED_DIR/colors.sh" ]; then
+    source "$SHARED_DIR/colors.sh"
+else
+    # Fallback for remote execution
+    RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
+    CYAN='\033[0;36m'; GRAY='\033[0;90m'; NC='\033[0m'
+fi
+
+# Pencil is a VS Code/Cursor extension — not supported with Antigravity
+if [ "$CLI_TYPE" = "gemini" ]; then
+    echo -e "${YELLOW}[Skip] Pencil is not yet supported with Antigravity.${NC}"
+    echo -e "${GRAY}Pencil requires VS Code or Cursor IDE.${NC}"
+    exit 0
+fi
 
 echo ""
 echo -e "${CYAN}Pencil Setup${NC}"

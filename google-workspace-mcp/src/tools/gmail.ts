@@ -1,39 +1,47 @@
 import { z } from "zod";
 import { getGoogleServices } from "../auth/oauth.js";
+import { sanitizeEmailHeader, validateEmail, validateMaxLength } from "../utils/sanitize.js";
+import { withRetry } from "../utils/retry.js";
+import { extractTextBody, extractAttachments } from "../utils/mime.js";
+import { messages, msg } from "../utils/messages.js";
 
 /**
- * Gmail 도구 정의
+ * Gmail tool definitions
  */
 export const gmailTools = {
   gmail_search: {
-    description: "Gmail에서 이메일을 검색합니다",
+    description: "Search emails in Gmail",
     schema: {
-      query: z.string().describe("검색 쿼리 (예: 'from:example@gmail.com', 'subject:회의')"),
-      maxResults: z.number().optional().default(10).describe("최대 결과 수"),
+      query: z.string().describe("Search query (e.g. 'from:user@example.com', 'subject:meeting')"),
+      maxResults: z.number().optional().default(10).describe("Maximum number of results"),
     },
     handler: async ({ query, maxResults }: { query: string; maxResults: number }) => {
       const { gmail } = await getGoogleServices();
 
-      const response = await gmail.users.messages.list({
-        userId: "me",
-        q: query,
-        maxResults,
-      });
+      const response = await withRetry(() =>
+        gmail.users.messages.list({
+          userId: "me",
+          q: query,
+          maxResults,
+        })
+      );
 
-      const messages = response.data.messages || [];
+      const msgs = response.data.messages || [];
 
       const details = await Promise.all(
-        messages.slice(0, 10).map(async (msg) => {
-          const detail = await gmail.users.messages.get({
-            userId: "me",
-            id: msg.id!,
-            format: "metadata",
-            metadataHeaders: ["From", "Subject", "Date"],
-          });
+        msgs.slice(0, 10).map(async (m) => {
+          const detail = await withRetry(() =>
+            gmail.users.messages.get({
+              userId: "me",
+              id: m.id!,
+              format: "metadata",
+              metadataHeaders: ["From", "Subject", "Date"],
+            })
+          );
 
           const headers = detail.data.payload?.headers || [];
           return {
-            id: msg.id,
+            id: m.id,
             from: headers.find((h) => h.name === "From")?.value,
             subject: headers.find((h) => h.name === "Subject")?.value,
             date: headers.find((h) => h.name === "Date")?.value,
@@ -43,46 +51,35 @@ export const gmailTools = {
       );
 
       return {
-        total: messages.length,
+        total: msgs.length,
         messages: details,
       };
     },
   },
 
   gmail_read: {
-    description: "특정 이메일의 내용을 읽습니다",
+    description: "Read the content of a specific email",
     schema: {
-      messageId: z.string().describe("이메일 ID"),
+      messageId: z.string().describe("Email message ID"),
     },
     handler: async ({ messageId }: { messageId: string }) => {
       const { gmail } = await getGoogleServices();
 
-      const response = await gmail.users.messages.get({
-        userId: "me",
-        id: messageId,
-        format: "full",
-      });
+      const response = await withRetry(() =>
+        gmail.users.messages.get({
+          userId: "me",
+          id: messageId,
+          format: "full",
+        })
+      );
 
       const headers = response.data.payload?.headers || [];
-      const parts = response.data.payload?.parts || [];
 
-      let body = "";
-      const textPart = parts.find((p) => p.mimeType === "text/plain");
-      if (textPart?.body?.data) {
-        body = Buffer.from(textPart.body.data, "base64").toString("utf-8");
-      } else if (response.data.payload?.body?.data) {
-        body = Buffer.from(response.data.payload.body.data, "base64").toString("utf-8");
-      }
+      // FR-S4-07: Use recursive MIME parser from mime.ts
+      const body = response.data.payload ? extractTextBody(response.data.payload) : "";
 
-      // 첨부파일 목록
-      const attachments = parts
-        .filter((p) => p.filename && p.body?.attachmentId)
-        .map((p) => ({
-          filename: p.filename,
-          mimeType: p.mimeType,
-          attachmentId: p.body?.attachmentId,
-          size: p.body?.size,
-        }));
+      // FR-S4-07: Use recursive attachment extractor from mime.ts
+      const attachments = response.data.payload ? extractAttachments(response.data.payload) : [];
 
       return {
         id: messageId,
@@ -99,26 +96,57 @@ export const gmailTools = {
   },
 
   gmail_send: {
-    description: "이메일을 발송합니다",
+    description: "Send an email",
     schema: {
-      to: z.string().describe("받는 사람 이메일"),
-      subject: z.string().describe("제목"),
-      body: z.string().describe("본문 내용"),
-      cc: z.string().optional().describe("참조 (CC)"),
-      bcc: z.string().optional().describe("숨은 참조 (BCC)"),
+      to: z.string().describe("Recipient email address"),
+      subject: z.string().describe("Subject"),
+      body: z.string().describe("Body content"),
+      cc: z.string().optional().describe("CC recipients"),
+      bcc: z.string().optional().describe("BCC recipients"),
     },
-    handler: async ({ to, subject, body, cc, bcc }: { to: string; subject: string; body: string; cc?: string; bcc?: string }) => {
+    handler: async ({
+      to,
+      subject,
+      body,
+      cc,
+      bcc,
+    }: {
+      to: string;
+      subject: string;
+      body: string;
+      cc?: string;
+      bcc?: string;
+    }) => {
+      // FR-S1-12: Validate email format before sending
+      if (!validateEmail(to)) {
+        throw new Error("Invalid 'to' email address format.");
+      }
+      if (cc && !validateEmail(cc)) {
+        throw new Error("Invalid 'cc' email address format.");
+      }
+      if (bcc && !validateEmail(bcc)) {
+        throw new Error("Invalid 'bcc' email address format.");
+      }
+
       const { gmail } = await getGoogleServices();
 
-      const messageParts = [
-        `To: ${to}`,
-        cc ? `Cc: ${cc}` : "",
-        bcc ? `Bcc: ${bcc}` : "",
+      // FR-S1-10: Sanitize email headers to prevent CRLF injection
+      const safeTo = sanitizeEmailHeader(to);
+      const safeCc = cc ? sanitizeEmailHeader(cc) : undefined;
+      const safeBcc = bcc ? sanitizeEmailHeader(bcc) : undefined;
+
+      // FR-S1-12: Defensive body length validation (Gmail API limit ~5MB)
+      const safeBody = validateMaxLength(body, 500000);
+
+      // Build RFC 2822 message: headers, blank line, body
+      const hdrs = [
+        `To: ${safeTo}`,
+        ...(safeCc ? [`Cc: ${safeCc}`] : []),
+        ...(safeBcc ? [`Bcc: ${safeBcc}`] : []),
         `Subject: =?UTF-8?B?${Buffer.from(subject).toString("base64")}?=`,
         "Content-Type: text/plain; charset=utf-8",
-        "",
-        body,
-      ].filter(Boolean).join("\n");
+      ];
+      const messageParts = hdrs.join("\n") + "\n\n" + safeBody;
 
       const encodedMessage = Buffer.from(messageParts)
         .toString("base64")
@@ -126,40 +154,67 @@ export const gmailTools = {
         .replace(/\//g, "_")
         .replace(/=+$/, "");
 
-      const response = await gmail.users.messages.send({
-        userId: "me",
-        requestBody: {
-          raw: encodedMessage,
-        },
-      });
+      const response = await withRetry(() =>
+        gmail.users.messages.send({
+          userId: "me",
+          requestBody: {
+            raw: encodedMessage,
+          },
+        })
+      );
 
       return {
         success: true,
         messageId: response.data.id,
-        message: `이메일이 ${to}에게 발송되었습니다.`,
+        message: msg(messages.gmail.emailSent, safeTo),
       };
     },
   },
 
   gmail_draft_create: {
-    description: "이메일 초안을 작성합니다 (발송하지 않음)",
+    description: "Create an email draft (without sending)",
     schema: {
-      to: z.string().describe("받는 사람 이메일"),
-      subject: z.string().describe("제목"),
-      body: z.string().describe("본문 내용"),
-      cc: z.string().optional().describe("참조 (CC)"),
+      to: z.string().describe("Recipient email address"),
+      subject: z.string().describe("Subject"),
+      body: z.string().describe("Body content"),
+      cc: z.string().optional().describe("CC recipients"),
     },
-    handler: async ({ to, subject, body, cc }: { to: string; subject: string; body: string; cc?: string }) => {
+    handler: async ({
+      to,
+      subject,
+      body,
+      cc,
+    }: {
+      to: string;
+      subject: string;
+      body: string;
+      cc?: string;
+    }) => {
+      // FR-S1-12: Validate email format before creating draft
+      if (!validateEmail(to)) {
+        throw new Error("Invalid 'to' email address format.");
+      }
+      if (cc && !validateEmail(cc)) {
+        throw new Error("Invalid 'cc' email address format.");
+      }
+
       const { gmail } = await getGoogleServices();
 
-      const messageParts = [
-        `To: ${to}`,
-        cc ? `Cc: ${cc}` : "",
+      // FR-S1-10: Sanitize email headers
+      const safeTo = sanitizeEmailHeader(to);
+      const safeCc = cc ? sanitizeEmailHeader(cc) : undefined;
+
+      // FR-S1-12: Defensive body length validation
+      const safeBody = validateMaxLength(body, 500000);
+
+      // Build RFC 2822 message: headers, blank line, body
+      const hdrs = [
+        `To: ${safeTo}`,
+        ...(safeCc ? [`Cc: ${safeCc}`] : []),
         `Subject: =?UTF-8?B?${Buffer.from(subject).toString("base64")}?=`,
         "Content-Type: text/plain; charset=utf-8",
-        "",
-        body,
-      ].filter(Boolean).join("\n");
+      ];
+      const messageParts = hdrs.join("\n") + "\n\n" + safeBody;
 
       const encodedMessage = Buffer.from(messageParts)
         .toString("base64")
@@ -167,51 +222,57 @@ export const gmailTools = {
         .replace(/\//g, "_")
         .replace(/=+$/, "");
 
-      const response = await gmail.users.drafts.create({
-        userId: "me",
-        requestBody: {
-          message: {
-            raw: encodedMessage,
+      const response = await withRetry(() =>
+        gmail.users.drafts.create({
+          userId: "me",
+          requestBody: {
+            message: {
+              raw: encodedMessage,
+            },
           },
-        },
-      });
+        })
+      );
 
       return {
         success: true,
         draftId: response.data.id,
-        message: "초안이 저장되었습니다.",
+        message: messages.gmail.draftSaved,
       };
     },
   },
 
   gmail_draft_list: {
-    description: "저장된 초안 목록을 조회합니다",
+    description: "List saved drafts",
     schema: {
-      maxResults: z.number().optional().default(10).describe("최대 결과 수"),
+      maxResults: z.number().optional().default(10).describe("Maximum number of results"),
     },
     handler: async ({ maxResults }: { maxResults: number }) => {
       const { gmail } = await getGoogleServices();
 
-      const response = await gmail.users.drafts.list({
-        userId: "me",
-        maxResults,
-      });
+      const response = await withRetry(() =>
+        gmail.users.drafts.list({
+          userId: "me",
+          maxResults,
+        })
+      );
 
       const drafts = response.data.drafts || [];
 
       const details = await Promise.all(
         drafts.slice(0, 10).map(async (draft) => {
-          const detail = await gmail.users.drafts.get({
-            userId: "me",
-            id: draft.id!,
-            format: "metadata",
-          });
+          const detail = await withRetry(() =>
+            gmail.users.drafts.get({
+              userId: "me",
+              id: draft.id!,
+              format: "metadata",
+            })
+          );
 
-          const headers = detail.data.message?.payload?.headers || [];
+          const hdrs = detail.data.message?.payload?.headers || [];
           return {
             draftId: draft.id,
-            to: headers.find((h) => h.name === "To")?.value,
-            subject: headers.find((h) => h.name === "Subject")?.value,
+            to: hdrs.find((h) => h.name === "To")?.value,
+            subject: hdrs.find((h) => h.name === "Subject")?.value,
             snippet: detail.data.message?.snippet,
           };
         })
@@ -225,57 +286,63 @@ export const gmailTools = {
   },
 
   gmail_draft_send: {
-    description: "저장된 초안을 발송합니다",
+    description: "Send a saved draft",
     schema: {
-      draftId: z.string().describe("초안 ID"),
+      draftId: z.string().describe("Draft ID"),
     },
     handler: async ({ draftId }: { draftId: string }) => {
       const { gmail } = await getGoogleServices();
 
-      const response = await gmail.users.drafts.send({
-        userId: "me",
-        requestBody: {
-          id: draftId,
-        },
-      });
+      const response = await withRetry(() =>
+        gmail.users.drafts.send({
+          userId: "me",
+          requestBody: {
+            id: draftId,
+          },
+        })
+      );
 
       return {
         success: true,
         messageId: response.data.id,
-        message: "초안이 발송되었습니다.",
+        message: messages.gmail.draftSent,
       };
     },
   },
 
   gmail_draft_delete: {
-    description: "초안을 삭제합니다",
+    description: "Delete a draft",
     schema: {
-      draftId: z.string().describe("초안 ID"),
+      draftId: z.string().describe("Draft ID"),
     },
     handler: async ({ draftId }: { draftId: string }) => {
       const { gmail } = await getGoogleServices();
 
-      await gmail.users.drafts.delete({
-        userId: "me",
-        id: draftId,
-      });
+      await withRetry(() =>
+        gmail.users.drafts.delete({
+          userId: "me",
+          id: draftId,
+        })
+      );
 
       return {
         success: true,
-        message: "초안이 삭제되었습니다.",
+        message: messages.gmail.draftDeleted,
       };
     },
   },
 
   gmail_labels_list: {
-    description: "라벨 목록을 조회합니다",
+    description: "List all labels",
     schema: {},
     handler: async () => {
       const { gmail } = await getGoogleServices();
 
-      const response = await gmail.users.labels.list({
-        userId: "me",
-      });
+      const response = await withRetry(() =>
+        gmail.users.labels.list({
+          userId: "me",
+        })
+      );
 
       const labels = response.data.labels || [];
 
@@ -290,159 +357,174 @@ export const gmailTools = {
   },
 
   gmail_labels_add: {
-    description: "이메일에 라벨을 추가합니다",
+    description: "Add labels to an email",
     schema: {
-      messageId: z.string().describe("이메일 ID"),
-      labelIds: z.array(z.string()).describe("추가할 라벨 ID 목록"),
+      messageId: z.string().describe("Email message ID"),
+      labelIds: z.array(z.string()).describe("Label IDs to add"),
     },
     handler: async ({ messageId, labelIds }: { messageId: string; labelIds: string[] }) => {
       const { gmail } = await getGoogleServices();
 
-      await gmail.users.messages.modify({
-        userId: "me",
-        id: messageId,
-        requestBody: {
-          addLabelIds: labelIds,
-        },
-      });
+      await withRetry(() =>
+        gmail.users.messages.modify({
+          userId: "me",
+          id: messageId,
+          requestBody: {
+            addLabelIds: labelIds,
+          },
+        })
+      );
 
       return {
         success: true,
-        message: "라벨이 추가되었습니다.",
+        message: messages.gmail.labelAdded,
       };
     },
   },
 
   gmail_labels_remove: {
-    description: "이메일에서 라벨을 제거합니다",
+    description: "Remove labels from an email",
     schema: {
-      messageId: z.string().describe("이메일 ID"),
-      labelIds: z.array(z.string()).describe("제거할 라벨 ID 목록"),
+      messageId: z.string().describe("Email message ID"),
+      labelIds: z.array(z.string()).describe("Label IDs to remove"),
     },
     handler: async ({ messageId, labelIds }: { messageId: string; labelIds: string[] }) => {
       const { gmail } = await getGoogleServices();
 
-      await gmail.users.messages.modify({
-        userId: "me",
-        id: messageId,
-        requestBody: {
-          removeLabelIds: labelIds,
-        },
-      });
+      await withRetry(() =>
+        gmail.users.messages.modify({
+          userId: "me",
+          id: messageId,
+          requestBody: {
+            removeLabelIds: labelIds,
+          },
+        })
+      );
 
       return {
         success: true,
-        message: "라벨이 제거되었습니다.",
+        message: messages.gmail.labelRemoved,
       };
     },
   },
 
   gmail_attachment_get: {
-    description: "이메일 첨부파일 정보를 가져옵니다",
+    description: "Get email attachment data",
     schema: {
-      messageId: z.string().describe("이메일 ID"),
-      attachmentId: z.string().describe("첨부파일 ID"),
+      messageId: z.string().describe("Email message ID"),
+      attachmentId: z.string().describe("Attachment ID"),
     },
     handler: async ({ messageId, attachmentId }: { messageId: string; attachmentId: string }) => {
       const { gmail } = await getGoogleServices();
 
-      const response = await gmail.users.messages.attachments.get({
-        userId: "me",
-        messageId,
-        id: attachmentId,
-      });
+      const response = await withRetry(() =>
+        gmail.users.messages.attachments.get({
+          userId: "me",
+          messageId,
+          id: attachmentId,
+        })
+      );
 
+      // FR-S4-08: Return full attachment data (base64 encoded)
       return {
         attachmentId,
         size: response.data.size,
-        data: response.data.data?.slice(0, 1000) + "...", // 미리보기만
-        message: "첨부파일 데이터를 가져왔습니다. (base64 인코딩)",
+        data: response.data.data,
+        message: messages.gmail.attachmentFetched,
       };
     },
   },
 
   gmail_trash: {
-    description: "이메일을 휴지통으로 이동합니다",
+    description: "Move an email to trash",
     schema: {
-      messageId: z.string().describe("이메일 ID"),
+      messageId: z.string().describe("Email message ID"),
     },
     handler: async ({ messageId }: { messageId: string }) => {
       const { gmail } = await getGoogleServices();
 
-      await gmail.users.messages.trash({
-        userId: "me",
-        id: messageId,
-      });
+      await withRetry(() =>
+        gmail.users.messages.trash({
+          userId: "me",
+          id: messageId,
+        })
+      );
 
       return {
         success: true,
-        message: "이메일이 휴지통으로 이동되었습니다.",
+        message: messages.gmail.movedToTrash,
       };
     },
   },
 
   gmail_untrash: {
-    description: "이메일을 휴지통에서 복원합니다",
+    description: "Restore an email from trash",
     schema: {
-      messageId: z.string().describe("이메일 ID"),
+      messageId: z.string().describe("Email message ID"),
     },
     handler: async ({ messageId }: { messageId: string }) => {
       const { gmail } = await getGoogleServices();
 
-      await gmail.users.messages.untrash({
-        userId: "me",
-        id: messageId,
-      });
+      await withRetry(() =>
+        gmail.users.messages.untrash({
+          userId: "me",
+          id: messageId,
+        })
+      );
 
       return {
         success: true,
-        message: "이메일이 복원되었습니다.",
+        message: messages.gmail.restoredFromTrash,
       };
     },
   },
 
   gmail_mark_read: {
-    description: "이메일을 읽음으로 표시합니다",
+    description: "Mark an email as read",
     schema: {
-      messageId: z.string().describe("이메일 ID"),
+      messageId: z.string().describe("Email message ID"),
     },
     handler: async ({ messageId }: { messageId: string }) => {
       const { gmail } = await getGoogleServices();
 
-      await gmail.users.messages.modify({
-        userId: "me",
-        id: messageId,
-        requestBody: {
-          removeLabelIds: ["UNREAD"],
-        },
-      });
+      await withRetry(() =>
+        gmail.users.messages.modify({
+          userId: "me",
+          id: messageId,
+          requestBody: {
+            removeLabelIds: ["UNREAD"],
+          },
+        })
+      );
 
       return {
         success: true,
-        message: "읽음으로 표시되었습니다.",
+        message: messages.gmail.markedRead,
       };
     },
   },
 
   gmail_mark_unread: {
-    description: "이메일을 읽지 않음으로 표시합니다",
+    description: "Mark an email as unread",
     schema: {
-      messageId: z.string().describe("이메일 ID"),
+      messageId: z.string().describe("Email message ID"),
     },
     handler: async ({ messageId }: { messageId: string }) => {
       const { gmail } = await getGoogleServices();
 
-      await gmail.users.messages.modify({
-        userId: "me",
-        id: messageId,
-        requestBody: {
-          addLabelIds: ["UNREAD"],
-        },
-      });
+      await withRetry(() =>
+        gmail.users.messages.modify({
+          userId: "me",
+          id: messageId,
+          requestBody: {
+            addLabelIds: ["UNREAD"],
+          },
+        })
+      );
 
       return {
         success: true,
-        message: "읽지 않음으로 표시되었습니다.",
+        message: messages.gmail.markedUnread,
       };
     },
   },

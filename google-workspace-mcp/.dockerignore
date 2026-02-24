@@ -1,0 +1,14 @@
+# FR-S4-10: Exclude sensitive files from Docker build context
+.google-workspace/
+node_modules/
+.git/
+.gitignore
+*.md
+src/**/__tests__/
+coverage/
+.env*
+client_secret.json
+token.json
+vitest.config.ts
+eslint.config.js
+.prettierrc

@@ -56,9 +56,10 @@ function Invoke-McpOAuth {
     $clientSecret = $null
     $mcpKey = $null
 
-    # Trigger Claude Code to register the client (creates credentials entry)
+    # Trigger CLI to register the client (creates credentials entry)
+    $cliCmd = if ($env:CLI_TYPE -eq "gemini") { "gemini" } else { "claude" }
     Write-Host "  Initializing MCP connection..." -ForegroundColor Gray
-    claude mcp list 2>&1 | Out-Null
+    & $cliCmd mcp list 2>&1 | Out-Null
 
     if (Test-Path $CredFile) {
         $creds = Get-Content $CredFile -Raw | ConvertFrom-Json
@@ -77,7 +78,7 @@ function Invoke-McpOAuth {
 
     if (-not $clientId) {
         Write-Host "  Could not find OAuth client for $ServerName." -ForegroundColor Red
-        Write-Host "  Make sure 'claude mcp add' was run first." -ForegroundColor Yellow
+        Write-Host "  Make sure '$cliCmd mcp add' was run first." -ForegroundColor Yellow
         return $false
     }
 

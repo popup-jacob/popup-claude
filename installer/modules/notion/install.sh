@@ -3,13 +3,15 @@
 # Notion MCP Module (Mac/Linux) — Remote MCP + Auto OAuth
 # ============================================
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-CYAN='\033[0;36m'
-GRAY='\033[0;90m'
-NC='\033[0m'
+# FR-S3-05a: Source shared color definitions instead of inline
+SHARED_DIR="${SHARED_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../shared" 2>/dev/null && pwd)}"
+if [ -n "$SHARED_DIR" ] && [ -f "$SHARED_DIR/colors.sh" ]; then
+    source "$SHARED_DIR/colors.sh"
+else
+    # Fallback for remote execution
+    RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
+    CYAN='\033[0;36m'; GRAY='\033[0;90m'; NC='\033[0m'
+fi
 
 echo "Notion MCP lets Claude access:"
 echo -e "  ${GRAY}- Read Notion pages${NC}"
@@ -17,10 +19,11 @@ echo -e "  ${GRAY}- Search databases${NC}"
 echo -e "  ${GRAY}- Query content${NC}"
 echo ""
 
-# Check Claude CLI
-echo -e "${YELLOW}[Check] Claude CLI...${NC}"
-if ! command -v claude > /dev/null 2>&1; then
-    echo -e "  ${RED}Claude CLI is required. Please install base module first.${NC}"
+# Check AI CLI
+CLI_CMD="${CLI_TYPE:-claude}"
+echo -e "${YELLOW}[Check] $CLI_CMD CLI...${NC}"
+if ! command -v "$CLI_CMD" > /dev/null 2>&1; then
+    echo -e "  ${RED}$CLI_CMD CLI is required. Please install base module first.${NC}"
     exit 1
 fi
 echo -e "  ${GREEN}OK${NC}"
@@ -37,7 +40,7 @@ echo -e "  ${GREEN}OK${NC}"
 # Register Remote MCP server
 echo ""
 echo -e "${YELLOW}[Config] Registering Notion Remote MCP server...${NC}"
-claude mcp add --transport http notion https://mcp.notion.com/mcp
+$CLI_CMD mcp add --transport http notion https://mcp.notion.com/mcp
 echo -e "  ${GREEN}OK${NC}"
 
 # Auto OAuth authentication

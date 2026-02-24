@@ -1,21 +1,34 @@
 import { z } from "zod";
 import { getGoogleServices } from "../auth/oauth.js";
+import { validateDriveId, sanitizeRange } from "../utils/sanitize.js";
+import { withRetry } from "../utils/retry.js";
+import { messages, msg } from "../utils/messages.js";
 
 /**
- * Sheets 도구 정의
+ * Sheets tool definitions
  */
 export const sheetsTools = {
   sheets_create: {
-    description: "새 Google Sheets 스프레드시트를 생성합니다",
+    description: "Create a new Google Sheets spreadsheet",
     schema: {
-      title: z.string().describe("스프레드시트 제목"),
-      sheetNames: z.array(z.string()).optional().describe("시트 이름 목록"),
-      folderId: z.string().optional().describe("저장할 폴더 ID"),
+      title: z.string().describe("Spreadsheet title"),
+      sheetNames: z.array(z.string()).optional().describe("Sheet name list"),
+      folderId: z.string().optional().describe("Destination folder ID"),
     },
-    handler: async ({ title, sheetNames, folderId }: { title: string; sheetNames?: string[]; folderId?: string }) => {
+    handler: async ({
+      title,
+      sheetNames,
+      folderId,
+    }: {
+      title: string;
+      sheetNames?: string[];
+      folderId?: string;
+    }) => {
+      if (folderId) validateDriveId(folderId, "folderId");
       const { sheets, drive } = await getGoogleServices();
 
-      const requestBody: any = {
+      // FR-S3-07: Typed request body instead of any
+      const requestBody: Record<string, unknown> = {
         properties: { title },
       };
 
@@ -25,26 +38,25 @@ export const sheetsTools = {
         }));
       }
 
-      const response = await sheets.spreadsheets.create({ requestBody });
+      const response = await withRetry(() => sheets.spreadsheets.create({ requestBody }));
       const spreadsheetId = response.data.spreadsheetId!;
 
-      // 폴더로 이동
       if (folderId) {
-        const file = await drive.files.get({
-          fileId: spreadsheetId,
-          fields: "parents",
-        });
-        await drive.files.update({
-          fileId: spreadsheetId,
-          addParents: folderId,
-          removeParents: file.data.parents?.join(","),
-        });
+        const file = await withRetry(() =>
+          drive.files.get({ fileId: spreadsheetId, fields: "parents" })
+        );
+        await withRetry(() =>
+          drive.files.update({
+            fileId: spreadsheetId,
+            addParents: folderId,
+            removeParents: file.data.parents?.join(","),
+          })
+        );
       }
 
-      const file = await drive.files.get({
-        fileId: spreadsheetId,
-        fields: "webViewLink",
-      });
+      const file = await withRetry(() =>
+        drive.files.get({ fileId: spreadsheetId, fields: "webViewLink" })
+      );
 
       return {
         success: true,
@@ -52,22 +64,21 @@ export const sheetsTools = {
         title,
         link: file.data.webViewLink,
         sheets: response.data.sheets?.map((s) => s.properties?.title),
-        message: `스프레드시트 "${title}"이 생성되었습니다.`,
+        message: msg(messages.sheets.spreadsheetCreated, title),
       };
     },
   },
 
   sheets_get_info: {
-    description: "스프레드시트 정보를 조회합니다",
+    description: "Get spreadsheet information",
     schema: {
-      spreadsheetId: z.string().describe("스프레드시트 ID"),
+      spreadsheetId: z.string().describe("Spreadsheet ID"),
     },
     handler: async ({ spreadsheetId }: { spreadsheetId: string }) => {
+      validateDriveId(spreadsheetId, "spreadsheetId");
       const { sheets } = await getGoogleServices();
 
-      const response = await sheets.spreadsheets.get({
-        spreadsheetId,
-      });
+      const response = await withRetry(() => sheets.spreadsheets.get({ spreadsheetId }));
 
       return {
         spreadsheetId,
@@ -85,18 +96,22 @@ export const sheetsTools = {
   },
 
   sheets_read: {
-    description: "스프레드시트 데이터를 읽습니다",
+    description: "Read spreadsheet data",
     schema: {
-      spreadsheetId: z.string().describe("스프레드시트 ID"),
-      range: z.string().describe("범위 (예: 'Sheet1!A1:D10' 또는 'A1:D10')"),
+      spreadsheetId: z.string().describe("Spreadsheet ID"),
+      range: z.string().describe("Range (e.g. 'Sheet1!A1:D10' or 'A1:D10')"),
     },
     handler: async ({ spreadsheetId, range }: { spreadsheetId: string; range: string }) => {
+      validateDriveId(spreadsheetId, "spreadsheetId");
+      const validRange = sanitizeRange(range);
+      if (!validRange) {
+        throw new Error("Invalid range format. Expected A1 notation (e.g., 'Sheet1!A1:D10').");
+      }
       const { sheets } = await getGoogleServices();
 
-      const response = await sheets.spreadsheets.values.get({
-        spreadsheetId,
-        range,
-      });
+      const response = await withRetry(() =>
+        sheets.spreadsheets.values.get({ spreadsheetId, range: validRange })
+      );
 
       return {
         spreadsheetId,
@@ -109,18 +124,25 @@ export const sheetsTools = {
   },
 
   sheets_read_multiple: {
-    description: "여러 범위의 데이터를 한 번에 읽습니다",
+    description: "Read data from multiple ranges at once",
     schema: {
-      spreadsheetId: z.string().describe("스프레드시트 ID"),
-      ranges: z.array(z.string()).describe("범위 목록"),
+      spreadsheetId: z.string().describe("Spreadsheet ID"),
+      ranges: z.array(z.string()).describe("Range list"),
     },
     handler: async ({ spreadsheetId, ranges }: { spreadsheetId: string; ranges: string[] }) => {
+      validateDriveId(spreadsheetId, "spreadsheetId");
+      const validRanges = ranges.map((r) => {
+        const valid = sanitizeRange(r);
+        if (!valid) {
+          throw new Error(`Invalid range format: "${r}". Expected A1 notation.`);
+        }
+        return valid;
+      });
       const { sheets } = await getGoogleServices();
 
-      const response = await sheets.spreadsheets.values.batchGet({
-        spreadsheetId,
-        ranges,
-      });
+      const response = await withRetry(() =>
+        sheets.spreadsheets.values.batchGet({ spreadsheetId, ranges: validRanges })
+      );
 
       return {
         spreadsheetId,
@@ -133,25 +155,36 @@ export const sheetsTools = {
   },
 
   sheets_write: {
-    description: "스프레드시트에 데이터를 씁니다",
+    description: "Write data to a spreadsheet",
     schema: {
-      spreadsheetId: z.string().describe("스프레드시트 ID"),
-      range: z.string().describe("시작 범위 (예: 'Sheet1!A1')"),
-      values: z.array(z.array(z.any())).describe("2D 배열 데이터"),
+      spreadsheetId: z.string().describe("Spreadsheet ID"),
+      range: z.string().describe("Start range (e.g. 'Sheet1!A1')"),
+      values: z.array(z.array(z.any())).describe("2D array data"),
     },
-    handler: async ({ spreadsheetId, range, values }: {
+    handler: async ({
+      spreadsheetId,
+      range,
+      values,
+    }: {
       spreadsheetId: string;
       range: string;
-      values: any[][];
+      values: unknown[][];
     }) => {
+      validateDriveId(spreadsheetId, "spreadsheetId");
+      const validRange = sanitizeRange(range);
+      if (!validRange) {
+        throw new Error("Invalid range format. Expected A1 notation (e.g., 'Sheet1!A1').");
+      }
       const { sheets } = await getGoogleServices();
 
-      const response = await sheets.spreadsheets.values.update({
-        spreadsheetId,
-        range,
-        valueInputOption: "USER_ENTERED",
-        requestBody: { values },
-      });
+      const response = await withRetry(() =>
+        sheets.spreadsheets.values.update({
+          spreadsheetId,
+          range: validRange,
+          valueInputOption: "USER_ENTERED",
+          requestBody: { values },
+        })
+      );
 
       return {
         success: true,
@@ -159,84 +192,100 @@ export const sheetsTools = {
         updatedRows: response.data.updatedRows,
         updatedColumns: response.data.updatedColumns,
         updatedCells: response.data.updatedCells,
-        message: `${response.data.updatedCells}개 셀이 업데이트되었습니다.`,
+        message: `${response.data.updatedCells} cells updated.`,
       };
     },
   },
 
   sheets_append: {
-    description: "스프레드시트 끝에 데이터를 추가합니다",
+    description: "Append data to the end of a spreadsheet",
     schema: {
-      spreadsheetId: z.string().describe("스프레드시트 ID"),
-      range: z.string().describe("시트 범위 (예: 'Sheet1')"),
-      values: z.array(z.array(z.any())).describe("추가할 행 데이터"),
+      spreadsheetId: z.string().describe("Spreadsheet ID"),
+      range: z.string().describe("Sheet range (e.g. 'Sheet1')"),
+      values: z.array(z.array(z.any())).describe("Row data to append"),
     },
-    handler: async ({ spreadsheetId, range, values }: {
+    handler: async ({
+      spreadsheetId,
+      range,
+      values,
+    }: {
       spreadsheetId: string;
       range: string;
-      values: any[][];
+      values: unknown[][];
     }) => {
+      validateDriveId(spreadsheetId, "spreadsheetId");
+      const validRange = sanitizeRange(range);
+      if (!validRange) {
+        throw new Error("Invalid range format. Expected A1 notation (e.g., 'Sheet1').");
+      }
       const { sheets } = await getGoogleServices();
 
-      const response = await sheets.spreadsheets.values.append({
-        spreadsheetId,
-        range,
-        valueInputOption: "USER_ENTERED",
-        insertDataOption: "INSERT_ROWS",
-        requestBody: { values },
-      });
+      const response = await withRetry(() =>
+        sheets.spreadsheets.values.append({
+          spreadsheetId,
+          range: validRange,
+          valueInputOption: "USER_ENTERED",
+          insertDataOption: "INSERT_ROWS",
+          requestBody: { values },
+        })
+      );
 
       return {
         success: true,
         updatedRange: response.data.updates?.updatedRange,
         updatedRows: response.data.updates?.updatedRows,
-        message: `${response.data.updates?.updatedRows}개 행이 추가되었습니다.`,
+        message: `${response.data.updates?.updatedRows} rows appended.`,
       };
     },
   },
 
   sheets_clear: {
-    description: "스프레드시트 범위의 데이터를 삭제합니다",
+    description: "Clear data in a spreadsheet range",
     schema: {
-      spreadsheetId: z.string().describe("스프레드시트 ID"),
-      range: z.string().describe("삭제할 범위"),
+      spreadsheetId: z.string().describe("Spreadsheet ID"),
+      range: z.string().describe("Range to clear"),
     },
     handler: async ({ spreadsheetId, range }: { spreadsheetId: string; range: string }) => {
+      validateDriveId(spreadsheetId, "spreadsheetId");
+      const validRange = sanitizeRange(range);
+      if (!validRange) {
+        throw new Error("Invalid range format. Expected A1 notation.");
+      }
       const { sheets } = await getGoogleServices();
 
-      await sheets.spreadsheets.values.clear({
-        spreadsheetId,
-        range,
-      });
+      await withRetry(() => sheets.spreadsheets.values.clear({ spreadsheetId, range: validRange }));
 
       return {
         success: true,
-        message: `${range} 범위의 데이터가 삭제되었습니다.`,
+        message: `Data in range ${range} cleared.`,
       };
     },
   },
 
   sheets_add_sheet: {
-    description: "새 시트를 추가합니다",
+    description: "Add a new sheet",
     schema: {
-      spreadsheetId: z.string().describe("스프레드시트 ID"),
-      title: z.string().describe("시트 이름"),
+      spreadsheetId: z.string().describe("Spreadsheet ID"),
+      title: z.string().describe("Sheet name"),
     },
     handler: async ({ spreadsheetId, title }: { spreadsheetId: string; title: string }) => {
+      validateDriveId(spreadsheetId, "spreadsheetId");
       const { sheets } = await getGoogleServices();
 
-      const response = await sheets.spreadsheets.batchUpdate({
-        spreadsheetId,
-        requestBody: {
-          requests: [
-            {
-              addSheet: {
-                properties: { title },
+      const response = await withRetry(() =>
+        sheets.spreadsheets.batchUpdate({
+          spreadsheetId,
+          requestBody: {
+            requests: [
+              {
+                addSheet: {
+                  properties: { title },
+                },
               },
-            },
-          ],
-        },
-      });
+            ],
+          },
+        })
+      );
 
       const newSheet = response.data.replies?.[0]?.addSheet;
 
@@ -244,89 +293,108 @@ export const sheetsTools = {
         success: true,
         sheetId: newSheet?.properties?.sheetId,
         title: newSheet?.properties?.title,
-        message: `시트 "${title}"이 추가되었습니다.`,
+        message: `Sheet "${title}" added.`,
       };
     },
   },
 
   sheets_delete_sheet: {
-    description: "시트를 삭제합니다",
+    description: "Delete a sheet",
     schema: {
-      spreadsheetId: z.string().describe("스프레드시트 ID"),
-      sheetId: z.number().describe("시트 ID (시트 이름 아님)"),
+      spreadsheetId: z.string().describe("Spreadsheet ID"),
+      sheetId: z.number().describe("Sheet ID (not sheet name)"),
     },
     handler: async ({ spreadsheetId, sheetId }: { spreadsheetId: string; sheetId: number }) => {
+      validateDriveId(spreadsheetId, "spreadsheetId");
       const { sheets } = await getGoogleServices();
 
-      await sheets.spreadsheets.batchUpdate({
-        spreadsheetId,
-        requestBody: {
-          requests: [
-            {
-              deleteSheet: { sheetId },
-            },
-          ],
-        },
-      });
+      await withRetry(() =>
+        sheets.spreadsheets.batchUpdate({
+          spreadsheetId,
+          requestBody: {
+            requests: [
+              {
+                deleteSheet: { sheetId },
+              },
+            ],
+          },
+        })
+      );
 
       return {
         success: true,
-        message: "시트가 삭제되었습니다.",
+        message: "Sheet deleted.",
       };
     },
   },
 
   sheets_rename_sheet: {
-    description: "시트 이름을 변경합니다",
+    description: "Rename a sheet",
     schema: {
-      spreadsheetId: z.string().describe("스프레드시트 ID"),
-      sheetId: z.number().describe("시트 ID"),
-      newTitle: z.string().describe("새 시트 이름"),
+      spreadsheetId: z.string().describe("Spreadsheet ID"),
+      sheetId: z.number().describe("Sheet ID"),
+      newTitle: z.string().describe("New sheet name"),
     },
-    handler: async ({ spreadsheetId, sheetId, newTitle }: {
+    handler: async ({
+      spreadsheetId,
+      sheetId,
+      newTitle,
+    }: {
       spreadsheetId: string;
       sheetId: number;
       newTitle: string;
     }) => {
+      validateDriveId(spreadsheetId, "spreadsheetId");
       const { sheets } = await getGoogleServices();
 
-      await sheets.spreadsheets.batchUpdate({
-        spreadsheetId,
-        requestBody: {
-          requests: [
-            {
-              updateSheetProperties: {
-                properties: {
-                  sheetId,
-                  title: newTitle,
+      await withRetry(() =>
+        sheets.spreadsheets.batchUpdate({
+          spreadsheetId,
+          requestBody: {
+            requests: [
+              {
+                updateSheetProperties: {
+                  properties: {
+                    sheetId,
+                    title: newTitle,
+                  },
+                  fields: "title",
                 },
-                fields: "title",
               },
-            },
-          ],
-        },
-      });
+            ],
+          },
+        })
+      );
 
       return {
         success: true,
-        message: `시트 이름이 "${newTitle}"으로 변경되었습니다.`,
+        message: `Sheet renamed to "${newTitle}".`,
       };
     },
   },
 
   sheets_format_cells: {
-    description: "셀 서식을 설정합니다 (배경색, 굵게 등)",
+    description: "Format cells (background color, bold, etc.)",
     schema: {
-      spreadsheetId: z.string().describe("스프레드시트 ID"),
-      sheetId: z.number().describe("시트 ID"),
-      startRow: z.number().describe("시작 행 (0부터)"),
-      endRow: z.number().describe("끝 행"),
-      startColumn: z.number().describe("시작 열 (0부터)"),
-      endColumn: z.number().describe("끝 열"),
-      bold: z.boolean().optional().describe("굵게"),
-      backgroundColor: z.string().optional().describe("배경색 (hex, 예: '#FF0000')"),
+      spreadsheetId: z.string().describe("Spreadsheet ID"),
+      sheetId: z.number().describe("Sheet ID"),
+      startRow: z.number().describe("Start row (0-based)"),
+      endRow: z.number().describe("End row"),
+      startColumn: z.number().describe("Start column (0-based)"),
+      endColumn: z.number().describe("End column"),
+      bold: z.boolean().optional().describe("Bold"),
+      backgroundColor: z.string().optional().describe("Background color (hex, e.g. '#FF0000')"),
     },
-    handler: async ({ spreadsheetId, sheetId, startRow, endRow, startColumn, endColumn, bold, backgroundColor }: {
+    handler: async ({
+      spreadsheetId,
+      sheetId,
+      startRow,
+      endRow,
+      startColumn,
+      endColumn,
+      bold,
+      backgroundColor,
+    }: {
       spreadsheetId: string;
       sheetId: number;
       startRow: number;
@@ -336,9 +404,11 @@ export const sheetsTools = {
       bold?: boolean;
       backgroundColor?: string;
     }) => {
+      validateDriveId(spreadsheetId, "spreadsheetId");
       const { sheets } = await getGoogleServices();
 
-      const cellFormat: any = {};
+      // FR-S3-07: Typed format object instead of any
+      const cellFormat: Record<string, unknown> = {};
       const fields: string[] = [];
 
       if (bold !== undefined) {
@@ -355,73 +425,83 @@ export const sheetsTools = {
         fields.push("userEnteredFormat.backgroundColor");
       }
 
-      await sheets.spreadsheets.batchUpdate({
-        spreadsheetId,
-        requestBody: {
-          requests: [
-            {
-              repeatCell: {
-                range: {
-                  sheetId,
-                  startRowIndex: startRow,
-                  endRowIndex: endRow,
-                  startColumnIndex: startColumn,
-                  endColumnIndex: endColumn,
+      await withRetry(() =>
+        sheets.spreadsheets.batchUpdate({
+          spreadsheetId,
+          requestBody: {
+            requests: [
+              {
+                repeatCell: {
+                  range: {
+                    sheetId,
+                    startRowIndex: startRow,
+                    endRowIndex: endRow,
+                    startColumnIndex: startColumn,
+                    endColumnIndex: endColumn,
+                  },
+                  cell: {
+                    userEnteredFormat: cellFormat,
+                  },
+                  fields: fields.join(","),
                 },
-                cell: {
-                  userEnteredFormat: cellFormat,
-                },
-                fields: fields.join(","),
               },
-            },
-          ],
-        },
-      });
+            ],
+          },
+        })
+      );
 
       return {
         success: true,
-        message: "셀 서식이 적용되었습니다.",
+        message: messages.sheets.formatApplied,
       };
     },
   },
 
   sheets_auto_resize: {
-    description: "열 너비를 자동 조절합니다",
+    description: "Auto-resize column widths",
     schema: {
-      spreadsheetId: z.string().describe("스프레드시트 ID"),
-      sheetId: z.number().describe("시트 ID"),
-      startColumn: z.number().optional().default(0).describe("시작 열"),
-      endColumn: z.number().optional().default(26).describe("끝 열"),
+      spreadsheetId: z.string().describe("Spreadsheet ID"),
+      sheetId: z.number().describe("Sheet ID"),
+      startColumn: z.number().optional().default(0).describe("Start column"),
+      endColumn: z.number().optional().default(26).describe("End column"),
     },
-    handler: async ({ spreadsheetId, sheetId, startColumn, endColumn }: {
+    handler: async ({
+      spreadsheetId,
+      sheetId,
+      startColumn,
+      endColumn,
+    }: {
       spreadsheetId: string;
       sheetId: number;
       startColumn: number;
       endColumn: number;
     }) => {
+      validateDriveId(spreadsheetId, "spreadsheetId");
       const { sheets } = await getGoogleServices();
 
-      await sheets.spreadsheets.batchUpdate({
-        spreadsheetId,
-        requestBody: {
-          requests: [
-            {
-              autoResizeDimensions: {
-                dimensions: {
-                  sheetId,
-                  dimension: "COLUMNS",
-                  startIndex: startColumn,
-                  endIndex: endColumn,
+      await withRetry(() =>
+        sheets.spreadsheets.batchUpdate({
+          spreadsheetId,
+          requestBody: {
+            requests: [
+              {
+                autoResizeDimensions: {
+                  dimensions: {
+                    sheetId,
+                    dimension: "COLUMNS",
+                    startIndex: startColumn,
+                    endIndex: endColumn,
+                  },
                 },
               },
-            },
-          ],
-        },
-      });
+            ],
+          },
+        })
+      );
 
       return {
         success: true,
-        message: "열 너비가 자동 조절되었습니다.",
+        message: "Column widths auto-resized.",
       };
     },
   },

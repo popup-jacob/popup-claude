@@ -4,13 +4,18 @@
 # ============================================
 # Auto-detects Docker and recommends best option
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-CYAN='\033[0;36m'
-GRAY='\033[0;90m'
-NC='\033[0m'
+# FR-S3-05a: Source shared utilities
+SHARED_DIR="${SHARED_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../shared" 2>/dev/null && pwd)}"
+if [ -n "$SHARED_DIR" ] && [ -f "$SHARED_DIR/colors.sh" ]; then
+    source "$SHARED_DIR/colors.sh"
+    source "$SHARED_DIR/docker-utils.sh"
+    source "$SHARED_DIR/browser-utils.sh"
+    source "$SHARED_DIR/mcp-config.sh"
+else
+    # Fallback for remote execution
+    RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
+    CYAN='\033[0;36m'; GRAY='\033[0;90m'; NC='\033[0m'
+fi
 
 echo "Atlassian MCP lets Claude access:"
 echo -e "  ${GRAY}- Jira (view issues, create tasks)${NC}"
@@ -22,9 +27,9 @@ echo ""
 # ============================================
 HAS_DOCKER=false
 DOCKER_RUNNING=false
-if command -v docker > /dev/null 2>&1; then
+if docker_is_installed; then
     HAS_DOCKER=true
-    if docker info > /dev/null 2>&1; then
+    if docker_is_running; then
         DOCKER_RUNNING=true
     fi
 fi
@@ -86,22 +91,13 @@ if [ "$USE_DOCKER" = true ]; then
     # Check Docker is running
     if [ "$DOCKER_RUNNING" = false ]; then
         echo ""
-        echo -e "${YELLOW}Docker is not running!${NC}"
-        echo "Please start Docker Desktop."
+        if ! docker_check; then
+            exit 1
+        fi
+    else
         echo ""
-        read -p "Press Enter after starting Docker (q to cancel): " waitDocker < /dev/tty
-        if [ "$waitDocker" = "q" ]; then
-            echo "Cancelled."
-            exit 1
-        fi
-
-        if ! docker info > /dev/null 2>&1; then
-            echo -e "${RED}Docker is still not running.${NC}"
-            exit 1
-        fi
+        echo -e "${GREEN}[OK] Docker check complete${NC}"
     fi
-    echo ""
-    echo -e "${GREEN}[OK] Docker check complete${NC}"
 
     echo ""
     echo -e "${YELLOW}Setting up mcp-atlassian (Docker)...${NC}"
@@ -110,13 +106,10 @@ if [ "$USE_DOCKER" = true ]; then
     echo -e "  ${CYAN}https://id.atlassian.com/manage-profile/security/api-tokens${NC}"
     echo ""
 
+    # FR-S3-05a: Use shared browser_open utility
     read -p "Open API token page in browser? (y/n): " openToken < /dev/tty
     if [ "$openToken" = "y" ] || [ "$openToken" = "Y" ]; then
-        if [[ "$OSTYPE" == "darwin"* ]]; then
-            open "https://id.atlassian.com/manage-profile/security/api-tokens"
-        elif command -v xdg-open > /dev/null 2>&1; then
-            xdg-open "https://id.atlassian.com/manage-profile/security/api-tokens"
-        fi
+        browser_open "https://id.atlassian.com/manage-profile/security/api-tokens"
         echo -e "${YELLOW}Create and copy the token.${NC}"
         read -p "Press Enter when ready: " < /dev/tty
     fi
@@ -139,38 +132,32 @@ if [ "$USE_DOCKER" = true ]; then
     docker pull ghcr.io/sooperset/mcp-atlassian:latest 2>/dev/null
     echo -e "  ${GREEN}OK${NC}"
 
-    # Update .mcp.json using Node.js
+    # FR-S1-04: Secure credential storage in .env file
+    ENV_DIR="$HOME/.atlassian-mcp"
+    ENV_FILE="$ENV_DIR/credentials.env"
+
+    mkdir -p "$ENV_DIR"
+    chmod 700 "$ENV_DIR"
+
+    # Write credentials to env file (owner-only read/write)
+    cat > "$ENV_FILE" << ENVEOF
+CONFLUENCE_URL=$confluenceUrl
+CONFLUENCE_USERNAME=$email
+CONFLUENCE_API_TOKEN=$apiToken
+JIRA_URL=$jiraUrl
+JIRA_USERNAME=$email
+JIRA_API_TOKEN=$apiToken
+ENVEOF
+    chmod 600 "$ENV_FILE"
+    echo -e "  ${GREEN}Credentials saved to $ENV_FILE (permissions: 600)${NC}"
+
+    # FR-S1-09: Use env vars for Node.js (no shell interpolation of user input)
+    # FR-S2-03: Unified MCP config path
+    # FR-S3-05a: Use shared mcp_add_docker_server utility
     echo ""
-    echo -e "${YELLOW}[Config] Updating .mcp.json...${NC}"
-    MCP_CONFIG_PATH="$HOME/.mcp.json"
+    echo -e "${YELLOW}[Config] Updating MCP config...${NC}"
 
-    node -e "
-const fs = require('fs');
-const configPath = '$MCP_CONFIG_PATH';
-let config = { mcpServers: {} };
-
-if (fs.existsSync(configPath)) {
-    config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    if (!config.mcpServers) config.mcpServers = {};
-}
-
-config.mcpServers['atlassian'] = {
-    command: 'docker',
-    args: [
-        'run', '-i', '--rm',
-        '-e', 'CONFLUENCE_URL=$confluenceUrl',
-        '-e', 'CONFLUENCE_USERNAME=$email',
-        '-e', 'CONFLUENCE_API_TOKEN=$apiToken',
-        '-e', 'JIRA_URL=$jiraUrl',
-        '-e', 'JIRA_USERNAME=$email',
-        '-e', 'JIRA_API_TOKEN=$apiToken',
-        'ghcr.io/sooperset/mcp-atlassian:latest'
-    ]
-};
-
-fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-"
-    echo -e "  ${GREEN}OK${NC}"
+    mcp_add_docker_server "atlassian" "ghcr.io/sooperset/mcp-atlassian:latest" "--env-file" "$ENV_FILE"
 
 else
     # ========================================
@@ -183,7 +170,8 @@ else
     echo "Please login and authorize the access."
     echo ""
 
-    claude mcp add --transport sse atlassian https://mcp.atlassian.com/v1/sse
+    CLI_CMD="${CLI_TYPE:-claude}"
+    $CLI_CMD mcp add --transport sse atlassian https://mcp.atlassian.com/v1/sse
 
     echo ""
     echo -e "  ${GREEN}Rovo MCP setup complete!${NC}"

@@ -104,10 +104,22 @@ adw/installer/
 │   │   ├── install.ps1
 │   │   └── install.sh
 │   │
-│   └── figma/               # Figma 연동
-│       ├── module.json
-│       ├── install.ps1
-│       └── install.sh
+│   ├── figma/               # Figma 연동 (Remote MCP + OAuth)
+│   │   ├── module.json
+│   │   ├── install.ps1
+│   │   └── install.sh
+│   │
+│   ├── pencil/              # Pencil AI Design Canvas (VS Code Extension)
+│   │   ├── module.json
+│   │   ├── install.ps1
+│   │   └── install.sh
+│   │
+│   └── shared/              # FR-S3-05a: Shared utilities (sourced by all modules)
+│       ├── colors.sh        # ANSI color codes + print_success/error/warning/info/debug
+│       ├── browser-utils.sh # Cross-platform browser_open() with WSL support
+│       ├── docker-utils.sh  # docker_check(), docker_pull_image(), compatibility check
+│       ├── mcp-config.sh    # mcp_add_docker_server(), mcp_add_stdio_server()
+│       └── oauth-helper.sh  # mcp_oauth_flow() for Remote MCP OAuth
 │
 └── (landing-page는 별도 repo)
     # https://github.com/popup-studio-ai/ai-driven-work-landing
@@ -183,14 +195,41 @@ Docker가 필요한 모듈 선택 시 2단계 설치 명령어가 표시됩니�
 ## Module Types
 
 ### 1. Docker 기반 MCP 모듈
-- Google Workspace, Atlassian
+- Google Workspace, Atlassian (Docker mode)
 - Docker Desktop 필요 (설치 시 자동 감지)
 - Docker 컨테이너로 MCP 서버 실행
 
-### 2. Remote MCP / CLI 모듈
-- Notion, GitHub, Figma
+### 2. Remote MCP 모듈
+- Notion, Figma, Atlassian (Rovo mode)
 - Docker 불필요
-- `claude mcp add` 또는 CLI 도구 설치
+- `claude mcp add --transport http/sse` 방식으로 등록
+- OAuth 인증 자동 처리 (shared/oauth-helper.sh)
+
+### 3. CLI 도구 모듈
+- GitHub (gh CLI)
+- Docker 불필요, MCP 설정 불필요
+- Claude가 Bash tool을 통해 직접 사용
+
+### 4. IDE Extension 모듈
+- Pencil (VS Code / Cursor extension)
+- Docker 불필요, MCP 자동 연결
+- `code --install-extension` 방식
+
+---
+
+## Execution Order (FR-S2-07)
+
+모듈은 `module.json`의 `order` 필드에 따라 정렬 실행됩니다:
+
+| Order | Module     | Type              | Docker |
+|-------|------------|-------------------|--------|
+| 0     | base       | required          | optional |
+| 1     | notion     | remote-mcp        | No     |
+| 2     | google     | docker-mcp        | Yes    |
+| 3     | figma      | remote-mcp        | No     |
+| 4     | github     | cli               | No     |
+| 5     | atlassian  | docker-mcp / rovo | optional |
+| 6     | pencil     | ide-extension     | No     |
 
 ---
 
@@ -229,6 +268,12 @@ Docker가 필요한 모듈 선택 시 2단계 설치 명령어가 표시됩니�
         │                                   │
         ├── modules/figma/ (선택 시) ────────┤
         │   (Figma MCP 설정)                │
+        │                                   │
+        ├── modules/atlassian/ (선택 시) ───┤
+        │   (Docker 또는 Rovo MCP 설정)     │
+        │                                   │
+        ├── modules/pencil/ (선택 시) ──────┤
+        │   (VS Code/Cursor Extension 설치) │
         │                                   │
         ▼                                   │
    설치 완료! ◄──────────────────────────────┘
