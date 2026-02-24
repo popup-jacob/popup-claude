@@ -2,7 +2,7 @@ name: Test Installer
 
 on:
   push:
-    branches: [master, develop, feature/adw-improvement]
+    branches: [master, develop]
     paths:
       - 'installer/**'
   pull_request:
