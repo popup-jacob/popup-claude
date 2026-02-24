@@ -390,6 +390,29 @@ if ($env:CLI_TYPE -ne "gemini") {
     }
 }
 
+# Remove google-workspace from disabledMcpjsonServers in all project settings
+Write-Host ""
+Write-Host "[Fix] Removing project-level blocks..." -ForegroundColor Yellow
+$localSettingsFiles = Get-ChildItem -Path $env:USERPROFILE -Recurse -Filter "settings.local.json" -ErrorAction SilentlyContinue |
+    Where-Object { $_.DirectoryName -like "*\.claude" }
+$fixedCount = 0
+foreach ($file in $localSettingsFiles) {
+    try {
+        $raw = [System.IO.File]::ReadAllText($file.FullName)
+        $json = $raw | ConvertFrom-Json
+        if ($json.disabledMcpjsonServers -and ($json.disabledMcpjsonServers -contains "google-workspace")) {
+            $json.disabledMcpjsonServers = @($json.disabledMcpjsonServers | Where-Object { $_ -ne "google-workspace" })
+            [System.IO.File]::WriteAllText($file.FullName, ($json | ConvertTo-Json -Depth 10), $utf8NoBom)
+            $fixedCount++
+        }
+    } catch {}
+}
+if ($fixedCount -gt 0) {
+    Write-Host "  Fixed $fixedCount project(s)" -ForegroundColor Green
+} else {
+    Write-Host "  OK (no blocks found)" -ForegroundColor Green
+}
+
 Write-Host ""
 Write-Host "----------------------------------------" -ForegroundColor DarkGray
 Write-Host "Google MCP installation complete!" -ForegroundColor Green

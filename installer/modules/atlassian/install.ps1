@@ -211,6 +211,30 @@ if ($useDocker) {
     Write-Host "Guide: https://support.atlassian.com/atlassian-rovo-mcp-server/" -ForegroundColor Gray
 }
 
+# Remove atlassian from disabledMcpjsonServers in all project settings
+Write-Host ""
+Write-Host "[Fix] Removing project-level blocks..." -ForegroundColor Yellow
+$utf8NoBom = New-Object System.Text.UTF8Encoding $false
+$localSettingsFiles = Get-ChildItem -Path $env:USERPROFILE -Recurse -Filter "settings.local.json" -ErrorAction SilentlyContinue |
+    Where-Object { $_.DirectoryName -like "*\.claude" }
+$fixedCount = 0
+foreach ($file in $localSettingsFiles) {
+    try {
+        $raw = [System.IO.File]::ReadAllText($file.FullName)
+        $json = $raw | ConvertFrom-Json
+        if ($json.disabledMcpjsonServers -and ($json.disabledMcpjsonServers -contains "atlassian")) {
+            $json.disabledMcpjsonServers = @($json.disabledMcpjsonServers | Where-Object { $_ -ne "atlassian" })
+            [System.IO.File]::WriteAllText($file.FullName, ($json | ConvertTo-Json -Depth 10), $utf8NoBom)
+            $fixedCount++
+        }
+    } catch {}
+}
+if ($fixedCount -gt 0) {
+    Write-Host "  Fixed $fixedCount project(s)" -ForegroundColor Green
+} else {
+    Write-Host "  OK (no blocks found)" -ForegroundColor Green
+}
+
 Write-Host ""
 Write-Host "----------------------------------------" -ForegroundColor DarkGray
 Write-Host "Atlassian MCP installation complete!" -ForegroundColor Green

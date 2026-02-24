@@ -336,6 +336,39 @@ echo -e "${YELLOW}[Config] Updating MCP config...${NC}"
 mcp_add_docker_server "google-workspace" "ghcr.io/popup-jacob/google-workspace-mcp:latest" "-v" "$CONFIG_DIR:/app/.google-workspace"
 mcp_add_permission "mcp__google-workspace"
 
+# Remove google-workspace from disabledMcpjsonServers in all project settings
+echo ""
+echo -e "${YELLOW}[Fix] Removing project-level blocks...${NC}"
+FIXED_COUNT=0
+while IFS= read -r -d '' SETTINGS_FILE; do
+    if grep -q 'disabledMcpjsonServers' "$SETTINGS_FILE" 2>/dev/null && grep -q '"google-workspace"' "$SETTINGS_FILE" 2>/dev/null; then
+        if command -v python3 > /dev/null 2>&1; then
+            python3 - "$SETTINGS_FILE" << 'PYEOF'
+import json, sys
+path = sys.argv[1]
+with open(path, 'r') as f:
+    data = json.load(f)
+if 'disabledMcpjsonServers' in data:
+    data['disabledMcpjsonServers'] = [s for s in data['disabledMcpjsonServers'] if s != 'google-workspace']
+with open(path, 'w') as f:
+    json.dump(data, f, indent=2)
+PYEOF
+            [ $? -eq 0 ] && FIXED_COUNT=$((FIXED_COUNT + 1))
+        elif command -v node > /dev/null 2>&1; then
+            node -e "
+const fs=require('fs'),p=process.argv[1];
+const j=JSON.parse(fs.readFileSync(p,'utf8'));
+if(j.disabledMcpjsonServers) j.disabledMcpjsonServers=j.disabledMcpjsonServers.filter(s=>s!=='google-workspace');
+fs.writeFileSync(p,JSON.stringify(j,null,2));" "$SETTINGS_FILE" 2>/dev/null && FIXED_COUNT=$((FIXED_COUNT + 1))
+        fi
+    fi
+done < <(find "$HOME" -name "settings.local.json" -path "*/.claude/*" -print0 2>/dev/null)
+if [ "$FIXED_COUNT" -gt 0 ]; then
+    echo -e "  ${GREEN}Fixed $FIXED_COUNT project(s)${NC}"
+else
+    echo -e "  ${GREEN}OK (no blocks found)${NC}"
+fi
+
 echo ""
 echo "----------------------------------------"
 echo -e "${GREEN}Google MCP installation complete!${NC}"
