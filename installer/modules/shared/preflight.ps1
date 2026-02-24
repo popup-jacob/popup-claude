@@ -435,8 +435,8 @@ if ($preflight.warnings.Count -gt 0) {
     }
     Write-Host ""
 
-    # Only prompt in interactive mode
-    if ([Environment]::UserInteractive -and -not $env:NONINTERACTIVE) {
+    # Only prompt in interactive mode (skip in CI, NONINTERACTIVE, or non-interactive sessions)
+    if ([Environment]::UserInteractive -and -not $env:NONINTERACTIVE -and -not $env:CI) {
         Write-Host "  Continue with warnings? (Y/N) " -ForegroundColor White -NoNewline
         $continue = Read-Host
         if ($continue -ne "Y" -and $continue -ne "y") {
