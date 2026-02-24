@@ -150,6 +150,48 @@ fs.writeFileSync(configPath, JSON.stringify(config, null, 2), { mode: 0o600 });
 "
 }
 
+# Add MCP server permission to ~/.claude/settings.json
+# Usage: mcp_add_permission "mcp__server-name"
+mcp_add_permission() {
+    local permission="$1"
+
+    # Claude only (not gemini)
+    if [ "$CLI_TYPE" = "gemini" ]; then
+        return 0
+    fi
+
+    local settings_path="$HOME/.claude/settings.json"
+
+    if ! mcp_check_node; then
+        return 1
+    fi
+
+    SETTINGS_PATH="$settings_path" \
+    PERMISSION="$permission" \
+    node -e "
+const fs = require('fs');
+const settingsPath = process.env.SETTINGS_PATH;
+const permission = process.env.PERMISSION;
+
+let settings = {};
+if (fs.existsSync(settingsPath)) {
+    try { settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8').replace(/^\uFEFF/, '')); } catch(e) {}
+}
+
+if (!settings.permissions) settings.permissions = {};
+if (!settings.permissions.allow) settings.permissions.allow = [];
+
+if (!settings.permissions.allow.includes(permission)) {
+    settings.permissions.allow.push(permission);
+    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+    console.log('  Added permission: ' + permission);
+} else {
+    console.log('  Permission already set: ' + permission);
+}
+"
+    echo -e "  ${GREEN}[OK] Claude settings updated${NC}"
+}
+
 # Check if an MCP server exists in config
 mcp_server_exists() {
     local server_name="$1"

@@ -334,6 +334,7 @@ echo ""
 echo -e "${YELLOW}[Config] Updating MCP config...${NC}"
 
 mcp_add_docker_server "google-workspace" "ghcr.io/popup-jacob/google-workspace-mcp:latest" "-v" "$CONFIG_DIR:/app/.google-workspace"
+mcp_add_permission "mcp__google-workspace"
 
 echo ""
 echo "----------------------------------------"

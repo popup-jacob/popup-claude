@@ -354,8 +354,41 @@ $mcpConfig.mcpServers["google-workspace"] = @{
     args = @("run", "-i", "--rm", "-v", "${configDirUnix}:/app/.google-workspace", "ghcr.io/popup-jacob/google-workspace-mcp:latest")
 }
 
-$mcpConfig | ConvertTo-Json -Depth 10 | Out-File -FilePath $mcpConfigPath -Encoding utf8
+$utf8NoBom = New-Object System.Text.UTF8Encoding $false
+[System.IO.File]::WriteAllText($mcpConfigPath, ($mcpConfig | ConvertTo-Json -Depth 10), $utf8NoBom)
 Write-Host "  OK" -ForegroundColor Green
+
+# Update Claude settings.json permissions (Claude CLI only)
+if ($env:CLI_TYPE -ne "gemini") {
+    $claudeSettingsPath = "$env:USERPROFILE\.claude\settings.json"
+    $permissionToAdd = "mcp__google-workspace"
+
+    $claudeSettings = [PSCustomObject]@{ permissions = [PSCustomObject]@{ allow = @() } }
+    if (Test-Path $claudeSettingsPath) {
+        try {
+            $raw = [System.IO.File]::ReadAllText($claudeSettingsPath).TrimStart([char]0xFEFF)
+            $claudeSettings = $raw | ConvertFrom-Json
+        } catch {}
+    }
+
+    $allowList = @()
+    if ($claudeSettings.permissions -and $claudeSettings.permissions.allow) {
+        $allowList = @($claudeSettings.permissions.allow)
+    }
+
+    if ($allowList -notcontains $permissionToAdd) {
+        $allowList += $permissionToAdd
+        if (-not $claudeSettings.PSObject.Properties['permissions']) {
+            $claudeSettings | Add-Member -NotePropertyName 'permissions' -NotePropertyValue ([PSCustomObject]@{ allow = $allowList })
+        } else {
+            $claudeSettings.permissions.allow = $allowList
+        }
+        [System.IO.File]::WriteAllText($claudeSettingsPath, ($claudeSettings | ConvertTo-Json -Depth 10), $utf8NoBom)
+        Write-Host "  Added Claude permission: $permissionToAdd" -ForegroundColor Green
+    } else {
+        Write-Host "  Claude permission already set" -ForegroundColor Green
+    }
+}
 
 Write-Host ""
 Write-Host "----------------------------------------" -ForegroundColor DarkGray
