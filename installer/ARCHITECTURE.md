@@ -119,7 +119,6 @@ adw/installer/
 │       ├── browser-utils.sh # Cross-platform browser_open() with WSL support
 │       ├── docker-utils.sh  # docker_check(), docker_pull_image(), compatibility check
 │       ├── mcp-config.sh    # mcp_add_docker_server(), mcp_add_stdio_server()
-│       ├── package-manager.sh # pkg_install(), pkg_detect_manager()
 │       └── oauth-helper.sh  # mcp_oauth_flow() for Remote MCP OAuth
 │
 └── (landing-page는 별도 repo)

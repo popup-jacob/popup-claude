@@ -126,8 +126,8 @@ All notable changes to the ADW project are documented in this file.
 
 ### Known Issues / Deferred
 
-- ⏸️ **CHANGELOG.md creation** -- Deferred (manual documentation)
-- ⏸️ **MCP server version in index.ts** -- Should be "1.0.0" (currently "0.1.0")
+- ✅ **CHANGELOG.md creation** -- Created at `google-workspace-mcp/CHANGELOG.md`
+- ✅ **MCP server version in index.ts** -- Updated to "1.0.0"
 - ⏸️ **installer/.env.example** -- Optional documentation file
 - ⏸️ **installer/module-schema.json** -- Optional JSON Schema definition
 - ⏸️ **oauth.ts modularization** -- Deferred to post-v1.0 (design timeline)
