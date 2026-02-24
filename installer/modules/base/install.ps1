@@ -20,10 +20,17 @@ if ($PSScriptRoot) {
     }
 } elseif ($BaseUrl) {
     # Remote iex execution: $PSScriptRoot is empty, download preflight from BaseUrl
+    # try/catch only wraps the download, NOT the execution
+    # so that throw from preflight (user cancel, fatal) propagates correctly
+    $preflightContent = $null
     try {
         $preflightContent = irm "$BaseUrl/modules/shared/preflight.ps1" -ErrorAction Stop
-        Invoke-Expression $preflightContent
     } catch {
+        # Download failed - use minimal fallback
+    }
+    if ($preflightContent) {
+        Invoke-Expression $preflightContent
+    } else {
         $preflight = @{
             isAdmin = $false; hasNvm = $false; hasDockerToolbox = $false
             hasNpmClaude = $false; hasCode = $false; hasCodeInsiders = $false
