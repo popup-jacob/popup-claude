@@ -416,7 +416,7 @@ fi
 echo ""
 if [ "$CLI_TYPE" = "gemini" ]; then
     echo -e "${YELLOW}[7/7] Installing bkit Plugin (Gemini)...${NC}"
-    gemini extensions install https://github.com/popup-studio-ai/bkit-gemini.git 2>/dev/null || true
+    echo "y" | gemini extensions install https://github.com/popup-studio-ai/bkit-gemini.git 2>/dev/null || true
     echo -e "  ${GREEN}OK${NC}"
 else
     echo -e "${YELLOW}[7/7] Installing bkit Plugin...${NC}"

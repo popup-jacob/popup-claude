@@ -381,7 +381,7 @@ if ($env:CLI_TYPE -eq "gemini") {
             Write-Host "  Gemini CLI not found. Skipping bkit plugin." -ForegroundColor Yellow
         } else {
             $ErrorActionPreference = "SilentlyContinue"
-            gemini extensions install https://github.com/popup-studio-ai/bkit-gemini.git 2>$null
+            "y" | gemini extensions install https://github.com/popup-studio-ai/bkit-gemini.git 2>$null
             $ErrorActionPreference = "Stop"
             Write-Host "  OK" -ForegroundColor Green
         }
