@@ -7,11 +7,30 @@
 # ============================================
 # Preflight Environment Checks
 # ============================================
-$preflightPath = Join-Path (Split-Path $PSScriptRoot) "shared\preflight.ps1"
-if (Test-Path $preflightPath) {
-    . $preflightPath
+if ($PSScriptRoot) {
+    $preflightPath = Join-Path (Split-Path $PSScriptRoot) "shared\preflight.ps1"
+    if (Test-Path $preflightPath) {
+        . $preflightPath
+    } else {
+        $preflight = @{
+            isAdmin = $false; hasNvm = $false; hasDockerToolbox = $false
+            hasNpmClaude = $false; hasCode = $false; hasCodeInsiders = $false
+            hasAgy = $false; hasProxy = $false; warnings = @()
+        }
+    }
+} elseif ($BaseUrl) {
+    # Remote iex execution: $PSScriptRoot is empty, download preflight from BaseUrl
+    try {
+        $preflightContent = irm "$BaseUrl/modules/shared/preflight.ps1" -ErrorAction Stop
+        Invoke-Expression $preflightContent
+    } catch {
+        $preflight = @{
+            isAdmin = $false; hasNvm = $false; hasDockerToolbox = $false
+            hasNpmClaude = $false; hasCode = $false; hasCodeInsiders = $false
+            hasAgy = $false; hasProxy = $false; warnings = @()
+        }
+    }
 } else {
-    # Minimal preflight object if file not found
     $preflight = @{
         isAdmin = $false; hasNvm = $false; hasDockerToolbox = $false
         hasNpmClaude = $false; hasCode = $false; hasCodeInsiders = $false

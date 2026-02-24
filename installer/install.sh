@@ -656,7 +656,7 @@ setup_shared_dir() {
         # FR-S2-02: Download shared scripts to temp directory for remote execution
         SHARED_TMP=$(mktemp -d)
         trap 'rm -rf "$SHARED_TMP"' EXIT
-        for shared_file in colors.sh browser-utils.sh docker-utils.sh mcp-config.sh; do
+        for shared_file in colors.sh browser-utils.sh docker-utils.sh mcp-config.sh preflight.sh; do
             curl -sSL "$BASE_URL/modules/shared/$shared_file" -o "$SHARED_TMP/$shared_file" 2>/dev/null || true
         done
         export SHARED_DIR="$SHARED_TMP"
