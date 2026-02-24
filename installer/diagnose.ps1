@@ -29,6 +29,4 @@ try {
 }
 
 Write-Host ""
-Write-Host "Share the output above when reporting installation issues." -ForegroundColor Gray
-Write-Host ""
 Read-Host "Press Enter to close"

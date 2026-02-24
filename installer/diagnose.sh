@@ -35,6 +35,4 @@ else
 fi
 
 echo ""
-echo -e "${GRAY}Share the output above when reporting installation issues.${NC}"
-echo ""
 if [ "$CI" != "true" ]; then read -p "Press Enter to close" < /dev/tty; fi
