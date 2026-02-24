@@ -10,7 +10,7 @@ import { slidesTools } from "./tools/slides.js";
 
 const server = new McpServer({
   name: "google-workspace-mcp",
-  version: "0.1.0",
+  version: "1.0.0",
 });
 
 // Register all tools
