@@ -14,13 +14,6 @@ else
     CYAN='\033[0;36m'; GRAY='\033[0;90m'; NC='\033[0m'
 fi
 
-# ============================================
-# Preflight Environment Checks
-# ============================================
-if [ -n "$SHARED_DIR" ] && [ -f "$SHARED_DIR/preflight.sh" ]; then
-    source "$SHARED_DIR/preflight.sh" || exit 1
-fi
-
 DOCKER_NEEDS_RESTART=false
 
 # ── Helper: persist a directory to PATH (shell configs + current session) ─────

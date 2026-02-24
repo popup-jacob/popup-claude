@@ -4,45 +4,10 @@
 # This module installs: Node.js, Git, VS Code, Docker, Claude CLI, bkit Plugin
 # Called by install.ps1, can also run standalone
 
-# ============================================
-# Preflight Environment Checks
-# ============================================
-if ($PSScriptRoot) {
-    $preflightPath = Join-Path (Split-Path $PSScriptRoot) "shared\preflight.ps1"
-    if (Test-Path $preflightPath) {
-        . $preflightPath
-    } else {
-        $preflight = @{
-            isAdmin = $false; hasNvm = $false; hasDockerToolbox = $false
-            hasNpmClaude = $false; hasCode = $false; hasCodeInsiders = $false
-            hasAgy = $false; hasProxy = $false; warnings = @()
-        }
-    }
-} elseif ($BaseUrl) {
-    # Remote iex execution: $PSScriptRoot is empty, download preflight from BaseUrl
-    # try/catch only wraps the download, NOT the execution
-    # so that throw from preflight (user cancel, fatal) propagates correctly
-    $preflightContent = $null
-    try {
-        $preflightContent = irm "$BaseUrl/modules/shared/preflight.ps1" -ErrorAction Stop
-    } catch {
-        # Download failed - use minimal fallback
-    }
-    if ($preflightContent) {
-        Invoke-Expression $preflightContent
-    } else {
-        $preflight = @{
-            isAdmin = $false; hasNvm = $false; hasDockerToolbox = $false
-            hasNpmClaude = $false; hasCode = $false; hasCodeInsiders = $false
-            hasAgy = $false; hasProxy = $false; warnings = @()
-        }
-    }
-} else {
-    $preflight = @{
-        isAdmin = $false; hasNvm = $false; hasDockerToolbox = $false
-        hasNpmClaude = $false; hasCode = $false; hasCodeInsiders = $false
-        hasAgy = $false; hasProxy = $false; warnings = @()
-    }
+$preflight = @{
+    isAdmin = $false; hasNvm = $false; hasDockerToolbox = $false
+    hasNpmClaude = $false; hasCode = $false; hasCodeInsiders = $false
+    hasAgy = $false; hasProxy = $false; warnings = @()
 }
 
 # ============================================
