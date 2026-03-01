@@ -219,8 +219,7 @@ function Get-InstallStatus {
 }
 
 # ============================================
-# 4. Admin Check & Elevation (only when required)
-# FR-S2-10: Conditional admin - only elevate when installing system packages
+# 4. Admin Check & Elevation (always elevate)
 # ============================================
 function Test-Admin {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -228,23 +227,8 @@ function Test-Admin {
     return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
-function Test-AdminRequired {
-    # Admin required when: base module needs to install system packages OR Docker needed
-    if (-not $skipBase) {
-        $status = Get-InstallStatus
-        # Need admin if Node.js, Git, IDE, or Docker need installation
-        if (-not $status.NodeJS -or -not $status.Git -or -not $status.IDE) {
-            return $true
-        }
-    }
-    if ($script:needsDocker -and -not (Get-Command docker -ErrorAction SilentlyContinue)) {
-        return $true
-    }
-    return $false
-}
-
-if ((Test-AdminRequired) -and -not (Test-Admin)) {
-    Write-Host "Administrator privileges required for system package installation. Restarting as admin..." -ForegroundColor Yellow
+if (-not (Test-Admin)) {
+    Write-Host "Restarting as administrator..." -ForegroundColor Yellow
 
     $params = @()
     if ($modules) { $params += "-modules '$modules'" }
