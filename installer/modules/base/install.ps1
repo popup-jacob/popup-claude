@@ -27,7 +27,14 @@ function Test-CommandExists {
 function Ensure-InPath {
     param([string]$Dir)
     if ((Test-Path $Dir) -and ($env:PATH -notlike "*$Dir*")) {
+        # 현재 세션에 즉시 적용
         $env:PATH = "$Dir;$env:PATH"
+
+        # 레지스트리에 영구 저장
+        $userPath = [Environment]::GetEnvironmentVariable("PATH", "User")
+        if ($userPath -notlike "*$Dir*") {
+            [Environment]::SetEnvironmentVariable("PATH", "$userPath;$Dir", "User")
+        }
     }
 }
 
