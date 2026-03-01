@@ -5,7 +5,8 @@
 # Called by install.ps1, can also run standalone
 
 $preflight = @{
-    isAdmin = $false; hasNvm = $false; hasDockerToolbox = $false
+    isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    hasNvm = $false; hasDockerToolbox = $false
     hasNpmClaude = $false; hasCode = $false; hasCodeInsiders = $false
     hasAgy = $false; hasProxy = $false; warnings = @()
 }
