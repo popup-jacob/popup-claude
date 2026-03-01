@@ -252,62 +252,97 @@ load_modules() {
         fi
 
         if [ -n "$modules_json" ]; then
-            # FR-S1-03: Parse module names safely via stdin (no shell interpolation)
-            # Uses same fallback chain as parse_json: node > python3 > osascript
-            local module_names=""
+            # FR-S1-03: Parse module names and orders safely via stdin (no shell interpolation)
+            # Returns "name:order" pairs for lazy loading optimization
+            local module_entries=""
             if command -v node > /dev/null 2>&1; then
-                module_names=$(echo "$modules_json" | node -e "
+                module_entries=$(echo "$modules_json" | node -e "
                     let data = '';
                     process.stdin.setEncoding('utf8');
                     process.stdin.on('data', chunk => data += chunk);
                     process.stdin.on('end', () => {
                         try {
                             const parsed = JSON.parse(data);
-                            process.stdout.write(parsed.modules.map(m => m.name).join(' '));
+                            process.stdout.write(parsed.modules.map(m => m.name+':'+m.order).join(' '));
                         } catch (e) {
                             process.stdout.write('');
                         }
                     });
                 " 2>/dev/null)
             elif command -v python3 > /dev/null 2>&1; then
-                module_names=$(echo "$modules_json" | python3 -c "
+                module_entries=$(echo "$modules_json" | python3 -c "
 import json, sys
 try:
     d = json.load(sys.stdin)
-    print(' '.join(m['name'] for m in d.get('modules', [])), end='')
+    print(' '.join(f'{m[\"name\"]}:{m.get(\"order\",99)}' for m in d.get('modules', [])), end='')
 except:
     print('', end='')
 " 2>/dev/null)
             elif command -v osascript > /dev/null 2>&1; then
-                module_names=$(echo "$modules_json" | osascript -l JavaScript -e "
+                module_entries=$(echo "$modules_json" | osascript -l JavaScript -e "
                     var input = $.NSFileHandle.fileHandleWithStandardInput;
                     var data = input.readDataToEndOfFile;
                     var str = $.NSString.alloc.initWithDataEncoding(data, $.NSUTF8StringEncoding).js;
                     var obj = JSON.parse(str);
-                    obj.modules.map(function(m){ return m.name; }).join(' ');
+                    obj.modules.map(function(m){ return m.name+':'+m.order; }).join(' ');
                 " 2>/dev/null)
             fi
-            for name in $module_names; do
-                # FR-S1-11: Verify module.json files too
-                local mod_tmpfile
-                mod_tmpfile=$(download_and_verify \
-                    "$BASE_URL/modules/$name/module.json" \
-                    "modules/$name/module.json" 2>/dev/null)
-                local json=""
-                if [ -n "$mod_tmpfile" ] && [ -f "$mod_tmpfile" ]; then
-                    json=$(cat "$mod_tmpfile")
-                    rm -f "$mod_tmpfile"
+
+            # Determine which modules need full metadata (base + selected)
+            local need_full="base"
+            if [ -n "$MODULES" ]; then
+                need_full="$need_full $(echo "$MODULES" | tr ',' ' ')"
+            fi
+            local load_all=false
+            if [ "$INSTALL_ALL" = true ] || [ "$LIST_ONLY" = true ]; then
+                load_all=true
+            fi
+
+            for entry in $module_entries; do
+                local name="${entry%%:*}"
+                local order="${entry##*:}"
+
+                local needs_full=false
+                if [ "$load_all" = true ]; then
+                    needs_full=true
                 else
-                    json=$(curl -sSL "$BASE_URL/modules/$name/module.json" 2>/dev/null || echo "")
+                    for needed in $need_full; do
+                        if [ "$name" = "$needed" ]; then needs_full=true; break; fi
+                    done
                 fi
-                if [ -n "$json" ]; then
-                    MODULE_NAMES[$idx]=$(parse_json "$json" "name")
-                    MODULE_DISPLAY_NAMES[$idx]=$(parse_json "$json" "displayName")
-                    MODULE_DESCRIPTIONS[$idx]=$(parse_json "$json" "description")
-                    MODULE_ORDERS[$idx]=$(parse_json "$json" "order")
-                    MODULE_REQUIRED[$idx]=$(parse_json "$json" "required")
-                    MODULE_COMPLEXITY[$idx]=$(parse_json "$json" "complexity")
-                    MODULE_DOCKER_REQ[$idx]=$(parse_json "$json" "requirements.docker")
+
+                if [ "$needs_full" = true ]; then
+                    # FR-S1-11: Verify module.json files too
+                    local mod_tmpfile
+                    mod_tmpfile=$(download_and_verify \
+                        "$BASE_URL/modules/$name/module.json" \
+                        "modules/$name/module.json" 2>/dev/null)
+                    local json=""
+                    if [ -n "$mod_tmpfile" ] && [ -f "$mod_tmpfile" ]; then
+                        json=$(cat "$mod_tmpfile")
+                        rm -f "$mod_tmpfile"
+                    else
+                        json=$(curl -sSL "$BASE_URL/modules/$name/module.json" 2>/dev/null || echo "")
+                    fi
+                    if [ -n "$json" ]; then
+                        MODULE_NAMES[$idx]=$(parse_json "$json" "name")
+                        MODULE_DISPLAY_NAMES[$idx]=$(parse_json "$json" "displayName")
+                        MODULE_DESCRIPTIONS[$idx]=$(parse_json "$json" "description")
+                        MODULE_ORDERS[$idx]=$(parse_json "$json" "order")
+                        MODULE_REQUIRED[$idx]=$(parse_json "$json" "required")
+                        MODULE_COMPLEXITY[$idx]=$(parse_json "$json" "complexity")
+                        MODULE_DOCKER_REQ[$idx]=$(parse_json "$json" "requirements.docker")
+                        ((idx++))
+                    fi
+                else
+                    # Minimal entry for name validation (no HTTP request)
+                    MODULE_NAMES[$idx]="$name"
+                    MODULE_DISPLAY_NAMES[$idx]="$name"
+                    MODULE_DESCRIPTIONS[$idx]=""
+                    MODULE_ORDERS[$idx]="$order"
+                    MODULE_REQUIRED[$idx]="false"
+                    MODULE_COMPLEXITY[$idx]=""
+                    MODULE_DOCKER_REQ[$idx]=""
                     ((idx++))
                 fi
             done

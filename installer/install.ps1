@@ -88,13 +88,29 @@ function Get-AvailableModules {
         try {
             $modulesIndex = irm "$BaseUrl/modules.json" -ErrorAction SilentlyContinue
             if ($modulesIndex -and $modulesIndex.modules) {
+                # Only download full module.json for modules we actually need
+                $needFullMeta = @("base")
+                if ($modules) { $needFullMeta += ($modules -split "," | ForEach-Object { $_.Trim() }) }
+                $loadAll = $all -or $list
+
                 foreach ($mod in $modulesIndex.modules) {
-                    try {
-                        $moduleJson = irm "$BaseUrl/modules/$($mod.name)/module.json" -ErrorAction SilentlyContinue
-                        if ($moduleJson) {
-                            $moduleList += $moduleJson
-                        }
-                    } catch {}
+                    if ($loadAll -or ($mod.name -in $needFullMeta)) {
+                        try {
+                            $moduleJson = irm "$BaseUrl/modules/$($mod.name)/module.json" -ErrorAction SilentlyContinue
+                            if ($moduleJson) {
+                                $moduleList += $moduleJson
+                                continue
+                            }
+                        } catch {}
+                    }
+                    # Minimal entry for name validation (no HTTP request)
+                    $moduleList += [PSCustomObject]@{
+                        name = $mod.name
+                        order = $mod.order
+                        displayName = $mod.name
+                        description = ""
+                        required = $false
+                    }
                 }
             }
         } catch {}
@@ -137,7 +153,29 @@ if ($list) {
 # ============================================
 # 3. Smart Status Check (must be before Admin Check)
 # ============================================
+$script:_cachedStatus = $null
+
 function Get-InstallStatus {
+    param([switch]$CheckDocker)
+
+    if ($script:_cachedStatus) {
+        # Return cached result, but run Docker checks if newly requested
+        if ($CheckDocker -and -not $script:_cachedStatus._dockerChecked) {
+            $prevEA = $ErrorActionPreference
+            $ErrorActionPreference = "Continue"
+            wsl --version 2>&1 | Out-Null
+            if ($LASTEXITCODE -eq 0) { $script:_cachedStatus.WSL = $true }
+            $ErrorActionPreference = $prevEA
+
+            if ($script:_cachedStatus.Docker) {
+                $null = docker info 2>&1
+                $script:_cachedStatus.DockerRunning = ($LASTEXITCODE -eq 0)
+            }
+            $script:_cachedStatus._dockerChecked = $true
+        }
+        return $script:_cachedStatus
+    }
+
     $cliCmd = if ($env:CLI_TYPE -eq "gemini") { "gemini" } else { "claude" }
     $status = @{
         NodeJS = [bool](Get-Command node -ErrorAction SilentlyContinue)
@@ -148,23 +186,25 @@ function Get-InstallStatus {
         DockerRunning = $false
         CLI = [bool](Get-Command $cliCmd -ErrorAction SilentlyContinue)
         Bkit = $false
+        _dockerChecked = $false
     }
 
     # IDE check
     $status.IDE = (Test-Path "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe") -or (Test-Path "$env:ProgramFiles\Microsoft VS Code\Code.exe")
 
-    # Check WSL
-    $prevEA = $ErrorActionPreference
-    $ErrorActionPreference = "Continue"
-    wsl --version 2>&1 | Out-Null
-    if ($LASTEXITCODE -eq 0) {
-        $status.WSL = $true
-    }
-    $ErrorActionPreference = $prevEA
+    # WSL & Docker checks: only when explicitly requested (slow on fresh machines)
+    if ($CheckDocker) {
+        $prevEA = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
+        wsl --version 2>&1 | Out-Null
+        if ($LASTEXITCODE -eq 0) { $status.WSL = $true }
+        $ErrorActionPreference = $prevEA
 
-    if ($status.Docker) {
-        $null = docker info 2>&1
-        $status.DockerRunning = ($LASTEXITCODE -eq 0)
+        if ($status.Docker) {
+            $null = docker info 2>&1
+            $status.DockerRunning = ($LASTEXITCODE -eq 0)
+        }
+        $status._dockerChecked = $true
     }
 
     if ($status.CLI) {
@@ -174,6 +214,7 @@ function Get-InstallStatus {
         }
     }
 
+    $script:_cachedStatus = $status
     return $status
 }
 
@@ -285,9 +326,7 @@ if ($env:CI -ne "true") {
     }
 }
 
-$status = Get-InstallStatus
-
-# Check Docker requirement for selected modules (before status display)
+# Check Docker requirement for selected modules (before status check)
 $script:needsDocker = $false
 $script:needsDockerRunning = $false
 # Parameter or environment variable to force Docker installation (for Step 1)
@@ -301,6 +340,13 @@ foreach ($modName in $selectedModules) {
         $script:needsDockerRunning = $true
         break
     }
+}
+
+# Run status check (WSL/Docker only when needed - saves 20-60s on fresh machines)
+if ($script:needsDocker) {
+    $status = Get-InstallStatus -CheckDocker
+} else {
+    $status = Get-InstallStatus
 }
 
 $ideLabel = "VS Code"
