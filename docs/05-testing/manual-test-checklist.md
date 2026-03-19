@@ -27,7 +27,7 @@
 | Step | Action | Expected Result | Pass/Fail |
 |------|--------|----------------|-----------|
 | 1 | `curl -fsSL https://raw.githubusercontent.com/popup-jacob/popup-claude/master/installer/install.sh \| bash` | 스크립트 다운로드 및 실행 시작 | |
-| 2 | 시스템 요구사항 체크 출력 확인 | RAM >= 8GB, CPU >= 4, Disk >= 40GB 표시 | |
+| 2 | 시스템 요구사항 체크 출력 확인 | RAM >= 8GB, CPU >= 4, Disk >= 10GB 표시 | |
 | 3 | 모듈 목록 표시 확인 | 7개 모듈 (base + 6 optional) 목록 표시 | |
 | 4 | base 모듈만 선택하여 설치 | Node.js, Git, VS Code, Docker, Claude CLI, bkit 설치 완료 | |
 | 5 | `node --version` | v18+ 출력 | |

@@ -129,7 +129,7 @@ docker --version   # Docker 24.x ~ 25.x
 ```
 Apple Silicon Mac (M1/M2/M3)
 - RAM: 16GB 권장
-- 디스크: 40GB 여유 공간
+- 디스크: 10GB 여유 공간
 - 별도 사용자 계정 생성 (테스트 전용)
   $ sudo dscl . -create /Users/testuser
 ```
