@@ -289,7 +289,7 @@ if ($env:CI -ne "true") {
 
     $minRAM = 8
     $minCPU = 4
-    $minDisk = 40
+    $minDisk = 10
 
     $specFailed = $false
     $specMessages = @()

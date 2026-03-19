@@ -464,7 +464,7 @@ echo ""
 # ============================================
 MIN_RAM=8
 MIN_CPU=4
-MIN_DISK=40
+MIN_DISK=10
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
     SYS_RAM=$(sysctl -n hw.memsize | awk '{printf "%d", $0/1073741824}')
